@@ -1,0 +1,23 @@
+module Token.Label;
+
+import Stdlib.Prelude open;
+import Anoma open;
+
+type Label :=
+  mkLabel {
+    name : Nat;
+    symbol : String;
+    decimals : Nat
+  };
+
+instance
+Label-Eq : Eq Label :=
+  mkEq@{
+    eq (d1 d2 : Label) : Bool :=
+      Label.name d1 == Label.name d2
+        && Label.symbol d1 == Label.symbol d2
+        && Label.decimals d1 == Label.decimals d2
+  };
+
+getLabel (r : Resource) : Label :=
+  anomaDecode (Resource.label r);

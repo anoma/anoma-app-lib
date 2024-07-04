@@ -1,0 +1,25 @@
+module Token.Resource;
+
+import Stdlib.Prelude open;
+import Anoma open;
+
+import Token.Label open;
+import Token.Logic open;
+import Authorization.Owner open;
+
+mkToken
+  (ephemeral : Bool)
+  (amount : Nat)
+  (tokenLabel : Label)
+  (ownerData : Owner)
+  : Resource :=
+  Resource.mk@{
+    logic := tokenLogic;
+    label := anomaEncode tokenLabel;
+    quantity := amount;
+    data := anomaEncode ownerData;
+    eph := ephemeral;
+    npk := Owner.owner ownerData;
+    nonce := 0;
+    rseed := 0
+  };

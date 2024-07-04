@@ -1,0 +1,16 @@
+module Token.Logic;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Authorization.Owner open;
+
+tokenLogic (self : Resource) (tx : Transaction) : Bool :=
+  if
+    | isConsumed self tx := isAuthorizedByOwner self tx
+    | isCreated self tx := true
+    | else := false;
+
+
+-- TODO Implement fixed supply

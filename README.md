@@ -1,3 +1,3 @@
-# Nomine 
+# Anoma App Patterns 
 
-Nomine is a library for intent-centric application development.
+A library for intent-centric application development.

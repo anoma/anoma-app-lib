@@ -1,0 +1,211 @@
+module Token.Transaction;
+
+import Stdlib.Prelude open;
+import Data.Map open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Token.Resource open;
+import Token.Label open;
+import Token.Logic open;
+import Authorization.Owner open;
+
+--- Mints a token ;Resource; owned by an receiver ;PublicKey;.
+--- This requires an ephemeral resource to be consumed.
+mint
+  (self : KeyPair)
+  (label : Label)
+  (amount : Nat)
+  (receiver : PublicKey)
+  : Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    mySecret : PrivateKey := KeyPair.privKey self;
+
+    ephToken : Resource :=
+      mkToken
+        true
+        amount
+        label
+        mkOwner@{
+          owner := myself
+        };
+    newToken : Resource :=
+      mkToken
+        false
+        amount
+        label
+        mkOwner@{
+          owner := receiver
+        };
+
+    consumedRs : List Resource := [ephToken];
+    createdRs : List Resource := [newToken];
+    extraData : Map Bytes32 Bytes :=
+      mkAuthExtraData mySecret consumedRs createdRs;
+  in mkTransaction mySecret consumedRs createdRs extraData;
+
+--- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
+--- This requires an ephemeral resource to be created.
+--- If the calling ;KeyPair; is not the owner, this function returns nothing.
+burn
+  (self : KeyPair) (token : Resource) : Maybe Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    mySecret : PrivateKey := KeyPair.privKey self;
+
+    -- This ephemeral resource is needed for the total balance check.
+    ephToken :=
+      mkToken
+        true
+        (Resource.quantity token)
+        (getLabel token)
+        mkOwner@{
+          owner := 0
+        };
+
+    consumedRs : List Resource := [token];
+    createdRs : List Resource := [ephToken];
+    extraData : Map Bytes32 Bytes :=
+      mkAuthExtraData mySecret consumedRs createdRs;
+  in if
+    | getOwner (token) /= myself := nothing
+    | else :=
+      just
+        (mkTransaction mySecret consumedRs createdRs extraData);
+
+--- Sends an amount of token ;Resource; to receiver, if the calling ;KeyPair; is the owner.
+--- If the calling ;KeyPair; is not the owner, this function returns nothing.
+--- If the amount exceeds the quantity available in the resource, the function returns nothing.
+send
+  (self : KeyPair)
+  (token : Resource)
+  (amount : Nat)
+  (receiver : PublicKey)
+  : Maybe Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    availableAmount : Nat := Resource.quantity token;
+  in if
+    | getOwner (token) /= myself := nothing
+    | availableAmount < amount := nothing
+    | availableAmount == amount := transfer self token receiver
+    | availableAmount > amount :=
+      let
+        remainder : Nat :=
+          toNat (intSubNat availableAmount amount);
+      in split self token (amount, receiver) (remainder, myself)
+    | else := nothing;
+
+--- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
+--- If the calling ;KeyPair; is not the owner, this function returns nothing.
+transfer
+  (self : KeyPair)
+  (token : Resource)
+  (receiver : PublicKey)
+  : Maybe Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    mySecret : PrivateKey := KeyPair.privKey self;
+
+    newToken :=
+      mkToken
+        false
+        (Resource.quantity token)
+        (getLabel token)
+        mkOwner@{
+          owner := receiver
+        };
+
+    consumedRs : List Resource := [token];
+    createdRs : List Resource := [newToken];
+    extraData : Map Bytes32 Bytes :=
+      mkAuthExtraData mySecret consumedRs createdRs;
+  in if
+    | getOwner token == myself :=
+      just
+        (mkTransaction mySecret consumedRs createdRs extraData)
+    | else := nothing;
+
+--- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
+--- If the calling ;KeyPair; is not the owner or if the amounts do not balance, this function returns nothing.
+split
+  (self : KeyPair)
+  (token : Resource)
+  (amountAndReceiverA amountAndReceiverB : Pair Nat PublicKey)
+  : Maybe Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    mySecret : PrivateKey := KeyPair.privKey self;
+
+    label : Label := anomaDecode (Resource.label token);
+    sum : Nat :=
+      fst amountAndReceiverA + fst amountAndReceiverB;
+
+    outA : Resource :=
+      mkToken
+        false
+        (fst amountAndReceiverA)
+        label
+        mkOwner@{
+          owner := snd amountAndReceiverA
+        };
+    outB : Resource :=
+      mkToken
+        false
+        (fst amountAndReceiverB)
+        label
+        mkOwner@{
+          owner := snd amountAndReceiverB
+        };
+
+    consumedRs : List Resource := [token];
+    createdRs : List Resource := outA :: outB :: nil;
+    extraData : Map Bytes32 Bytes :=
+      mkAuthExtraData mySecret consumedRs createdRs;
+  in if
+    | getOwner token == myself
+      && Resource.quantity token == sum :=
+      just
+        (mkTransaction mySecret consumedRs createdRs extraData)
+    | else := nothing;
+
+--- Merges two token ;Resource;s, if the calling ;KeyPair; is the owner of both.
+--- If the calling ;KeyPair; is not the owner, this function returns nothing.
+merge
+  (self : KeyPair)
+  (tokenA tokenB : Resource)
+  (receiver : PublicKey)
+  : Maybe Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    mySecret : PrivateKey := KeyPair.privKey self;
+
+    ownerA : PublicKey := getOwner tokenA;
+    ownerB : PublicKey := getOwner tokenB;
+
+    labelA : Label := anomaDecode (Resource.label tokenA);
+    labelB : Label := anomaDecode (Resource.label tokenB);
+
+    sum : Nat :=
+      Resource.quantity tokenA + Resource.quantity tokenB;
+    merged : Resource :=
+      mkToken
+        false
+        sum
+        labelA
+        mkOwner@{
+          owner := myself
+        };
+
+    consumedRs : List Resource := tokenA :: tokenB :: nil;
+    createdRs : List Resource := [merged];
+    extraData : Map Bytes32 Bytes :=
+      mkAuthExtraData mySecret consumedRs createdRs;
+  in if
+    | labelA == labelB
+      && ownerA == myself
+      && ownerB == myself :=
+      just
+        (mkTransaction mySecret consumedRs createdRs extraData)
+    | else := nothing;

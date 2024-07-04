@@ -1,0 +1,4 @@
+.juvix-build
+.history
+*.nockma
+.DS_Store
