@@ -6,6 +6,7 @@ import Anoma open;
 type Label :=
   mkLabel {
     name : Nat;
+    -- TODO This should become a ;String; once `natToString` is implemented.
     symbol : String;
     decimals : Nat
   };
@@ -21,3 +22,11 @@ Label-Eq : Eq Label :=
 
 getLabel (r : Resource) : Label :=
   anomaDecode (Resource.label r);
+
+getName (r : Resource) : Nat := Label.name (getLabel r);
+
+getSymbol (r : Resource) : String :=
+  Label.symbol (getLabel r);
+
+getDecimals (r : Resource) : Nat :=
+  Label.decimals (getLabel r);
