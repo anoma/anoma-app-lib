@@ -94,7 +94,7 @@ send
       let
         remainder : Nat :=
           toNat (intSubNat availableAmount amount);
-      in split self token (amount, receiver) (remainder, myself)
+      in split self token ((amount, receiver) :: (remainder, myself) :: nil)
     | else := nothing;
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
@@ -132,37 +132,18 @@ transfer
 split
   (self : KeyPair)
   (token : Resource)
-  (amountAndReceiverA amountAndReceiverB : Pair Nat PublicKey)
+  (amountsAndReceivers : List (Pair Nat PublicKey))
   : Maybe Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
 
     label : Label := anomaDecode (Resource.label token);
-    sum : Nat :=
-      fst amountAndReceiverA + fst amountAndReceiverB;
-
-    outA : Resource :=
-      mkToken
-        false
-        (fst amountAndReceiverA)
-        label
-        mkOwner@{
-          owner := snd amountAndReceiverA
-        };
-    outB : Resource :=
-      mkToken
-        false
-        (fst amountAndReceiverB)
-        label
-        mkOwner@{
-          owner := snd amountAndReceiverB
-        };
+    sum : Nat := for (acc := 0) ((amount, _) in amountsAndReceivers) {amount + acc};
 
     consumedRs : List Resource := [token];
-    createdRs : List Resource := outA :: outB :: nil;
-    extraData : Map Bytes32 Bytes :=
-      mkAuthExtraData mySecret consumedRs createdRs;
+    createdRs : List Resource := map ((amount, receiver) in amountsAndReceivers) {mkToken false amount label mkOwner@{owner := receiver;}};
+    extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
   in if
     | getOwner token == myself
       && Resource.quantity token == sum :=
@@ -174,38 +155,27 @@ split
 --- If the calling ;KeyPair; is not the owner, this function returns nothing.
 merge
   (self : KeyPair)
-  (tokenA tokenB : Resource)
+  (tokens : List Resource)
   (receiver : PublicKey)
   : Maybe Transaction :=
-  let
-    myself : PublicKey := KeyPair.pubKey self;
-    mySecret : PrivateKey := KeyPair.privKey self;
+  case tokens of
+    | nil := nothing
+    | (t :: ts) :=
+    let
+      myself : PublicKey := KeyPair.pubKey self;
+      mySecret : PrivateKey := KeyPair.privKey self;
 
-    ownerA : PublicKey := getOwner tokenA;
-    ownerB : PublicKey := getOwner tokenB;
+      label : Label := getLabel t;
+      owner : PublicKey := getOwner t;
+      sum : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
 
-    labelA : Label := anomaDecode (Resource.label tokenA);
-    labelB : Label := anomaDecode (Resource.label tokenB);
-
-    sum : Nat :=
-      Resource.quantity tokenA + Resource.quantity tokenB;
-    merged : Resource :=
-      mkToken
-        false
-        sum
-        labelA
-        mkOwner@{
-          owner := myself
-        };
-
-    consumedRs : List Resource := tokenA :: tokenB :: nil;
-    createdRs : List Resource := [merged];
-    extraData : Map Bytes32 Bytes :=
-      mkAuthExtraData mySecret consumedRs createdRs;
-  in if
-    | labelA == labelB
-      && ownerA == myself
-      && ownerB == myself :=
-      just
-        (mkTransaction mySecret consumedRs createdRs extraData)
-    | else := nothing;
+      merged : Resource := mkToken false sum label mkOwner@{owner := myself};
+      consumedRs : List Resource := tokens;
+      createdRs : List Resource := [merged];
+      extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
+    in if
+      | all (ti in ts) (
+          getLabel ti == label
+          && getOwner ti == myself)
+          := just (mkTransaction mySecret consumedRs createdRs extraData)
+      | else := nothing;

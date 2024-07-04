@@ -7,10 +7,7 @@ import Anoma open;
 
 import AnomaHelpers open;
 
-type Owner :=
-  mkOwner {
-    owner : PublicKey;
-  };
+type Owner := mkOwner {owner : PublicKey};
 
 instance
 Owner-Eq : Eq Owner :=
@@ -25,34 +22,48 @@ getOwner (r : Resource) : PublicKey :=
 type AuthMessage :=
   mkAuthMessage {
     consumed : Helper.Nullifier;
-    mustBeCreated : Set Helper.Commitment;
+    mustBeCreated : Set Helper.Commitment
   };
 
- mkAuthExtraDataMapEntry (self : PrivateKey) (created : List Resource) (consumed : Resource) : Pair Bytes32 Bytes :=
+mkAuthExtraDataMapEntry
+  (self : PrivateKey)
+  (created : List Resource)
+  (consumed : Resource)
+  : Pair Bytes32 Bytes :=
   let
     consumedNk : Helper.Nullifier := nullifier consumed self;
-    createdCms : Set Helper.Commitment := Data.Set.fromList (map commitment created);
-    msg : AuthMessage := mkAuthMessage@{consumed := consumedNk; mustBeCreated := createdCms;};
+    createdCms : Set Helper.Commitment :=
+      Data.Set.fromList (map commitment created);
+    msg : AuthMessage :=
+      mkAuthMessage@{
+        consumed := consumedNk;
+        mustBeCreated := createdCms
+      };
 
     k := consumedNk;
-    v := anomaEncode(msg, anomaSignDetached msg self);
-  in
-    (k, v);
+    v := anomaEncode (msg, anomaSignDetached msg self);
+  in k, v;
 
- mkAuthExtraData (self : PrivateKey) (consumed : List Resource) (created : List Resource) : Map Bytes32 Bytes :=
-   Data.Map.fromList (map (mkAuthExtraDataMapEntry self created) consumed);
+mkAuthExtraData
+  (self : PrivateKey)
+  (consumed : List Resource)
+  (created : List Resource)
+  : Map Bytes32 Bytes :=
+  Data.Map.fromList
+    (map (mkAuthExtraDataMapEntry self created) consumed);
 
-
-isAuthorizedByOwner (self : Resource)  (tx : Transaction) : Bool :=
+isAuthorizedByOwner
+  (self : Resource) (tx : Transaction) : Bool :=
   let
     owner : PublicKey := getOwner self;
     selfNk : Helper.Commitment := commitment self;
-    lookupResult : Maybe (Pair AuthMessage Signature) := lookupExtraData selfNk tx ;
-  in
-    case lookupResult of
-      | nothing := false
-      | just (msg, sig) :=
-        AuthMessage.consumed msg == selfNk
-        && anomaVerifyDetached sig msg owner
-        && isSubsetOfCreatedResources (AuthMessage.mustBeCreated msg) tx
-  ;
+    lookupResult : Maybe (Pair AuthMessage Signature) :=
+      lookupExtraData selfNk tx;
+  in case lookupResult of
+       | nothing := false
+       | just (msg, sig) :=
+         AuthMessage.consumed msg == selfNk
+           && anomaVerifyDetached sig msg owner
+           && isSubsetOfCreatedResources
+             (AuthMessage.mustBeCreated msg)
+             tx;
