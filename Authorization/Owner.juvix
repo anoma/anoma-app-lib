@@ -40,8 +40,10 @@ mkAuthExtraDataMapEntry
         mustBeCreated := createdCms
       };
 
-    k := consumedNk;
-    v := anomaEncode (msg, anomaSignDetached msg self);
+    k : Bytes32 := natToBytes32 consumedNk;
+    v : Bytes :=
+      natToBytes
+        (anomaEncode (msg, anomaSignDetached msg self));
   in k, v;
 
 mkAuthExtraData
@@ -58,7 +60,7 @@ isAuthorizedByOwner
     owner : PublicKey := getOwner self;
     selfNk : Helper.Commitment := commitment self;
     lookupResult : Maybe (Pair AuthMessage Signature) :=
-      lookupExtraData selfNk tx;
+      lookupExtraData (natToBytes32 selfNk) tx;
   in case lookupResult of
        | nothing := false
        | just (msg, sig) :=

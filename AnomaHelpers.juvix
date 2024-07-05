@@ -8,8 +8,28 @@ import Anoma open;
 
 -- TODO all these helpers should be in `juvix-anoma-stdlib`
 
-syntax alias Bytes32 := Nat;
-syntax alias Bytes := Nat;
+type Bytes32 := mkBytes32 { unBytes32 : Nat };
+
+instance
+Bytes32Ord : Ord Bytes32 := mkOrd@{
+   cmp : Bytes32 -> Bytes32 -> Ordering
+     | (mkBytes32 b1) (mkBytes32 b2) := Ord.cmp b1 b2;
+};
+
+natToBytes32 : Nat -> Bytes32
+  | nat := mkBytes32@{unBytes32 := nat };
+
+type Bytes := mkBytes { unBytes : Nat };
+
+instance
+BytesOrd : Ord Bytes := mkOrd@{
+   cmp : Bytes -> Bytes -> Ordering
+     | (mkBytes b1) (mkBytes b2) := Ord.cmp b1 b2;
+};
+
+natToBytes : Nat -> Bytes
+  | nat := mkBytes@{unBytes := nat };
+
 
 isCreated (r : Resource) (tx : Transaction) : Bool :=
   elem (==) r (ResourcePartition.created (partitionResources tx));
