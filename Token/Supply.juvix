@@ -4,8 +4,8 @@ import Stdlib.Prelude open;
 
 type Supply :=
   | Unbound
-  | Fixed
-  | Capped;
+  | Capped
+  | Fixed;
 
 instance
 Supply-Eq : Eq Supply :=
