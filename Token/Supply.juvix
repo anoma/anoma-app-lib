@@ -10,5 +10,9 @@ type Supply :=
 instance
 Supply-Eq : Eq Supply :=
   mkEq@{
-    eq (s1 s2 : Supply) : Bool := s1 == s2
+    eq : Supply -> Supply -> Bool
+      | Unbound Unbound := true
+      | Capped Capped := true
+      | Fixed Fixed := true
+      | _ _ := false
   };
