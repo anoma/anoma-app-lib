@@ -1,0 +1,18 @@
+module Token.Supply;
+
+import Stdlib.Prelude open;
+
+type Supply :=
+  | Unbound
+  | Capped
+  | Fixed;
+
+instance
+Supply-Eq : Eq Supply :=
+  mkEq@{
+    eq : Supply -> Supply -> Bool
+      | Unbound Unbound := true
+      | Capped Capped := true
+      | Fixed Fixed := true
+      | _ _ := false
+  };
