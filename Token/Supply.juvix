@@ -1,0 +1,14 @@
+module Token.Supply;
+
+import Stdlib.Prelude open;
+
+type Supply :=
+  | Unbound
+  | Fixed
+  | Capped;
+
+instance
+Supply-Eq : Eq Supply :=
+  mkEq@{
+    eq (s1 s2 : Supply) : Bool := s1 == s2
+  };

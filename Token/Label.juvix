@@ -3,16 +3,7 @@ module Token.Label;
 import Stdlib.Prelude open;
 import Anoma open;
 
-type Supply :=
-  | Unbound
-  | Fixed
-  | Capped;
-
-instance
-Supply-Eq : Eq Supply :=
-  mkEq@{
-    eq (s1 s2 : Supply) : Bool := s1 == s2
-  };
+import Token.Supply open;
 
 type Label :=
   mkLabel {
@@ -43,7 +34,6 @@ getSymbol (r : Resource) : String :=
 
 getDecimals (r : Resource) : Nat :=
   Label.decimals (getLabel r);
-
 
 getSupply (r : Resource) : Supply :=
   Label.supply (getLabel r);
