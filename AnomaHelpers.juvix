@@ -60,20 +60,16 @@ lookupExtraData {Value : Type} (key : Bytes32) (tx : Transaction) : Maybe Value 
     lookup key keyValueMap;
 
 
--- This helper replicates the private key to compute the nullifiers. TODO
 mkTransaction
   (self : PrivateKey)
   (consumed : List Resource)
   (created : List Resource)
   (extraData : Map Bytes32 Bytes)
   : Transaction :=
-    let
-      replicatedPrivKey : List PrivateKey := replicate (length consumed) self;
-    in
       Transaction.mk@{
         roots := [];
         commitments := map commitment created;
-        nullifiers := zipWith nullifier consumed replicatedPrivKey;
+        nullifiers := map (r in consumed) nullifier r self;
         proofs := consumed ++ created;
         delta := [];
         extra := anomaEncode (extraData);
