@@ -16,12 +16,14 @@ type Label :=
 
 instance
 Label-Eq : Eq Label :=
-  mkEq@{
-    eq (l1 l2 : Label) : Bool :=
-      Label.name l1 == Label.name l2
-        && Label.symbol l1 == Label.symbol l2
-        && Label.decimals l1 == Label.decimals l2
-        && Label.supply l1 == Label.supply l2
+  let
+    toProd (l : Label) : _ :=
+      Label.name l
+        , Label.symbol l
+        , Label.decimals l
+        , Label.supply l;
+  in mkEq@{
+    eq (l1 l2 : Label) : Bool := toProd l1 == toProd l2
   };
 
 getLabel (r : Resource) : Label :=
