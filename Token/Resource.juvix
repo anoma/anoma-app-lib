@@ -11,15 +11,15 @@ mkToken
   (ephemeral : Bool)
   (amount : Nat)
   (tokenLabel : Label)
-  (ownerData : Owner)
+  (owner : Owner)
   : Resource :=
   Resource.mk@{
-    logic := tokenLogic;
+    logic := tokenLogic (Label.supply tokenLabel);
     label := anomaEncode tokenLabel;
     quantity := amount;
-    data := anomaEncode ownerData;
+    data := anomaEncode owner;
     eph := ephemeral;
-    npk := Owner.owner ownerData;
+    npk := Owner.owner owner;
     nonce := 0;
     rseed := 0
   };
