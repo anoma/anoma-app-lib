@@ -16,8 +16,7 @@ Bytes32Ord : Ord Bytes32 := mkOrd@{
      | (mkBytes32 b1) (mkBytes32 b2) := Ord.cmp b1 b2;
 };
 
-natToBytes32 : Nat -> Bytes32
-  | nat := mkBytes32@{unBytes32 := nat };
+natToBytes32 : Nat -> Bytes32 := mkBytes32;
 
 type Bytes := mkBytes { unBytes : Nat };
 
@@ -27,8 +26,7 @@ BytesOrd : Ord Bytes := mkOrd@{
      | (mkBytes b1) (mkBytes b2) := Ord.cmp b1 b2;
 };
 
-natToBytes : Nat -> Bytes
-  | nat := mkBytes@{unBytes := nat };
+natToBytes : Nat -> Bytes := mkBytes;
 
 
 isCreated (r : Resource) (tx : Transaction) : Bool :=
