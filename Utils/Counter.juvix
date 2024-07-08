@@ -1,0 +1,79 @@
+module Utils.Counter;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Authorization.Owner open;
+
+
+-- TODO move to separate file, combine with auth message?
+type CounterMessage :=
+  mkAuthMessage {
+    consumed : Helper.Nullifier;
+    created : Helper.Commitment
+  };
+
+
+findCreatedCounter (consumedCounter : Resource) (tx : Transaction) : Maybe Resource :=
+  let
+    selfNk : Helper.Commitment := commitment consumedCounter;
+    lookupResult : Maybe CounterMessage :=
+      lookupExtraData (natToBytes32 selfNk) tx;
+  in case lookupResult of
+       | nothing := nothing
+       | just msg :=
+        let
+          r : Resource := commitmentResource (CounterMessage.created msg);
+        in if
+          | CounterMessage.consumed msg == selfNk
+            && isCreated r tx
+           := just r
+          | else := nothing;
+
+isIncremented (old new : Resource) : Bool :=
+  let
+    expected : Nat := (getCount old) + 1;
+    actual : Nat := getCount new;
+  in expected == actual;
+
+mkCounter (ephemeral : Bool) (count : Nat) : Resource :=
+  Resource.mk@{
+    logic := counterLogic;
+    label := anomaEncode "Counter";
+    quantity := 1;
+    data := count;
+    eph := ephemeral;
+    npk := 0;
+    nonce := 0;
+    rseed := 0
+  };
+
+getCount (r : Resource) : Nat :=
+  anomaDecode (Resource.data r);
+
+counterLogic (self : Resource) (txn : Transaction) : Bool :=
+  if
+   | isConsumed self txn :=
+      (case  findCreatedCounter@{consumedCounter := self; tx := txn} of
+        | just createdCounter := isIncremented@{old := self; new := createdCounter}
+        | nothing := false)
+   | isCreated self txn := true
+   | else := false;
+
+
+incrementCounter
+  (privKey : PrivateKey)
+  (counter : Resource)
+  : Transaction :=
+  let
+    updatedCounter := mkCounter@{ephemeral := false; count := Resource.data counter + 1};
+  in Transaction.mk@{
+    roots := [];
+    commitments := [commitment counter];
+    nullifiers := [nullifier updatedCounter privKey];
+    proofs := [counter; updatedCounter];
+    delta := [];
+    extra := 0;
+    preference := 0
+  };
