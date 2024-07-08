@@ -7,11 +7,9 @@ import Data.Set open;
 import Data.Map open;
 
 -- Should be added to the `juvix-stdlib`
-type Either Result Error :=
-  | pass Result
-  | throw Error;
-
-type Error := mkError{msg : String};
+type Either Error Result :=
+  | left Error
+  | right Result;
 
 -- Should be added to the `juvix-anoma-stdlib`
 
@@ -42,7 +40,6 @@ type InsufficientElementsError :=
     limit : Nat;
     actual : Nat
   };
-
 
 type InsufficientQuantityError :=
   mkInsufficientQuantityError {
@@ -94,19 +91,18 @@ lookupExtraData
       anomaDecode (Transaction.extra tx);
   in lookup key keyValueMap;
 
-
 mkTransaction
   (self : PrivateKey)
   (consumed : List Resource)
   (created : List Resource)
   (extraData : Map Bytes32 Bytes)
   : Transaction :=
-      Transaction.mk@{
-        roots := [];
-        commitments := map commitment created;
-        nullifiers := map (r in consumed) nullifier r self;
-        proofs := consumed ++ created;
-        delta := [];
-        extra := anomaEncode (extraData);
-        preference := 0
-      };
+  Transaction.mk@{
+    roots := [];
+    commitments := map commitment created;
+    nullifiers := map (r in consumed) nullifier r self;
+    proofs := consumed ++ created;
+    delta := [];
+    extra := anomaEncode (extraData);
+    preference := 0
+  };
