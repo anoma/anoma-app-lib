@@ -45,3 +45,10 @@ type InvalidLabelError :=
     expected : Label;
     actual : Label
   };
+
+displayInvalidLabelError (e : InvalidLabelError) : String :=
+  "InvalidLabelError:\n"
+    ++str "expected: "
+    ++str (e |> InvalidLabelError.expected |> Label.symbol)
+    ++str "actual: "
+    ++str (e |> InvalidLabelError.actual |> Label.symbol);

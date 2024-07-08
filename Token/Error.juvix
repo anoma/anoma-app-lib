@@ -1,0 +1,74 @@
+module Token.Error;
+
+import Stdlib.Prelude open;
+import Authorization.Owner open;
+import Token.Resource open;
+import Token.Label open;
+import Token.Logic open;
+import AnomaHelpers open;
+
+type Error := mkError {msg : String};
+
+type TokenError :=
+  | ErrTokenUnauthorized UnauthorizedError
+  | ErrTokenInsufficientQuantity InsufficientQuantityError
+  | ErrTokenInvalidLabel InvalidLabelError
+  | ErrTokenInsufficientElements InsufficientElementsError
+  | ErrTokenUnknown Error;
+
+trait
+type TokenThrowable Error Result :=
+  mkTokenThrowable {throw : Error -> Either TokenError Result};
+
+instance
+UnauthorizedTokenThrowable
+  {A} : TokenThrowable UnauthorizedError A :=
+  mkTokenThrowable@{
+    throw (e : UnauthorizedError) : Either TokenError A :=
+      left {_} {A} (ErrTokenUnauthorized e)
+  };
+
+instance
+InsufficientQuantityThrowable
+  {A} : TokenThrowable InsufficientQuantityError A :=
+  mkTokenThrowable@{
+    throw
+      (e : InsufficientQuantityError) : Either TokenError A :=
+      left {_} {A} (ErrTokenInsufficientQuantity e)
+  };
+
+instance
+UnknownThrowable {A} : TokenThrowable Error A :=
+  mkTokenThrowable@{
+    throw (e : Error) : Either TokenError A :=
+      left {_} {A} (ErrTokenUnknown e)
+  };
+
+instance
+InsufficientElementsThrowable
+  {A} : TokenThrowable InsufficientElementsError A :=
+  mkTokenThrowable@{
+    throw
+      (e : InsufficientElementsError) : Either TokenError A :=
+      left {_} {A} (ErrTokenInsufficientElements e)
+  };
+
+instance
+InvalidLabelThrowable
+  {A} : TokenThrowable InvalidLabelError A :=
+  mkTokenThrowable@{
+    throw (e : InvalidLabelError) : Either TokenError A :=
+      left {_} {A} (ErrTokenInvalidLabel e)
+  };
+
+open TokenThrowable public;
+
+pass {A} (a : A) : Either TokenError A := right a;
+
+-- TODO: Improve error messages
+displayTokenError : TokenError -> String
+  | (ErrTokenUnknown (mkError@{msg})) := "Unknown: " ++str msg
+  | (ErrTokenUnauthorized e) := displayUnauthorizedError e
+  | (ErrTokenInvalidLabel e) := displayInvalidLabelError e
+  | (ErrTokenInsufficientQuantity _) := "InsufficientQuantity"
+  | (ErrTokenInsufficientElements _) := "InsufficientElements"
