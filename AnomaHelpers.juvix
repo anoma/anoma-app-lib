@@ -1,43 +1,71 @@
 module AnomaHelpers;
 
 import Stdlib.Prelude open;
-import Data.Map open;
-import Data.Set open;
 import Anoma open;
 
+import Data.Set open;
+import Data.Map open;
 
--- TODO all these helpers should be in `juvix-anoma-stdlib`
+-- Should be added to the `juvix-stdlib`
+type Either Result Error :=
+  | pass Result
+  | throw Error;
 
-type Bytes32 := mkBytes32 { unBytes32 : Nat };
+type Error := mkError{msg : String};
+
+-- Should be added to the `juvix-anoma-stdlib`
+
+type Bytes32 := mkBytes32 {unBytes32 : Nat};
 
 instance
-Bytes32Ord : Ord Bytes32 := mkOrd@{
-   cmp : Bytes32 -> Bytes32 -> Ordering
-     | (mkBytes32 b1) (mkBytes32 b2) := Ord.cmp b1 b2;
-};
+Bytes32Ord : Ord Bytes32 :=
+  mkOrd@{
+    cmp : Bytes32 -> Bytes32 -> Ordering
+      | (mkBytes32 b1) (mkBytes32 b2) := Ord.cmp b1 b2
+  };
 
 natToBytes32 : Nat -> Bytes32 := mkBytes32;
 
-type Bytes := mkBytes { unBytes : Nat };
+type Bytes := mkBytes {unBytes : Nat};
 
 instance
-BytesOrd : Ord Bytes := mkOrd@{
-   cmp : Bytes -> Bytes -> Ordering
-     | (mkBytes b1) (mkBytes b2) := Ord.cmp b1 b2;
-};
+BytesOrd : Ord Bytes :=
+  mkOrd@{
+    cmp : Bytes -> Bytes -> Ordering
+      | (mkBytes b1) (mkBytes b2) := Ord.cmp b1 b2
+  };
 
 natToBytes : Nat -> Bytes := mkBytes;
 
+type InsufficientElementsError :=
+  mkInsufficientElementsError {
+    limit : Nat;
+    actual : Nat
+  };
+
+
+type InsufficientQuantityError :=
+  mkInsufficientQuantityError {
+    limit : Nat;
+    actual : Nat
+  };
 
 isCreated (r : Resource) (tx : Transaction) : Bool :=
-  elem (==) r (ResourcePartition.created (partitionResources tx));
+  elem
+    (==)
+    r
+    (ResourcePartition.created (partitionResources tx));
 
 isConsumed (r : Resource) (tx : Transaction) : Bool :=
-  elem (==) r (ResourcePartition.consumed (partitionResources tx));
+  elem
+    (==)
+    r
+    (ResourcePartition.consumed (partitionResources tx));
 
-
-isPresent (cms : List Helper.Commitment) (cm : Helper.Commitment) : Bool :=
-  elem (==) cm cms;
+isPresent
+  (cms : List Helper.Commitment)
+  (cm : Helper.Commitment)
+  : Bool := elem (==) cm cms;
 
 isSublist (sub sup : List Helper.Commitment) : Bool :=
   all (isPresent sup) sub;
@@ -46,18 +74,25 @@ isSubset {A} {{Ord A}} (sub sup : Set A) : Bool :=
   all (x in Data.Set.toList sub)
     member? x sup;
 
-
-isSubsetOfCreatedResources (sub : Set Helper.Commitment) (tx : Transaction) : Bool :=
+isSubsetOfCreatedResources
+  (sub : Set Helper.Commitment) (tx : Transaction) : Bool :=
   let
-    sup : Set Helper.Commitment := Data.Set.fromList (map commitment (ResourcePartition.created (partitionResources tx)));
-  in
-    isSubset sub sup;
+    sup : Set Helper.Commitment :=
+      Data.Set.fromList
+        (map
+          commitment
+          (ResourcePartition.created (partitionResources tx)));
+  in isSubset sub sup;
 
-lookupExtraData {Value : Type} (key : Bytes32) (tx : Transaction) : Maybe Value :=
+lookupExtraData
+  {Value : Type}
+  (key : Bytes32)
+  (tx : Transaction)
+  : Maybe Value :=
   let
-    keyValueMap : Map Bytes32 Value := anomaDecode (Transaction.extra tx);
-  in
-    lookup key keyValueMap;
+    keyValueMap : Map Bytes32 Value :=
+      anomaDecode (Transaction.extra tx);
+  in lookup key keyValueMap;
 
 
 mkTransaction

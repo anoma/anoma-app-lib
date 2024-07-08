@@ -19,6 +19,19 @@ Owner-Eq : Eq Owner :=
 getOwner (r : Resource) : PublicKey :=
   Owner.owner (anomaDecode (Resource.data r));
 
+type UnauthorizedError :=
+  mkUnauthorizedError {
+    expected : PublicKey;
+    actual : PublicKey
+  };
+
+displayUnauthorizedError (e : UnauthorizedError) : String :=
+  "UnauthorizedError:\n"
+    ++str "expected: "
+    ++str natToString (UnauthorizedError.expected e)
+    ++str "actual: "
+    ++str natToString (UnauthorizedError.actual e);
+
 type AuthMessage :=
   mkAuthMessage {
     consumed : Helper.Nullifier;

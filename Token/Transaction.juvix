@@ -1,6 +1,7 @@
 module Token.Transaction;
 
 import Stdlib.Prelude open;
+import Stdlib.Debug.Fail open using {failwith};
 import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
@@ -41,18 +42,21 @@ mint
 
     consumedRs : List Resource := [ephToken];
     createdRs : List Resource := [newToken];
-    extraData : Map Bytes32 Bytes :=
-      mkAuthExtraData mySecret consumedRs createdRs;
+    extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
   in mkTransaction mySecret consumedRs createdRs extraData;
+
+type BurnError :=
+  | burnUnauthorized UnauthorizedError;
 
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
 --- If the calling ;KeyPair; is not the owner, this function returns nothing.
 burn
-  (self : KeyPair) (token : Resource) : Maybe Transaction :=
+  (self : KeyPair) (token : Resource) : Either Transaction BurnError :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
+    owner : PublicKey := getOwner token;
 
     -- This ephemeral resource is needed for the total balance check.
     ephToken :=
@@ -69,33 +73,12 @@ burn
     extraData : Map Bytes32 Bytes :=
       mkAuthExtraData mySecret consumedRs createdRs;
   in if
-    | getOwner (token) /= myself := nothing
-    | else :=
-      just
-        (mkTransaction mySecret consumedRs createdRs extraData);
+    | owner /= myself := throw (burnUnauthorized(mkUnauthorizedError@{expected := myself; actual := owner}))
+    | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
 
---- Sends an amount of token ;Resource; to receiver, if the calling ;KeyPair; is the owner.
---- If the calling ;KeyPair; is not the owner, this function returns nothing.
---- If the amount exceeds the quantity available in the resource, the function returns nothing.
-send
-  (self : KeyPair)
-  (token : Resource)
-  (amount : Nat)
-  (receiver : PublicKey)
-  : Maybe Transaction :=
-  let
-    myself : PublicKey := KeyPair.pubKey self;
-    availableAmount : Nat := Resource.quantity token;
-  in if
-    | getOwner (token) /= myself := nothing
-    | availableAmount < amount := nothing
-    | availableAmount == amount := transfer self token receiver
-    | availableAmount > amount :=
-      let
-        remainder : Nat :=
-          toNat (intSubNat availableAmount amount);
-      in split self token ((amount, receiver) :: (remainder, myself) :: nil)
-    | else := nothing;
+
+type TransferError :=
+  | TransferUnauthorized UnauthorizedError;
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- If the calling ;KeyPair; is not the owner, this function returns nothing.
@@ -103,10 +86,11 @@ transfer
   (self : KeyPair)
   (token : Resource)
   (receiver : PublicKey)
-  : Maybe Transaction :=
+  : Either Transaction TransferError :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
+    owner : PublicKey := getOwner token;
 
     newToken :=
       mkToken
@@ -122,10 +106,13 @@ transfer
     extraData : Map Bytes32 Bytes :=
       mkAuthExtraData mySecret consumedRs createdRs;
   in if
-    | getOwner token == myself :=
-      just
-        (mkTransaction mySecret consumedRs createdRs extraData)
-    | else := nothing;
+    | owner /= myself := throw (TransferUnauthorized(mkUnauthorizedError@{expected := myself; actual := owner}))
+    | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
+
+
+type SplitError :=
+  | SplitUnauthorized UnauthorizedError
+  | SplitInsufficientQuantity InsufficientQuantityError;
 
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- If the calling ;KeyPair; is not the owner or if the amounts do not balance, this function returns nothing.
@@ -133,23 +120,58 @@ split
   (self : KeyPair)
   (token : Resource)
   (amountsAndReceivers : List (Pair Nat PublicKey))
-  : Maybe Transaction :=
+  : Either Transaction SplitError :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
+    owner : PublicKey := getOwner token;
 
     label : Label := anomaDecode (Resource.label token);
     sum : Nat := for (acc := 0) ((amount, _) in amountsAndReceivers) {amount + acc};
+    balance := Resource.quantity token;
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := map ((amount, receiver) in amountsAndReceivers) {mkToken false amount label mkOwner@{owner := receiver;}};
     extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
   in if
-    | getOwner token == myself
-      && Resource.quantity token == sum :=
-      just
-        (mkTransaction mySecret consumedRs createdRs extraData)
-    | else := nothing;
+    | owner /= myself := throw (SplitUnauthorized(mkUnauthorizedError@{expected := myself; actual := owner}))
+    | balance /= sum := throw (SplitInsufficientQuantity(mkInsufficientQuantityError@{limit := balance; actual := sum}))
+    | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
+
+
+type SendError :=
+  | SendInsufficientQuantity InsufficientQuantityError
+  | SendTransferFailure TransferError
+  | SendSplitFailure SplitError
+  | SendUnkownFailure Error;
+
+--- Sends an amount of token ;Resource; to receiver, if the calling ;KeyPair; is the owner.
+--- If the amount exceeds the quantity available in the resource, the function returns nothing.
+--- TODO
+send
+  (self : KeyPair)
+  (token : Resource)
+  (amount : Nat)
+  (receiver : PublicKey)
+  : Either Transaction SendError :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    availableAmount : Nat := Resource.quantity token;
+  in if
+    | availableAmount < amount := throw (SplitInsufficientQuantity (mkInsufficientQuantityError@{limit := availableAmount; actual := amount}))
+    | availableAmount == amount := transfer self token receiver  -- TODO I struggle here with converting this too SendError type
+    | availableAmount > amount :=
+      let
+        remainder : Nat := toNat (intSubNat availableAmount amount);
+      in
+        split self token ((amount, receiver) :: (remainder, myself) :: nil)  -- TODO I struggle here with converting this too SendError type
+    | else := throw (SendUnkownFailure (mkError@{msg := "Unknown failure"}));
+
+
+type MergeError :=
+  | MergeUnauthorized UnauthorizedError
+  | MergeInsufficientElements InsufficientElementsError
+  | MergeInvalidLabel InvalidLabelError;
 
 --- Merges two token ;Resource;s, if the calling ;KeyPair; is the owner of both.
 --- If the calling ;KeyPair; is not the owner, this function returns nothing.
@@ -157,9 +179,9 @@ merge
   (self : KeyPair)
   (tokens : List Resource)
   (receiver : PublicKey)
-  : Maybe Transaction :=
+  : Either Transaction MergeError :=
   case tokens of
-    | nil := nothing
+    | nil := throw (MergeInsufficientElements (mkInsufficientElementsError@{limit := 1; actual := 0}))
     | (t :: ts) :=
     let
       myself : PublicKey := KeyPair.pubKey self;
@@ -173,9 +195,27 @@ merge
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
       extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
-    in if
-      | all (ti in ts) (
-          getLabel ti == label
-          && getOwner ti == myself)
-          := just (mkTransaction mySecret consumedRs createdRs extraData)
-      | else := nothing;
+    in case containsWrongLabel (map getLabel tokens) label of
+      | just wrongLabel := throw (MergeInvalidLabel (mkInvalidLabelError@{expected := label; actual := wrongLabel}))
+      | nothing :=
+     case containsNonOwner (map getOwner tokens) owner of
+        | just notOwner := throw (MergeUnauthorized (mkUnauthorizedError@{expected := myself; actual := notOwner}))
+        | nothing := pass (mkTransaction mySecret consumedRs createdRs extraData);
+
+terminating
+containsNonOwner (keys : List PublicKey) (owner : PublicKey) : Maybe PublicKey :=
+  case keys of
+    | nil := nothing
+    | (k :: ks) :=
+      if
+        | k /= owner := just k
+        | else := containsNonOwner ks owner;
+
+terminating
+containsWrongLabel (labels : List Label) (label : Label) : Maybe Label :=
+  case labels of
+    | nil := nothing
+    | (l :: ls) :=
+      if
+        | l /= label := just l
+        | else := containsWrongLabel ls label;

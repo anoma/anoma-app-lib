@@ -39,3 +39,9 @@ getDecimals (r : Resource) : Nat :=
 
 getSupply (r : Resource) : Supply :=
   Label.supply (getLabel r);
+
+type InvalidLabelError :=
+  mkInvalidLabelError{
+    expected : Label;
+    actual : Label
+  };
