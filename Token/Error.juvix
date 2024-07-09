@@ -13,8 +13,7 @@ type TokenError :=
   | ErrTokenUnauthorized UnauthorizedError
   | ErrTokenInsufficientQuantity InsufficientQuantityError
   | ErrTokenInvalidLabel InvalidLabelError
-  | ErrTokenInsufficientElements InsufficientElementsError
-  | ErrTokenUnknown Error;
+  | ErrTokenInsufficientElements InsufficientElementsError;
 
 trait
 type TokenThrowable Error Result :=
@@ -35,13 +34,6 @@ InsufficientQuantityThrowable
     throw
       (e : InsufficientQuantityError) : Either TokenError A :=
       left {_} {A} (ErrTokenInsufficientQuantity e)
-  };
-
-instance
-UnknownThrowable {A} : TokenThrowable Error A :=
-  mkTokenThrowable@{
-    throw (e : Error) : Either TokenError A :=
-      left {_} {A} (ErrTokenUnknown e)
   };
 
 instance
@@ -67,7 +59,6 @@ pass {A} (a : A) : Either TokenError A := right a;
 
 -- TODO: Improve error messages
 displayTokenError : TokenError -> String
-  | (ErrTokenUnknown (mkError@{msg})) := "Unknown: " ++str msg
   | (ErrTokenUnauthorized e) := displayUnauthorizedError e
   | (ErrTokenInvalidLabel e) := displayInvalidLabelError e
   | (ErrTokenInsufficientQuantity _) := "InsufficientQuantity"
