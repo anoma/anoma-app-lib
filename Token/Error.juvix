@@ -15,6 +15,10 @@ type TokenError :=
   | ErrTokenInsufficientElements InsufficientElementsError
   | ErrTokenDefault Error;
 
+instance
+TokenError-Show : Show TokenError :=
+  mkShow λ {e := "TokenError:\n" ++str Show.show e};
+
 trait
 type TokenThrowable Error Result :=
   mkTokenThrowable {throw : Error
