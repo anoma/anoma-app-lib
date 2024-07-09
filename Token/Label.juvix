@@ -26,6 +26,24 @@ Label-Eq : Eq Label :=
     eq (l1 l2 : Label) : Bool := toProd l1 == toProd l2
   };
 
+instance
+Label-Show : Show Label :=
+  mkShow
+    λ {l :=
+      "{"
+        ++str "name : "
+        ++str (l |> Label.name |> Show.show)
+        ++str ", "
+        ++str "symbol : "
+        ++str (l |> Label.symbol |> Show.show)
+        ++str ", "
+        ++str "decimals : "
+        ++str (l |> Label.decimals |> Show.show)
+        ++str ", "
+        ++str "supply : "
+        ++str (l |> Label.supply |> Show.show)
+        ++str "}"};
+
 getLabel (r : Resource) : Label :=
   anomaDecode (Resource.label r);
 
@@ -39,3 +57,31 @@ getDecimals (r : Resource) : Nat :=
 
 getSupply (r : Resource) : Supply :=
   Label.supply (getLabel r);
+
+terminating
+containsWrongLabel
+  (labels : List Label) (label : Label) : Maybe Label :=
+  case labels of
+    | nil := nothing
+    | l :: ls :=
+      if
+        | l /= label := just l
+        | else := containsWrongLabel ls label;
+
+type InvalidLabelError :=
+  mkInvalidLabelError {
+    expected : Label;
+    actual : Label
+  };
+
+instance
+InvalidLabelError-Show : Show InvalidLabelError :=
+  mkShow
+    λ {e :=
+      "InvalidLabelError:\n{"
+        ++str "expected : "
+        ++str (e |> InvalidLabelError.expected |> Show.show)
+        ++str ", "
+        ++str "actual"
+        ++str (e |> InvalidLabelError.actual |> Show.show)
+        ++str "}"};
