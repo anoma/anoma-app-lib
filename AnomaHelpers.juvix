@@ -12,7 +12,6 @@ type Either Error Result :=
   | right Result;
 
 -- Should be added to the `juvix-anoma-stdlib`
-
 type Bytes32 := mkBytes32 {unBytes32 : Nat};
 
 instance
