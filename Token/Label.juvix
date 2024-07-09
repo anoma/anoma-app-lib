@@ -8,7 +8,6 @@ import Token.Supply open;
 type Label :=
   mkLabel {
     name : Nat;
-    -- TODO This should become a ;String; once `natToString` is implemented.
     symbol : String;
     decimals : Nat;
     supply : Supply
