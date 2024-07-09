@@ -115,7 +115,6 @@ isPresent
 isSublist (sub sup : List Helper.Commitment) : Bool :=
   all (isPresent sup) sub;
 
-terminating
 findMismatch {A} {{Eq A}} (ref : A) : List A -> Maybe A
   | nil := nothing
   | (x :: xs) :=
