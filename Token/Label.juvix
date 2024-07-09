@@ -31,11 +31,18 @@ Label-Show : Show Label :=
   mkShow
     λ {l :=
       "{"
-        ++str "name : " ++str (l |> Label.name |> Show.show) ++str ", "
-        ++str "symbol : " ++str (l |> Label.symbol |> Show.show) ++str ", "
-        ++str "decimals : " ++str (l |> Label.decimals |> Show.show) ++str ", "
-        ++str "supply : " ++str (l |> Label.supply |> Show.show) ++str
-      "}"};
+        ++str "name : "
+        ++str (l |> Label.name |> Show.show)
+        ++str ", "
+        ++str "symbol : "
+        ++str (l |> Label.symbol |> Show.show)
+        ++str ", "
+        ++str "decimals : "
+        ++str (l |> Label.decimals |> Show.show)
+        ++str ", "
+        ++str "supply : "
+        ++str (l |> Label.supply |> Show.show)
+        ++str "}"};
 
 getLabel (r : Resource) : Label :=
   anomaDecode (Resource.label r);
@@ -67,9 +74,14 @@ type InvalidLabelError :=
     actual : Label
   };
 
-displayInvalidLabelError (e : InvalidLabelError) : String :=
-  "InvalidLabelError:\n"
-    ++str "expected: "
-    ++str (e |> InvalidLabelError.expected |> Show.show)
-    ++str "actual: "
-    ++str (e |> InvalidLabelError.actual |> Show.show);
+instance
+InvalidLabelError-Show : Show InvalidLabelError :=
+  mkShow
+    λ {e :=
+      "InvalidLabelError:\n{"
+        ++str "expected : "
+        ++str (e |> InvalidLabelError.expected |> Show.show)
+        ++str ", "
+        ++str "actual"
+        ++str (e |> InvalidLabelError.actual |> Show.show)
+        ++str "}"};

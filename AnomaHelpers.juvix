@@ -34,6 +34,9 @@ BytesOrd : Ord Bytes :=
 
 natToBytes : Nat -> Bytes := mkBytes;
 
+getLogic (r : Resource) : Nat :=
+  anomaEncode (Resource.logic r);
+
 type Error := mkError {msg : String};
 
 type InsufficientElementsError :=
@@ -42,11 +45,55 @@ type InsufficientElementsError :=
     actual : Nat
   };
 
+instance
+InsufficientElementsError-Show
+  : Show InsufficientElementsError :=
+  mkShow
+    λ {e :=
+      "InsufficientElementsError:\n{"
+        ++str "limit : "
+        ++str (e |> InsufficientElementsError.limit |> Show.show)
+        ++str ", "
+        ++str "actual"
+        ++str (e |> InsufficientElementsError.actual |> Show.show)
+        ++str "}"};
+
 type InsufficientQuantityError :=
   mkInsufficientQuantityError {
     limit : Nat;
     actual : Nat
   };
+
+instance
+InsufficientQuantityError-Show
+  : Show InsufficientQuantityError :=
+  mkShow
+    λ {e :=
+      "InsufficientQuantityError:\n{"
+        ++str "limit : "
+        ++str (e |> InsufficientQuantityError.limit |> Show.show)
+        ++str ", "
+        ++str "actual"
+        ++str (e |> InsufficientQuantityError.actual |> Show.show)
+        ++str "}"};
+
+type InvalidLogicError :=
+  mkInvalidLogicError {
+    expected : Nat;
+    actual : Nat
+  };
+
+instance
+InvalidLogicError-Show : Show InvalidLogicError :=
+  mkShow
+    λ {e :=
+      "InvalidLogicError:\n{"
+        ++str "expected : "
+        ++str (e |> InvalidLogicError.expected |> Show.show)
+        ++str ", "
+        ++str "actual"
+        ++str (e |> InvalidLogicError.actual |> Show.show)
+        ++str "}"};
 
 isCreated (r : Resource) (tx : Transaction) : Bool :=
   elem
@@ -67,6 +114,20 @@ isPresent
 
 isSublist (sub sup : List Helper.Commitment) : Bool :=
   all (isPresent sup) sub;
+
+terminating
+findMismatch
+  {A}
+  {{Eq A}}
+  (elements : List A)
+  (correct : A)
+  : Maybe A :=
+  case elements of
+    | nil := nothing
+    | k :: ks :=
+      if
+        | k /= correct := just k
+        | else := findMismatch ks correct;
 
 isSubset {A} {{Ord A}} (sub sup : Set A) : Bool :=
   all (x in Data.Set.toList sub)

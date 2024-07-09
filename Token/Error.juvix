@@ -7,17 +7,18 @@ import Token.Label open;
 import Token.Logic open;
 import AnomaHelpers open;
 
-
 type TokenError :=
   | ErrTokenUnauthorized UnauthorizedError
   | ErrTokenInsufficientQuantity InsufficientQuantityError
   | ErrTokenInvalidLabel InvalidLabelError
+  | ErrTokenInvalidLogic InvalidLogicError
   | ErrTokenInsufficientElements InsufficientElementsError
   | ErrTokenDefault Error;
 
 trait
 type TokenThrowable Error Result :=
-  mkTokenThrowable {throw : Error -> Either TokenError Result};
+  mkTokenThrowable {throw : Error
+    -> Either TokenError Result};
 
 instance
 UnauthorizedTokenThrowable
@@ -54,8 +55,15 @@ InvalidLabelThrowable
   };
 
 instance
-DefaultThrowable
-  {A} : TokenThrowable Error A :=
+InvalidLogicThrowable
+  {A} : TokenThrowable InvalidLogicError A :=
+  mkTokenThrowable@{
+    throw (e : InvalidLogicError) : Either TokenError A :=
+      left {_} {A} (ErrTokenInvalidLogic e)
+  };
+
+instance
+ErrorThrowable {A} : TokenThrowable Error A :=
   mkTokenThrowable@{
     throw (e : Error) : Either TokenError A :=
       left {_} {A} (ErrTokenDefault e)
@@ -64,11 +72,3 @@ DefaultThrowable
 open TokenThrowable public;
 
 pass {A} (a : A) : Either TokenError A := right a;
-
--- TODO: Improve error messages
-displayTokenError : TokenError -> String
-  | (ErrTokenUnauthorized e) := displayUnauthorizedError e
-  | (ErrTokenInvalidLabel e) := displayInvalidLabelError e
-  | (ErrTokenInsufficientQuantity _) := "InsufficientQuantity"
-  | (ErrTokenInsufficientElements _) := "InsufficientElements"
-  | (ErrTokenDefault e) := Error.msg e;

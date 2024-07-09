@@ -25,12 +25,18 @@ type UnauthorizedError :=
     actual : PublicKey
   };
 
-displayUnauthorizedError (e : UnauthorizedError) : String :=
-  "UnauthorizedError:\n"
-    ++str "expected: "
-    ++str natToString (UnauthorizedError.expected e)
-    ++str "actual: "
-    ++str natToString (UnauthorizedError.actual e);
+instance
+UnauthorizedError-Show : Show UnauthorizedError :=
+  mkShow
+    λ {e :=
+      "UnauthorizedError:\n{"
+        ++str "expected : "
+        ++str (e |> UnauthorizedError.expected |> Show.show)
+        ++str ", "
+        ++str "actual"
+        ++str (e |> UnauthorizedError.actual |> Show.show)
+        ++str "}"};
+
 
 type AuthMessage :=
   mkAuthMessage {
@@ -82,12 +88,3 @@ isAuthorizedByOwner
            && isSubsetOfCreatedResources
              (AuthMessage.mustBeCreated msg)
              tx;
-
-terminating
-containsNonOwner (keys : List PublicKey) (owner : PublicKey) : Maybe PublicKey :=
-  case keys of
-    | nil := nothing
-    | (k :: ks) :=
-      if
-        | k /= owner := just k
-        | else := containsNonOwner ks owner;

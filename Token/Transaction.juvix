@@ -16,9 +16,8 @@ import Authorization.Owner open;
 
 
 --- Mints a token ;Resource; owned by an receiver ;PublicKey;.
---- If the calling ;KeyPair; is not the owner the function returns a
---- ;TokenError;.
 --- This requires an ephemeral resource to be consumed.
+--- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Either TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
@@ -40,8 +39,7 @@ mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Ei
 
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
---- If the calling ;KeyPair; is not the owner the function returns a
---- ;TokenError;.
+--- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
@@ -64,7 +62,7 @@ burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
           | Fixed := throw mkError@{msg := "Tokens with fixed supply are not supported yet."};
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
---- If the calling ;KeyPair; is not the owner the function returns a ;TokenError;.
+--- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 transfer
   (self : KeyPair)
   (token : Resource)
@@ -87,7 +85,9 @@ transfer
 
 
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
---- If the calling ;KeyPair; is not the owner or if the amounts do not balance,
+--- The function returns a ;TokenError; if
+--- - the calling ;KeyPair; is not the owner or
+--- - the amounts do not balance,
 --- the function returns a ;TokenError;.
 split
   (self : KeyPair)
@@ -115,8 +115,9 @@ split
 --- Sends an amount of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- If the amount is lower than of the quantity of the consumed ;Resource;, the function creates
 --- a second ;Resource; with the remainder being owned by the caller.
---- If the calling ;KeyPair; is not the owner or if the amounts do or the amount exceeds
---- the available quantity of the resource, the function returns a ;TokenError;.
+--- The function returns a ;TokenError; if
+--- - the calling ;KeyPair; is not the owner or
+--- - if the amounts do or the amount exceeds the available quantity of the resource.
 send
   (self : KeyPair)
   (token : Resource)
@@ -138,8 +139,10 @@ send
 
 --- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
 --- of them and the ;Label;s match.
---- If the calling ;KeyPair; is not the owner or the token ;Label;s differ,
---- the function returns a ;TokenError;.
+--- The function returns a ;TokenError; if
+--- - the calling ;KeyPair; is not the owner of the tokens or
+--- - one of the token ;Label;s differs or
+--- - one of the token ;Resource; logics differs.
 merge
   (self : KeyPair)
   (tokens : List Resource)
@@ -153,6 +156,7 @@ merge
       mySecret : PrivateKey := KeyPair.privKey self;
 
       label : Label := getLabel t;
+      logic : Nat := anomaEncode(Resource.logic t);
       owner : PublicKey := getOwner t;
       sum : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
 
@@ -160,9 +164,12 @@ merge
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
       extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
-    in case containsWrongLabel (map getLabel tokens) label of
-      | just wrongLabel := throw mkInvalidLabelError@{expected := label; actual := wrongLabel}
-      | nothing :=
-     case containsNonOwner (map getOwner tokens) owner of
-        | just notOwner := throw mkUnauthorizedError@{expected := myself; actual := notOwner}
-        | nothing := pass (mkTransaction mySecret consumedRs createdRs extraData);
+      in case findMismatch (map getOwner tokens) owner of
+        | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
+        | nothing :=
+          case findMismatch (map getLabel tokens) label of
+          | just wrongLabel := throw mkInvalidLabelError@{expected := label; actual := wrongLabel}
+          | nothing :=
+            case findMismatch (map getLogic tokens) logic of
+            | just wrongLogic := throw mkInvalidLogicError@{expected := logic; actual := wrongLogic}
+            | nothing := pass (mkTransaction mySecret consumedRs createdRs extraData);
