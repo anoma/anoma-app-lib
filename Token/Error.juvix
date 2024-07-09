@@ -17,7 +17,7 @@ type TokenError :=
 
 instance
 TokenError-Show : Show TokenError :=
-  mkShow λ {e := "TokenError:\n" ++str Show.show e};
+  mkShow \ {e := "TokenError:\n" ++str Show.show e};
 
 trait
 type TokenThrowable Error Result :=
