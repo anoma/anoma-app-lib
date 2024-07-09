@@ -16,3 +16,12 @@ Supply-Eq : Eq Supply :=
       | Fixed Fixed := true
       | _ _ := false
   };
+
+instance
+Supply-Show : Show Supply :=
+  mkShow
+    λ {l :=
+      case l of
+        | Unbound := "Unbound"
+        | Capped := "Capped"
+        | Fixed := "Fixed"};
