@@ -116,18 +116,12 @@ isSublist (sub sup : List Helper.Commitment) : Bool :=
   all (isPresent sup) sub;
 
 terminating
-findMismatch
-  {A}
-  {{Eq A}}
-  (elements : List A)
-  (correct : A)
-  : Maybe A :=
-  case elements of
-    | nil := nothing
-    | k :: ks :=
-      if
-        | k /= correct := just k
-        | else := findMismatch ks correct;
+findMismatch {A} {{Eq A}} (ref : A) : List A -> Maybe A
+  | nil := nothing
+  | (x :: xs) :=
+    if
+      | x /= ref := just x
+      | else := findMismatch ref xs;
 
 isSubset {A} {{Ord A}} (sub sup : Set A) : Bool :=
   all (x in Data.Set.toList sub)

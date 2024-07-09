@@ -164,12 +164,12 @@ merge
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
       extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
-      in case findMismatch (map getOwner tokens) owner of
+      in case findMismatch owner (map getOwner tokens) of
         | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
         | nothing :=
-          case findMismatch (map getLabel tokens) label of
+          case findMismatch label (map getLabel tokens) of
           | just wrongLabel := throw mkInvalidLabelError@{expected := label; actual := wrongLabel}
           | nothing :=
-            case findMismatch (map getLogic tokens) logic of
+            case findMismatch logic (map getLogic tokens) of
             | just wrongLogic := throw mkInvalidLogicError@{expected := logic; actual := wrongLogic}
             | nothing := pass (mkTransaction mySecret consumedRs createdRs extraData);
