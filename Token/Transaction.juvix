@@ -13,6 +13,7 @@ import Token.Error open;
 import Authorization.Owner open;
 
 --- Mints a token ;Resource; owned by an receiver ;PublicKey;.
+--- If the calling ;KeyPair; is not the owner the function returns a ;TokenError;.
 --- This requires an ephemeral resource to be consumed.
 mint
   (self : KeyPair)
@@ -46,9 +47,10 @@ mint
     extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
   in mkTransaction mySecret consumedRs createdRs extraData;
 
+
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
---- If the calling ;KeyPair; is not the owner, this function returns nothing.
+--- If the calling ;KeyPair; is not the owner the function returns a ;TokenError;.
 burn
   (self : KeyPair) (token : Resource) : Either TokenError Transaction  :=
   let
@@ -76,7 +78,7 @@ burn
 
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
---- If the calling ;KeyPair; is not the owner, this function returns nothing.
+--- If the calling ;KeyPair; is not the owner the function returns a ;TokenError;.
 transfer
   (self : KeyPair)
   (token : Resource)
@@ -106,7 +108,8 @@ transfer
 
 
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
---- If the calling ;KeyPair; is not the owner or if the amounts do not balance, this function returns nothing.
+--- If the calling ;KeyPair; is not the owner or if the amounts do not balance,
+--- the function returns a ;TokenError;.
 split
   (self : KeyPair)
   (token : Resource)
@@ -130,9 +133,11 @@ split
     | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
 
 
---- Sends an amount of token ;Resource; to receiver, if the calling ;KeyPair; is the owner.
---- If the amount exceeds the quantity available in the resource, the function returns nothing.
---- TODO
+--- Sends an amount of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
+--- If the amount is lower than of the quantity of the consumed ;Resource;, the function creates
+--- a second ;Resource; with the remainder being owned by the caller.
+--- If the calling ;KeyPair; is not the owner or if the amounts do or the amount exceeds
+--- the available quantity of the resource, the function returns a ;TokenError;.
 send
   (self : KeyPair)
   (token : Resource)
@@ -152,8 +157,11 @@ send
         split self token ((amount, receiver) :: (remainder, myself) :: nil)
     | else := throw mkError@{msg := "Unknown failure"};
 
---- Merges two token ;Resource;s, if the calling ;KeyPair; is the owner of both.
---- If the calling ;KeyPair; is not the owner, this function returns nothing.
+
+--- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
+--- of them and the ;Label;s match.
+--- If the calling ;KeyPair; is not the owner or the token ;Label;s differ,
+--- the function returns a ;TokenError;.
 merge
   (self : KeyPair)
   (tokens : List Resource)
