@@ -2,6 +2,8 @@ module Token.Transaction;
 
 import Stdlib.Prelude open;
 import Stdlib.Debug.Fail open using {failwith};
+import Stdlib.Data.Nat.Ord open using {compare};
+
 import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
@@ -147,16 +149,14 @@ send
   let
     myself : PublicKey := KeyPair.pubKey self;
     availableAmount : Nat := Resource.quantity token;
-  in if
-    | availableAmount < amount := throw mkInsufficientQuantityError@{limit := availableAmount; actual := amount}
-    | availableAmount == amount := transfer self token receiver
-    | availableAmount > amount :=
+  in case (compare availableAmount amount) of
+    | LT := throw mkInsufficientQuantityError@{limit := availableAmount; actual := amount}
+    | EQ := transfer self token receiver
+    | GT :=
       let
         remainder : Nat := toNat (intSubNat availableAmount amount);
       in
-        split self token ((amount, receiver) :: (remainder, myself) :: nil)
-    | else := throw mkError@{msg := "Unknown failure"};
-
+        split self token ((amount, receiver) :: (remainder, myself) :: nil);
 
 --- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
 --- of them and the ;Label;s match.
