@@ -49,7 +49,7 @@ instance
 InsufficientElementsError-Show
   : Show InsufficientElementsError :=
   mkShow
-    λ {e :=
+    \ {e :=
       "InsufficientElementsError:\n{"
         ++str "limit : "
         ++str (e |> InsufficientElementsError.limit |> Show.show)
@@ -68,7 +68,7 @@ instance
 InsufficientQuantityError-Show
   : Show InsufficientQuantityError :=
   mkShow
-    λ {e :=
+    \ {e :=
       "InsufficientQuantityError:\n{"
         ++str "limit : "
         ++str (e |> InsufficientQuantityError.limit |> Show.show)
@@ -86,7 +86,7 @@ type InvalidLogicError :=
 instance
 InvalidLogicError-Show : Show InvalidLogicError :=
   mkShow
-    λ {e :=
+    \ {e :=
       "InvalidLogicError:\n{"
         ++str "expected : "
         ++str (e |> InvalidLogicError.expected |> Show.show)

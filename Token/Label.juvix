@@ -28,7 +28,7 @@ Label-Eq : Eq Label :=
 instance
 Label-Show : Show Label :=
   mkShow
-    λ {l :=
+    \ {l :=
       "{"
         ++str "name : "
         ++str (l |> Label.name |> Show.show)
@@ -76,7 +76,7 @@ type InvalidLabelError :=
 instance
 InvalidLabelError-Show : Show InvalidLabelError :=
   mkShow
-    λ {e :=
+    \ {e :=
       "InvalidLabelError:\n{"
         ++str "expected : "
         ++str (e |> InvalidLabelError.expected |> Show.show)

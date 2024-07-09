@@ -20,7 +20,7 @@ Supply-Eq : Eq Supply :=
 instance
 Supply-Show : Show Supply :=
   mkShow
-    λ {
+    \ {
       | Unbound := "Unbound"
       | Capped := "Capped"
       | Fixed := "Fixed"
