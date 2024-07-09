@@ -7,13 +7,13 @@ import Token.Label open;
 import Token.Logic open;
 import AnomaHelpers open;
 
-type Error := mkError {msg : String};
 
 type TokenError :=
   | ErrTokenUnauthorized UnauthorizedError
   | ErrTokenInsufficientQuantity InsufficientQuantityError
   | ErrTokenInvalidLabel InvalidLabelError
-  | ErrTokenInsufficientElements InsufficientElementsError;
+  | ErrTokenInsufficientElements InsufficientElementsError
+  | ErrTokenDefault Error;
 
 trait
 type TokenThrowable Error Result :=
@@ -53,6 +53,14 @@ InvalidLabelThrowable
       left {_} {A} (ErrTokenInvalidLabel e)
   };
 
+instance
+DefaultThrowable
+  {A} : TokenThrowable Error A :=
+  mkTokenThrowable@{
+    throw (e : Error) : Either TokenError A :=
+      left {_} {A} (ErrTokenDefault e)
+  };
+
 open TokenThrowable public;
 
 pass {A} (a : A) : Either TokenError A := right a;
@@ -63,3 +71,4 @@ displayTokenError : TokenError -> String
   | (ErrTokenInvalidLabel e) := displayInvalidLabelError e
   | (ErrTokenInsufficientQuantity _) := "InsufficientQuantity"
   | (ErrTokenInsufficientElements _) := "InsufficientElements"
+  | (ErrTokenDefault e) := Error.msg e;

@@ -14,31 +14,35 @@ import Token.Logic open;
 import Token.Error open;
 import Authorization.Owner open;
 
+
 --- Mints a token ;Resource; owned by an receiver ;PublicKey;.
 --- If the calling ;KeyPair; is not the owner the function returns a
 --- ;TokenError;.
 --- This requires an ephemeral resource to be consumed.
-mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Transaction :=
-    let
-      myself : PublicKey := KeyPair.pubKey self;
-      mySecret : PrivateKey := KeyPair.privKey self;
+mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Either TokenError Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    mySecret : PrivateKey := KeyPair.privKey self;
 
-      ephToken : Resource := mkToken true amount label mkOwner@{owner := myself};
-      newToken : Resource := mkToken false amount label mkOwner@{owner := receiver};
+    ephToken : Resource := mkToken true amount label mkOwner@{owner := myself};
+    newToken : Resource := mkToken false amount label mkOwner@{owner := receiver};
 
-      consumedRs : List Resource := [ephToken];
-      createdRs : List Resource := [newToken];
-      extraData : Map Bytes32 Bytes :=
-        mkAuthExtraData mySecret consumedRs createdRs;
-     in
-       mkTransaction mySecret consumedRs createdRs extraData;
+    consumedRs : List Resource := [ephToken];
+    createdRs : List Resource := [newToken];
+    extraData : Map Bytes32 Bytes :=
+      mkAuthExtraData mySecret consumedRs createdRs;
+   in
+     case Label.supply label of
+       | Unbound := pass (mkTransaction mySecret consumedRs createdRs extraData)
+       | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
+       | Fixed := throw mkError@{msg := "Tokens with fixed supply are not supported yet."};
 
 
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
 --- If the calling ;KeyPair; is not the owner the function returns a
 --- ;TokenError;.
-burn (self : KeyPair) (token : Resource) : Either TokenError Transaction  :=
+burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -53,8 +57,11 @@ burn (self : KeyPair) (token : Resource) : Either TokenError Transaction  :=
       mkAuthExtraData mySecret consumedRs createdRs;
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
-    | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
-
+    | else :=
+        case getSupply token of
+          | Unbound := pass (mkTransaction mySecret consumedRs createdRs extraData)
+          | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
+          | Fixed := throw mkError@{msg := "Tokens with fixed supply are not supported yet."};
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- If the calling ;KeyPair; is not the owner the function returns a ;TokenError;.

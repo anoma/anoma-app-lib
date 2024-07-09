@@ -34,6 +34,8 @@ BytesOrd : Ord Bytes :=
 
 natToBytes : Nat -> Bytes := mkBytes;
 
+type Error := mkError {msg : String};
+
 type InsufficientElementsError :=
   mkInsufficientElementsError {
     limit : Nat;
