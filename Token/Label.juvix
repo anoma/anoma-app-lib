@@ -40,8 +40,18 @@ getDecimals (r : Resource) : Nat :=
 getSupply (r : Resource) : Supply :=
   Label.supply (getLabel r);
 
+terminating
+containsWrongLabel
+  (labels : List Label) (label : Label) : Maybe Label :=
+  case labels of
+    | nil := nothing
+    | l :: ls :=
+      if
+        | l /= label := just l
+        | else := containsWrongLabel ls label;
+
 type InvalidLabelError :=
-  mkInvalidLabelError{
+  mkInvalidLabelError {
     expected : Label;
     actual : Label
   };

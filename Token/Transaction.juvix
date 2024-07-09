@@ -180,27 +180,3 @@ merge
      case containsNonOwner (map getOwner tokens) owner of
         | just notOwner := throw mkUnauthorizedError@{expected := myself; actual := notOwner}
         | nothing := pass (mkTransaction mySecret consumedRs createdRs extraData);
-
-terminating
-containsNonOwner (keys : List PublicKey) (owner : PublicKey) : Maybe PublicKey :=
-  case keys of
-    | nil := nothing
-    | (k :: ks) :=
-      if
-        | k /= owner := just k
-        | else := containsNonOwner ks owner;
-
-terminating
-containsWrongLabel (labels : List Label) (label : Label) : Maybe Label :=
-  case labels of
-    | nil := nothing
-    | (l :: ls) :=
-      if
-        | l /= label := just l
-        | else := containsWrongLabel ls label;
-
---- Resolve an `Either TokenError A`. Crash with an error message if the result
---- is a ;TokenError; otherwise returns an A.
-runTokenEither {A} : Either TokenError A -> A
-  | (left e) := failwith (displayTokenError e)
-  | (right a) := a;

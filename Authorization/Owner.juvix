@@ -82,3 +82,12 @@ isAuthorizedByOwner
            && isSubsetOfCreatedResources
              (AuthMessage.mustBeCreated msg)
              tx;
+
+terminating
+containsNonOwner (keys : List PublicKey) (owner : PublicKey) : Maybe PublicKey :=
+  case keys of
+    | nil := nothing
+    | (k :: ks) :=
+      if
+        | k /= owner := just k
+        | else := containsNonOwner ks owner;
