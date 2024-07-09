@@ -15,60 +15,37 @@ import Token.Error open;
 import Authorization.Owner open;
 
 --- Mints a token ;Resource; owned by an receiver ;PublicKey;.
---- If the calling ;KeyPair; is not the owner the function returns a ;TokenError;.
+--- If the calling ;KeyPair; is not the owner the function returns a
+--- ;TokenError;.
 --- This requires an ephemeral resource to be consumed.
-mint
-  (self : KeyPair)
-  (label : Label)
-  (amount : Nat)
-  (receiver : PublicKey)
-  : Transaction :=
-  let
-    myself : PublicKey := KeyPair.pubKey self;
-    mySecret : PrivateKey := KeyPair.privKey self;
+mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Transaction :=
+    let
+      myself : PublicKey := KeyPair.pubKey self;
+      mySecret : PrivateKey := KeyPair.privKey self;
 
-    ephToken : Resource :=
-      mkToken
-        true
-        amount
-        label
-        mkOwner@{
-          owner := myself
-        };
-    newToken : Resource :=
-      mkToken
-        false
-        amount
-        label
-        mkOwner@{
-          owner := receiver
-        };
+      ephToken : Resource := mkToken true amount label mkOwner@{owner := myself};
+      newToken : Resource := mkToken false amount label mkOwner@{owner := receiver};
 
-    consumedRs : List Resource := [ephToken];
-    createdRs : List Resource := [newToken];
-    extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
-  in mkTransaction mySecret consumedRs createdRs extraData;
+      consumedRs : List Resource := [ephToken];
+      createdRs : List Resource := [newToken];
+      extraData : Map Bytes32 Bytes :=
+        mkAuthExtraData mySecret consumedRs createdRs;
+     in
+       mkTransaction mySecret consumedRs createdRs extraData;
 
 
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
---- If the calling ;KeyPair; is not the owner the function returns a ;TokenError;.
-burn
-  (self : KeyPair) (token : Resource) : Either TokenError Transaction  :=
+--- If the calling ;KeyPair; is not the owner the function returns a
+--- ;TokenError;.
+burn (self : KeyPair) (token : Resource) : Either TokenError Transaction  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
     -- This ephemeral resource is needed for the total balance check.
-    ephToken :=
-      mkToken
-        true
-        (Resource.quantity token)
-        (getLabel token)
-        mkOwner@{
-          owner := 0
-        };
+    ephToken := mkToken true (Resource.quantity token) (getLabel token) mkOwner@{owner := 0};
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [ephToken];
@@ -91,14 +68,7 @@ transfer
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
-    newToken :=
-      mkToken
-        false
-        (Resource.quantity token)
-        (getLabel token)
-        mkOwner@{
-          owner := receiver
-        };
+    newToken := mkToken false (Resource.quantity token) (getLabel token) mkOwner@{owner := receiver};
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [newToken];
@@ -149,7 +119,8 @@ send
   let
     myself : PublicKey := KeyPair.pubKey self;
     availableAmount : Nat := Resource.quantity token;
-  in case (compare availableAmount amount) of
+  in
+    case (compare availableAmount amount) of
     | LT := throw mkInsufficientQuantityError@{limit := availableAmount; actual := amount}
     | EQ := transfer self token receiver
     | GT :=
