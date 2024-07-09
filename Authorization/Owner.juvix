@@ -83,11 +83,10 @@ isAuthorizedByOwner
              (AuthMessage.mustBeCreated msg)
              tx;
 
-terminating
-containsNonOwner (keys : List PublicKey) (owner : PublicKey) : Maybe PublicKey :=
-  case keys of
-    | nil := nothing
-    | (k :: ks) :=
-      if
-        | k /= owner := just k
-        | else := containsNonOwner ks owner;
+containsNonOwner
+  (owner : PublicKey) : List PublicKey -> Maybe PublicKey
+  | nil := nothing
+  | (k :: ks) :=
+    if
+      | k /= owner := just k
+      | else := containsNonOwner owner ks;

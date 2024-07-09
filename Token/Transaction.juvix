@@ -153,9 +153,9 @@ merge
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
       extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
-    in case containsWrongLabel (map getLabel tokens) label of
+    in case containsWrongLabel label (map getLabel tokens) of
       | just wrongLabel := throw mkInvalidLabelError@{expected := label; actual := wrongLabel}
       | nothing :=
-     case containsNonOwner (map getOwner tokens) owner of
+     case containsNonOwner owner (map getOwner tokens) of
         | just notOwner := throw mkUnauthorizedError@{expected := myself; actual := notOwner}
         | nothing := pass (mkTransaction mySecret consumedRs createdRs extraData);

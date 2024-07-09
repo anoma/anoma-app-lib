@@ -51,15 +51,13 @@ getDecimals (r : Resource) : Nat :=
 getSupply (r : Resource) : Supply :=
   Label.supply (getLabel r);
 
-terminating
 containsWrongLabel
-  (labels : List Label) (label : Label) : Maybe Label :=
-  case labels of
-    | nil := nothing
-    | l :: ls :=
-      if
-        | l /= label := just l
-        | else := containsWrongLabel ls label;
+  (label : Label) : List Label -> Maybe Label
+  | nil := nothing
+  | (l :: ls) :=
+    if
+      | l /= label := just l
+      | else := containsWrongLabel label ls;
 
 type InvalidLabelError :=
   mkInvalidLabelError {
