@@ -9,7 +9,7 @@ import Authorization.Owner open;
 
 -- TODO move to separate file, combine with auth message?
 type CounterMessage :=
-  mkAuthMessage {
+  mkCounterMessage {
     consumed : Helper.Nullifier;
     created : Helper.Commitment
   };
