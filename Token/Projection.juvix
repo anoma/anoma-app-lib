@@ -1,0 +1,26 @@
+module Token.Projection;
+
+import Stdlib.Prelude open;
+import Data.Map open;
+import Data.Set open;
+
+import Anoma open;
+
+--- Returns the total quantity of all resources  ;Kind; by looking up
+--- a ;Set; of ;Helper.Commitment;s associated with an account's ;PublicKey;
+--- from the key-value storage.
+--- This assume that the set is is up-to-date an no ;Helper.Commitment;s of
+--- consumed ;Resource;s are present.
+getBalance
+  (kind : Kind) (account : PublicKey) : Nat :=
+  let
+    ledgers : Map PublicKey (Set Helper.Commitment) :=
+      anomaGet (anomaEncode (kind));
+    result := lookup account ledgers;
+  in case result of
+       | just ledger :=
+         for (sum := 0) (cm in Data.Set.toList ledger)
+           {let
+             q := Resource.quantity (commitmentResource cm);
+           in q + sum}
+       | nothing := 0;
