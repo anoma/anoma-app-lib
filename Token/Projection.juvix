@@ -1,0 +1,7 @@
+module Token.Projection;
+
+import Stdlib.Prelude open;
+import Anoma open;
+
+getBalance (account : PublicKey) (kind : Kind) : Nat :=
+  anomaGet (anomaEncode (account, kind));
