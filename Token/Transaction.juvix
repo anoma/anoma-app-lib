@@ -88,7 +88,6 @@ transfer
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not the owner or
 --- - the amounts do not balance,
---- the function returns a ;TokenError;.
 split
   (self : KeyPair)
   (token : Resource)
@@ -117,7 +116,7 @@ split
 --- a second ;Resource; with the remainder being owned by the caller.
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not the owner or
---- - if the amounts do or the amount exceeds the available quantity of the resource.
+--- - the amount exceeds the quantity of the resource.
 send
   (self : KeyPair)
   (token : Resource)
