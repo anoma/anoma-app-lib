@@ -118,27 +118,25 @@ isConsumed (r : Resource) (tx : Transaction) : Bool :=
     r
     (ResourcePartition.consumed (partitionResources tx));
 
-isPresent
-  (cms : List Helper.Commitment)
-  (cm : Helper.Commitment)
-  : Bool := elem (==) cm cms;
+isEphemeral (r : Resource) : Bool := Resource.eph r;
 
-isSublist (sub sup : List Helper.Commitment) : Bool :=
-  all (isPresent sup) sub;
+isNullifierPresent
+  (nf : Helper.Nullifier) (tx : Transaction) : Bool :=
+  elem (==) nf (Transaction.nullifiers tx);
 
 isSubset {A} {{Ord A}} (sub sup : Set A) : Bool :=
   all (x in Data.Set.toList sub)
     member? x sup;
 
-isSubsetOfCreatedResources
-  (sub : Set Helper.Commitment) (tx : Transaction) : Bool :=
-  let
-    sup : Set Helper.Commitment :=
-      Data.Set.fromList
-        (map
-          commitment
-          (ResourcePartition.created (partitionResources tx)));
-  in isSubset sub sup;
+isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
+  all (x in sub)
+    member? x (Data.Set.fromList sup);
+
+commitmentSet (tx : Transaction) : Set Helper.Commitment :=
+  Data.Set.fromList (Transaction.commitments tx);
+
+nullifierSet (tx : Transaction) : Set Helper.Nullifier :=
+  Data.Set.fromList (Transaction.nullifiers tx);
 
 lookupExtraData
   {Value : Type}

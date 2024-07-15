@@ -85,6 +85,6 @@ isAuthorizedByOwner
        | just (msg, sig) :=
          AuthMessage.consumed msg == selfNk
            && anomaVerifyDetached sig msg owner
-           && isSubsetOfCreatedResources
+           && isSubset
              (AuthMessage.mustBeCreated msg)
-             tx;
+             (commitmentSet tx);
