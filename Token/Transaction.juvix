@@ -46,7 +46,6 @@ burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
-    -- This ephemeral resource is needed for the total balance check.
     ephToken := mkToken true (Resource.quantity token) (getLabel token) mkOwner@{owner := 0};
 
     consumedRs : List Resource := [token];
