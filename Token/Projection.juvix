@@ -11,8 +11,7 @@ import Anoma open;
 --- from the key-value storage.
 --- This assume that the set is is up-to-date an no ;Helper.Commitment;s of
 --- consumed ;Resource;s are present.
-getBalance
-  (kind : Kind) (account : PublicKey) : Nat :=
+getBalance (kind : Kind) (account : PublicKey) : Nat :=
   let
     ledgers : Map PublicKey (Set Helper.Commitment) :=
       anomaGet (anomaEncode (kind));

@@ -11,6 +11,15 @@ type Either Error Result :=
   | left Error
   | right Result;
 
+--- Returns the leftmost element of the list satisfying the predicate or
+--- nothing if there's no such element.
+find {A} (predicate : A → Bool) : List A → Maybe A
+  | nil := nothing
+  | (x :: xs) :=
+    if
+      | predicate x := just x
+      | else := find predicate xs;
+
 -- Should be added to the `juvix-anoma-stdlib`
 type Bytes32 := mkBytes32 {unBytes32 : Nat};
 
@@ -107,34 +116,25 @@ isConsumed (r : Resource) (tx : Transaction) : Bool :=
     r
     (ResourcePartition.consumed (partitionResources tx));
 
-isPresent
-  (cms : List Helper.Commitment)
-  (cm : Helper.Commitment)
-  : Bool := elem (==) cm cms;
+isEphemeral (r : Resource) : Bool := Resource.eph r;
 
-isSublist (sub sup : List Helper.Commitment) : Bool :=
-  all (isPresent sup) sub;
-
-findMismatch {A} {{Eq A}} (ref : A) : List A -> Maybe A
-  | nil := nothing
-  | (x :: xs) :=
-    if
-      | x /= ref := just x
-      | else := findMismatch ref xs;
+isNullifierPresent
+  (nf : Helper.Nullifier) (tx : Transaction) : Bool :=
+  elem (==) nf (Transaction.nullifiers tx);
 
 isSubset {A} {{Ord A}} (sub sup : Set A) : Bool :=
   all (x in Data.Set.toList sub)
     member? x sup;
 
-isSubsetOfCreatedResources
-  (sub : Set Helper.Commitment) (tx : Transaction) : Bool :=
-  let
-    sup : Set Helper.Commitment :=
-      Data.Set.fromList
-        (map
-          commitment
-          (ResourcePartition.created (partitionResources tx)));
-  in isSubset sub sup;
+isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
+  all (x in sub)
+    member? x (Data.Set.fromList sup);
+
+commitmentSet (tx : Transaction) : Set Helper.Commitment :=
+  Data.Set.fromList (Transaction.commitments tx);
+
+nullifierSet (tx : Transaction) : Set Helper.Nullifier :=
+  Data.Set.fromList (Transaction.nullifiers tx);
 
 lookupExtraData
   {Value : Type}

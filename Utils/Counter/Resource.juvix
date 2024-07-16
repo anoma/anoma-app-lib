@@ -1,0 +1,35 @@
+module Utils.Counter.Resource;
+
+import Stdlib.Prelude open;
+import Anoma open;
+
+import Utils.Counter.Logic open;
+import Utils.Counter.Label open;
+
+mkCounter
+  (ephemeral : Bool)
+  (uniqueLabel : Label)
+  (count : Nat)
+  : Resource :=
+  Resource.mk@{
+    logic := counterLogic;
+    label := anomaEncode (uniqueLabel);
+    quantity := 1;
+    data := count;
+    eph := ephemeral;
+    npk := 0;
+    nonce := 0;
+    rseed := 0
+  };
+
+mkDummy (ephemeral : Bool) : Resource :=
+  Resource.mk@{
+    logic := \ {self tx := true};
+    label := 0;
+    quantity := 1;
+    data := 0;
+    eph := ephemeral;
+    npk := 0;
+    nonce := 0;
+    rseed := 0
+  };

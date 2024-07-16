@@ -1,0 +1,84 @@
+module Authorization.Message;
+
+import Stdlib.Prelude open;
+import Data.Map open;
+import Data.Set open;
+import Anoma open;
+import AnomaHelpers open;
+
+type LinkedResourceMessage :=
+  mkLinkedResourceMessage {
+    -- TODO: Use nullifier once v2 specs are implemented.
+    consumed : Helper.Commitment;
+    created : Helper.Commitment
+  };
+
+-- TODO make signing optional
+mkLinkedResourceExtraDataMapEntry
+  (self : PrivateKey)
+  (created : Resource)
+  (consumed : Resource)
+  : Pair Bytes32 Bytes :=
+  let
+    consumedCm : Helper.Commitment := commitment consumed;
+    createdCm : Helper.Commitment := commitment created;
+    msg : LinkedResourceMessage :=
+      mkLinkedResourceMessage@{
+        consumed := consumedCm;
+        created := createdCm
+      };
+
+    k : Bytes32 := natToBytes32 consumedCm;
+    v : Bytes :=
+      natToBytes
+        (anomaEncode (msg, anomaSignDetached msg self));
+  in k, v;
+
+mkLinkedResourceExtraData
+  (self : PrivateKey)
+  (consumed : List Resource)
+  (created : Resource)
+  : Map Bytes32 Bytes :=
+  Data.Map.fromList
+    (map
+      (mkLinkedResourceExtraDataMapEntry self created)
+      consumed);
+
+type LinkedResourceSetMessage :=
+  mkLinkedResourceSetMessage {
+    -- TODO: Use nullifier once v2 specs are implemented.
+    consumed : Helper.Commitment;
+    createdSet : Set Helper.Commitment
+  };
+
+-- TODO make signing optional
+mkLinkedResourceSetExtraDataMapEntry
+  (self : PrivateKey)
+  (created : List Resource)
+  (consumed : Resource)
+  : Pair Bytes32 Bytes :=
+  let
+    consumedCm : Helper.Commitment := commitment consumed;
+    createdCms : Set Helper.Commitment :=
+      Data.Set.fromList (map commitment created);
+    msg : LinkedResourceSetMessage :=
+      mkLinkedResourceSetMessage@{
+        consumed := consumedCm;
+        createdSet := createdCms
+      };
+
+    k : Bytes32 := natToBytes32 consumedCm;
+    v : Bytes :=
+      natToBytes
+        (anomaEncode (msg, anomaSignDetached msg self));
+  in k, v;
+
+mkLinkedResourceSetExtraData
+  (self : PrivateKey)
+  (consumed : List Resource)
+  (created : List Resource)
+  : Map Bytes32 Bytes :=
+  Data.Map.fromList
+    (map
+      (mkLinkedResourceSetExtraDataMapEntry self created)
+      consumed);

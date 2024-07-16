@@ -1,11 +1,10 @@
 module Authorization.Owner;
 
 import Stdlib.Prelude open;
-import Data.Map open;
-import Data.Set open;
 import Anoma open;
-
 import AnomaHelpers open;
+
+import Authorization.Message open;
 
 type Owner := mkOwner {owner : PublicKey};
 
@@ -37,54 +36,18 @@ UnauthorizedError-Show : Show UnauthorizedError :=
         ++str (e |> UnauthorizedError.actual |> Show.show)
         ++str "}"};
 
-
-type AuthMessage :=
-  mkAuthMessage {
-    consumed : Helper.Nullifier;
-    mustBeCreated : Set Helper.Commitment
-  };
-
-mkAuthExtraDataMapEntry
-  (self : PrivateKey)
-  (created : List Resource)
-  (consumed : Resource)
-  : Pair Bytes32 Bytes :=
-  let
-    consumedNk : Helper.Nullifier := nullifier consumed self;
-    createdCms : Set Helper.Commitment :=
-      Data.Set.fromList (map commitment created);
-    msg : AuthMessage :=
-      mkAuthMessage@{
-        consumed := consumedNk;
-        mustBeCreated := createdCms
-      };
-
-    k : Bytes32 := natToBytes32 consumedNk;
-    v : Bytes :=
-      natToBytes
-        (anomaEncode (msg, anomaSignDetached msg self));
-  in k, v;
-
-mkAuthExtraData
-  (self : PrivateKey)
-  (consumed : List Resource)
-  (created : List Resource)
-  : Map Bytes32 Bytes :=
-  Data.Map.fromList
-    (map (mkAuthExtraDataMapEntry self created) consumed);
-
 isAuthorizedByOwner
   (self : Resource) (tx : Transaction) : Bool :=
   let
-    owner : PublicKey := getOwner self;
-    selfNk : Helper.Commitment := commitment self;
-    lookupResult : Maybe (Pair AuthMessage Signature) :=
-      lookupExtraData (natToBytes32 selfNk) tx;
+    selfCm : Helper.Commitment := commitment self;
+    lookupResult
+      : Maybe (Pair LinkedResourceSetMessage Signature) :=
+      lookupExtraData (natToBytes32 selfCm) tx;
   in case lookupResult of
        | nothing := false
        | just (msg, sig) :=
-         AuthMessage.consumed msg == selfNk
-           && anomaVerifyDetached sig msg owner
-           && isSubsetOfCreatedResources
-             (AuthMessage.mustBeCreated msg)
-             tx;
+         LinkedResourceSetMessage.consumed msg == selfCm
+           && anomaVerifyDetached sig msg (getOwner self)
+           && isSubset
+             (LinkedResourceSetMessage.createdSet msg)
+             (commitmentSet tx);
