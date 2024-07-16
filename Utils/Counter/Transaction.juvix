@@ -29,15 +29,18 @@ create
         }
     | else :=
       let
+        myself : PublicKey := KeyPair.pubKey self;
         mySecret : PrivateKey := KeyPair.privKey self;
         ephCounter : Resource :=
           mkCounter@{
+            self := myself;
             ephemeral := true;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
           };
         newCounter :=
           mkCounter@{
+            self := myself;
             ephemeral := false;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
@@ -54,9 +57,11 @@ increment
   (currentCounter : Resource)
   : Transaction :=
   let
+    myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
     updatedCounter : Resource :=
       mkCounter@{
+        self := myself;
         ephemeral := false;
         uniqueLabel := getLabel currentCounter;
         count := Resource.data currentCounter + 1
