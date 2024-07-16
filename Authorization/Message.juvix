@@ -6,11 +6,19 @@ import Data.Set open;
 import Anoma open;
 import AnomaHelpers open;
 
+-- TODO: Use nullifier once v2 specs are implemented.
 type LinkedResourceMessage :=
   mkLinkedResourceMessage {
-    -- TODO: Use nullifier once v2 specs are implemented.
+
     consumed : Helper.Commitment;
     created : Helper.Commitment
+  };
+
+type LinkedResourceSetMessage :=
+  mkLinkedResourceSetMessage {
+
+    consumed : Helper.Commitment;
+    createdSet : Set Helper.Commitment
   };
 
 -- TODO make signing optional
@@ -34,23 +42,6 @@ mkLinkedResourceExtraDataMapEntry
         (anomaEncode (msg, anomaSignDetached msg self));
   in k, v;
 
-mkLinkedResourceExtraData
-  (self : PrivateKey)
-  (consumed : List Resource)
-  (created : Resource)
-  : Map Bytes32 Bytes :=
-  Data.Map.fromList
-    (map
-      (mkLinkedResourceExtraDataMapEntry self created)
-      consumed);
-
-type LinkedResourceSetMessage :=
-  mkLinkedResourceSetMessage {
-    -- TODO: Use nullifier once v2 specs are implemented.
-    consumed : Helper.Commitment;
-    createdSet : Set Helper.Commitment
-  };
-
 -- TODO make signing optional
 mkLinkedResourceSetExtraDataMapEntry
   (self : PrivateKey)
@@ -72,6 +63,16 @@ mkLinkedResourceSetExtraDataMapEntry
       natToBytes
         (anomaEncode (msg, anomaSignDetached msg self));
   in k, v;
+
+mkLinkedResourceExtraData
+  (self : PrivateKey)
+  (consumed : List Resource)
+  (created : Resource)
+  : Map Bytes32 Bytes :=
+  Data.Map.fromList
+    (map
+      (mkLinkedResourceExtraDataMapEntry self created)
+      consumed);
 
 mkLinkedResourceSetExtraData
   (self : PrivateKey)
