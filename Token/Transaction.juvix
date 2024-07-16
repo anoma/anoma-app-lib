@@ -3,17 +3,17 @@ module Token.Transaction;
 import Stdlib.Prelude open;
 import Stdlib.Debug.Fail open using {failwith};
 import Stdlib.Data.Nat.Ord open using {compare};
-
 import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
 
+import Authorization.Owner open;
+import Authorization.Message open;
 import Token.Resource open;
 import Token.Label open;
 import Token.Logic open;
 import Token.Error open;
 import Authorization.Owner open;
-
 
 --- Mints a token ;Resource; owned by an receiver ;PublicKey;.
 --- This requires an ephemeral resource to be consumed.
@@ -29,7 +29,7 @@ mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Ei
     consumedRs : List Resource := [ephToken];
     createdRs : List Resource := [newToken];
     extraData : Map Bytes32 Bytes :=
-      mkAuthExtraData mySecret consumedRs createdRs;
+      mkLinkedResourceSetExtraData mySecret consumedRs createdRs;
    in
      case Label.supply label of
        | Unbound := pass (mkTransaction mySecret consumedRs createdRs extraData)
@@ -51,7 +51,7 @@ burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
     consumedRs : List Resource := [token];
     createdRs : List Resource := [ephToken];
     extraData : Map Bytes32 Bytes :=
-      mkAuthExtraData mySecret consumedRs createdRs;
+      mkLinkedResourceSetExtraData mySecret consumedRs createdRs;
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | else :=
@@ -77,7 +77,7 @@ transfer
     consumedRs : List Resource := [token];
     createdRs : List Resource := [newToken];
     extraData : Map Bytes32 Bytes :=
-      mkAuthExtraData mySecret consumedRs createdRs;
+      mkLinkedResourceSetExtraData mySecret consumedRs createdRs;
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
@@ -103,7 +103,7 @@ split
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := map ((amount, receiver) in amountsAndReceivers) {mkToken false amount label mkOwner@{owner := receiver;}};
-    extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
+    extraData : Map Bytes32 Bytes := mkLinkedResourceSetExtraData mySecret consumedRs createdRs;
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
@@ -161,7 +161,7 @@ merge
       merged : Resource := mkToken false sum label mkOwner@{owner := myself};
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
-      extraData : Map Bytes32 Bytes := mkAuthExtraData mySecret consumedRs createdRs;
+      extraData : Map Bytes32 Bytes := mkLinkedResourceSetExtraData mySecret consumedRs createdRs;
       in case find ((/=) owner) (map getOwner tokens) of
         | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
         | nothing :=

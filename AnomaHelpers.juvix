@@ -11,7 +11,6 @@ type Either Error Result :=
   | left Error
   | right Result;
 
-
 --- Returns the leftmost element of the list satisfying the predicate or
 --- nothing if there's no such element.
 find {A} (predicate : A → Bool) : List A → Maybe A
@@ -20,7 +19,6 @@ find {A} (predicate : A → Bool) : List A → Maybe A
     if
       | predicate x := just x
       | else := find predicate xs;
-
 
 -- Should be added to the `juvix-anoma-stdlib`
 type Bytes32 := mkBytes32 {unBytes32 : Nat};

@@ -1,0 +1,26 @@
+module Utils.Counter.Logic;
+
+import Stdlib.Prelude open;
+
+import Anoma open;
+import AnomaHelpers open;
+
+import Utils.Counter.Count open;
+import Utils.Counter.Label open;
+import Utils.Counter.Extra open;
+
+counterLogic (self : Resource) (tx : Transaction) : Bool :=
+  if
+    | isEphemeral self :=
+      if
+        | isConsumed self tx :=
+          isNullifierPresent (getUniqueness self) tx
+        | else := false
+    | else :=
+      if
+        | isConsumed self tx :=
+          case findCreatedCounter self tx of {
+            | just found := isIncremented self found
+            | nothing := false
+          }
+        | else := true;

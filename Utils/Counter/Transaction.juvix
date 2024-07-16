@@ -1,0 +1,73 @@
+module Utils.Counter.Transaction;
+
+import Stdlib.Prelude open;
+import Data.Map open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Utils.Counter.Label open;
+import Utils.Counter.Error open;
+import Utils.Counter.Resource open;
+import Authorization.Message open;
+
+create
+  (self : KeyPair)
+  (consumableDummy : Resource)
+  : Either CounterError Transaction :=
+  let
+    ephCreatedDummy : Resource :=
+      mkDummy@{
+        ephemeral := true
+      };
+  in if
+    | anomaKind consumableDummy
+      /= anomaKind ephCreatedDummy :=
+      throw
+        mkError@{
+          msg :=
+            "The passed consumable resource has the wrong kind."
+        }
+    | else :=
+      let
+        mySecret : PrivateKey := KeyPair.privKey self;
+        ephCounter : Resource :=
+          mkCounter@{
+            ephemeral := true;
+            uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
+            count := 0
+          };
+        newCounter :=
+          mkCounter@{
+            ephemeral := false;
+            uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
+            count := 0
+          };
+      in pass
+        (mkTransaction
+          mySecret
+          (ephCreatedDummy :: ephCounter :: nil)
+          (consumableDummy :: newCounter :: nil)
+          empty);
+
+increment
+  (self : KeyPair)
+  (currentCounter : Resource)
+  : Transaction :=
+  let
+    mySecret : PrivateKey := KeyPair.privKey self;
+    updatedCounter : Resource :=
+      mkCounter@{
+        ephemeral := false;
+        uniqueLabel := getLabel currentCounter;
+        count := Resource.data currentCounter + 1
+      };
+    extra :=
+      mkLinkedResourceExtraData
+        mySecret
+        [currentCounter]
+        updatedCounter;
+  in mkTransaction
+    mySecret
+    [currentCounter]
+    [updatedCounter]
+    extra;
