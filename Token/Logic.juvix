@@ -8,7 +8,8 @@ import Authorization.Owner open;
 import Token.Supply open;
 
 tokenLogic
-  (supply : Supply) : Resource -> Transaction -> Bool :=
+  (supply : Supply)
+  : Resource -> Transaction -> Bool :=
   case supply of
     | Unbound := unboundSupplyLogic
     | Fixed := fixedSupplyLogic
@@ -21,6 +22,25 @@ unboundSupplyLogic
     | isCreated self tx := true
     | else := false;
 
-axiom fixedSupplyLogic : Resource -> Transaction -> Bool;
+--- This function allows an ephemeral token ;Resource; to be consumed once
+--- if a specific ;Helper.Nullifier; is present in the ;Transaction;s
+--- nullifier set, which would be the `mint` case.
+--- It does not allow an ephemeral token resource to be created, which would be
+--- the `burn` case.
+fixedSupplyLogic
+  (self : Resource)
+  (tx : Transaction)
+  : Bool :=
+  if
+    | isConsumed self tx :=
+      isAuthorizedByOwner self tx
+        && if
+          | isEphemeral self := isNullifierPresent (getUniqueness self) tx
+          | else := true
+    | isCreated self tx :=
+      if
+        | isEphemeral self := false
+        | else := true
+    | else := false;
 
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;

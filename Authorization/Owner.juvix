@@ -1,6 +1,7 @@
 module Authorization.Owner;
 
 import Stdlib.Prelude open;
+import Data.Set open;
 import Anoma open;
 import AnomaHelpers open;
 
@@ -51,3 +52,21 @@ isAuthorizedByOwner
            && isSubset
              (LinkedCommitmentSetMessage.createdSet msg)
              (commitmentSet tx);
+
+-- Iterates over all nullifiers until a valid one is found
+isAuthorizedByOwner'
+  (self : Resource) (tx : Transaction) : Bool :=
+  let
+    owner : PublicKey := getOwner self;
+    nfs : Set Helper.Nullifier := nullifierSet tx;
+  in any (nf in Data.Set.toList nfs)
+       {let
+         lookupResult
+           : Maybe (Pair LinkedResourceSetMessage' Signature) :=
+           lookupExtraData (natToBytes32 nf) tx;
+       in case lookupResult of
+            | nothing := false
+            | just (msg, sig) :=
+              LinkedResourceSetMessage'.consumed msg == nf
+                && anomaVerifyDetached sig msg owner
+                && isSubset (LinkedResourceSetMessage'.createdSet msg) nfs};

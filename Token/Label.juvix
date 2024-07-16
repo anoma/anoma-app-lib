@@ -11,7 +11,8 @@ type Label :=
     name : Nat;
     symbol : String;
     decimals : Nat;
-    supply : Supply
+    supply : Supply;
+    uniqueness : Helper.Nullifier
   };
 
 instance
@@ -21,7 +22,8 @@ Label-Eq : Eq Label :=
       Label.name l
         , Label.symbol l
         , Label.decimals l
-        , Label.supply l;
+        , Label.supply l
+        , Label.uniqueness l;
   in mkEq@{
     eq (l1 l2 : Label) : Bool := toProd l1 == toProd l2
   };
@@ -42,6 +44,9 @@ Label-Show : Show Label :=
         ++str ", "
         ++str "supply : "
         ++str (l |> Label.supply |> Show.show)
+        ++str ", "
+        ++str "uniqueness"
+        ++str (l |> Label.uniqueness |> Show.show)
         ++str "}"};
 
 getLabel (r : Resource) : Label :=
@@ -57,6 +62,9 @@ getDecimals (r : Resource) : Nat :=
 
 getSupply (r : Resource) : Supply :=
   Label.supply (getLabel r);
+
+getUniqueness (r : Resource) : Helper.Nullifier :=
+  Label.uniqueness (getLabel r);
 
 terminating
 containsWrongLabel

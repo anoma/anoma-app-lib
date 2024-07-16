@@ -19,6 +19,13 @@ type LinkedCommitmentSetMessage :=
     createdSet : Set Helper.Commitment
   };
 
+--- Use nullifier as the lookup key.
+type LinkedCommitmentSetMessage' :=
+  mkLinkedResourceSetMessage' {
+    consumed : Helper.Nullifier;
+    createdSet : Set Helper.Commitment
+  };
+
 -- TODO make signing optional
 mkLinkedCommitmentExtraDataMapEntry
   (self : PrivateKey)
