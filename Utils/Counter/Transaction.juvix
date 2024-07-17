@@ -43,7 +43,7 @@ createCounter
           };
         newCounter :=
           mkCounter@{
-            nullifierPubKey := anyone;
+            nullifierPubKey := universalPubKey;
             ephemeral := false;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
@@ -60,18 +60,18 @@ incrementCounter
   let
     updatedCounter : Resource :=
       mkCounter@{
-        nullifierPubKey := anyone;
+        nullifierPubKey := universalPubKey;
         ephemeral := false;
         uniqueLabel := getLabel currentCounter;
         count := Resource.data currentCounter + 1
       };
     extra :=
       mkLinkedCommitmentExtraData
-        anyonesSecret
+        universalPrivKey
         [currentCounter]
         updatedCounter;
   in mkTransaction
-    anyonesSecret
+    universalPrivKey
     [currentCounter]
     [updatedCounter]
     extra;
