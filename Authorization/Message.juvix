@@ -7,22 +7,20 @@ import Anoma open;
 import AnomaHelpers open;
 
 -- TODO: Use nullifier once v2 specs are implemented.
-type LinkedResourceMessage :=
-  mkLinkedResourceMessage {
-
+type LinkedCommitmentMessage :=
+  mkLinkedCommitmentMessage {
     consumed : Helper.Commitment;
     created : Helper.Commitment
   };
 
-type LinkedResourceSetMessage :=
-  mkLinkedResourceSetMessage {
-
+type LinkedCommitmentSetMessage :=
+  mkLinkedCommitmentSetMessage {
     consumed : Helper.Commitment;
     createdSet : Set Helper.Commitment
   };
 
 -- TODO make signing optional
-mkLinkedResourceExtraDataMapEntry
+mkLinkedCommitmentExtraDataMapEntry
   (self : PrivateKey)
   (created : Resource)
   (consumed : Resource)
@@ -30,8 +28,8 @@ mkLinkedResourceExtraDataMapEntry
   let
     consumedCm : Helper.Commitment := commitment consumed;
     createdCm : Helper.Commitment := commitment created;
-    msg : LinkedResourceMessage :=
-      mkLinkedResourceMessage@{
+    msg : LinkedCommitmentMessage :=
+      mkLinkedCommitmentMessage@{
         consumed := consumedCm;
         created := createdCm
       };
@@ -43,7 +41,7 @@ mkLinkedResourceExtraDataMapEntry
   in k, v;
 
 -- TODO make signing optional
-mkLinkedResourceSetExtraDataMapEntry
+mkLinkedCommitmentSetExtraDataMapEntry
   (self : PrivateKey)
   (created : List Resource)
   (consumed : Resource)
@@ -52,8 +50,8 @@ mkLinkedResourceSetExtraDataMapEntry
     consumedCm : Helper.Commitment := commitment consumed;
     createdCms : Set Helper.Commitment :=
       Data.Set.fromList (map commitment created);
-    msg : LinkedResourceSetMessage :=
-      mkLinkedResourceSetMessage@{
+    msg : LinkedCommitmentSetMessage :=
+      mkLinkedCommitmentSetMessage@{
         consumed := consumedCm;
         createdSet := createdCms
       };
@@ -64,22 +62,22 @@ mkLinkedResourceSetExtraDataMapEntry
         (anomaEncode (msg, anomaSignDetached msg self));
   in k, v;
 
-mkLinkedResourceExtraData
+mkLinkedCommitmentExtraData
   (self : PrivateKey)
   (consumed : List Resource)
   (created : Resource)
   : Map Bytes32 Bytes :=
   Data.Map.fromList
     (map
-      (mkLinkedResourceExtraDataMapEntry self created)
+      (mkLinkedCommitmentExtraDataMapEntry self created)
       consumed);
 
-mkLinkedResourceSetExtraData
+mkLinkedCommitmentSetExtraData
   (self : PrivateKey)
   (consumed : List Resource)
   (created : List Resource)
   : Map Bytes32 Bytes :=
   Data.Map.fromList
     (map
-      (mkLinkedResourceSetExtraDataMapEntry self created)
+      (mkLinkedCommitmentSetExtraDataMapEntry self created)
       consumed);

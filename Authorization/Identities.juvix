@@ -2,14 +2,14 @@ module Authorization.Identities;
 
 import Anoma open;
 
---- Generates via https://cyphr.me/ed25519_tool/ed.html with
+--- Generated via https://cyphr.me/ed25519_tool/ed.html with
 --- `0000000000000000000000000000000000000000000000000000000000000000`
 --- as the Seed.
 universal : KeyPair :=
   mkKeyPair@{
-    pubKey := 0x0;
-    privKey :=
-      0x3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29
+    pubKey :=
+      0x3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29;
+    privKey := 0x0
   };
 
 anyone : PublicKey := KeyPair.pubKey universal;

@@ -66,7 +66,7 @@ incrementCounter
         count := Resource.data currentCounter + 1
       };
     extra :=
-      mkLinkedResourceExtraData
+      mkLinkedCommitmentExtraData
         anyonesSecret
         [currentCounter]
         updatedCounter;
