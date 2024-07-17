@@ -1,0 +1,17 @@
+module Authorization.Identities;
+
+import Anoma open;
+
+--- The keypair generated from the seed `0x0000000000000000000000000000000000000000000000000000000000000000`
+--- (see, e.g., https://cyphr.me/ed25519_tool/ed.html) in little-endian byte order.
+universal : KeyPair :=
+  mkKeyPair@{
+    pubKey :=
+      0x29da598ba148c03aa643e21d77153265730d6f2ad0a8a3622da4b6cebc276a3b;
+    privKey :=
+      0x29da598ba148c03aa643e21d77153265730d6f2ad0a8a3622da4b6cebc276a3b0000000000000000000000000000000000000000000000000000000000000000
+  };
+
+universalPubKey : PublicKey := KeyPair.pubKey universal;
+
+universalPrivKey : PublicKey := KeyPair.privKey universal;

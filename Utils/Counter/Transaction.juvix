@@ -5,23 +5,26 @@ import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
 
+import Authorization.Message open;
+import Authorization.Identities open;
+import Utils.Dummy.Resource open;
 import Utils.Counter.Label open;
 import Utils.Counter.Error open;
 import Utils.Counter.Resource open;
-import Authorization.Message open;
 
-create
+--- Requires a consumable `Utils.Dummy.Resource`.
+createCounter
   (self : KeyPair)
   (consumableDummy : Resource)
   : Either CounterError Transaction :=
   let
-    ephCreatedDummy : Resource :=
+    ephDummy : Resource :=
       mkDummy@{
-        ephemeral := true
+        _npk := KeyPair.pubKey self;
+        _eph := true
       };
   in if
-    | anomaKind consumableDummy
-      /= anomaKind ephCreatedDummy :=
+    | anomaKind consumableDummy /= anomaKind ephDummy :=
       throw
         mkError@{
           msg :=
@@ -33,14 +36,14 @@ create
         mySecret : PrivateKey := KeyPair.privKey self;
         ephCounter : Resource :=
           mkCounter@{
-            self := myself;
+            nullifierPubKey := myself;
             ephemeral := true;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
           };
         newCounter :=
           mkCounter@{
-            self := myself;
+            nullifierPubKey := universalPubKey;
             ephemeral := false;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
@@ -48,31 +51,27 @@ create
       in pass
         (mkTransaction
           mySecret
-          (ephCreatedDummy :: ephCounter :: nil)
-          (consumableDummy :: newCounter :: nil)
+          (consumableDummy :: ephCounter :: nil)
+          (ephDummy :: newCounter :: nil)
           empty);
 
-increment
-  (self : KeyPair)
-  (currentCounter : Resource)
-  : Transaction :=
+incrementCounter
+  (currentCounter : Resource) : Transaction :=
   let
-    myself : PublicKey := KeyPair.pubKey self;
-    mySecret : PrivateKey := KeyPair.privKey self;
     updatedCounter : Resource :=
       mkCounter@{
-        self := myself;
+        nullifierPubKey := universalPubKey;
         ephemeral := false;
         uniqueLabel := getLabel currentCounter;
         count := Resource.data currentCounter + 1
       };
     extra :=
-      mkLinkedResourceExtraData
-        mySecret
+      mkLinkedCommitmentExtraData
+        universalPrivKey
         [currentCounter]
         updatedCounter;
   in mkTransaction
-    mySecret
+    universalPrivKey
     [currentCounter]
     [updatedCounter]
     extra;

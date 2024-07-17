@@ -1,7 +1,6 @@
 module Utils.Counter.Logic;
 
 import Stdlib.Prelude open;
-
 import Anoma open;
 import AnomaHelpers open;
 

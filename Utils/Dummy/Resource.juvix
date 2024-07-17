@@ -1,0 +1,21 @@
+module Utils.Dummy.Resource;
+
+import Stdlib.Prelude open;
+import Anoma open;
+
+import Utils.Dummy.Logic open;
+
+mkDummy
+  (_npk : PublicKey)
+  (_eph : Bool)
+  : Resource :=
+  Resource.mk@{
+    logic := alwaysTrueLogic;
+    label := 0;
+    quantity := 1;
+    data := 0;
+    eph := _eph;
+    npk := _npk;
+    nonce := 0;
+    rseed := 0
+  };

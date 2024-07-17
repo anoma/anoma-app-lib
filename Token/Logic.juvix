@@ -5,7 +5,6 @@ import Anoma open;
 import AnomaHelpers open;
 
 import Authorization.Owner open;
-import Token.Label open;
 import Token.Supply open;
 
 tokenLogic

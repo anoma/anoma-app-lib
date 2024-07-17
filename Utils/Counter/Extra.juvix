@@ -14,15 +14,15 @@ findCreatedCounter
   let
     selfCm : Helper.Commitment := commitment consumedCounter;
     lookupResult
-      : Maybe (Pair LinkedResourceMessage Signature) :=
+      : Maybe (Pair LinkedCommitmentMessage Signature) :=
       lookupExtraData (natToBytes32 selfCm) tx;
   in case lookupResult of
        | nothing := nothing
        | just (msg, _) :=
          let
            foundCounter : Resource :=
-             commitmentResource (LinkedResourceMessage.created msg);
+             commitmentResource (LinkedCommitmentMessage.created msg);
          in if
-           | LinkedResourceMessage.consumed msg == selfCm
+           | LinkedCommitmentMessage.consumed msg == selfCm
              && isCreated foundCounter tx := just foundCounter
            | else := nothing;

@@ -41,13 +41,13 @@ isAuthorizedByOwner
   let
     selfCm : Helper.Commitment := commitment self;
     lookupResult
-      : Maybe (Pair LinkedResourceSetMessage Signature) :=
+      : Maybe (Pair LinkedCommitmentSetMessage Signature) :=
       lookupExtraData (natToBytes32 selfCm) tx;
   in case lookupResult of
        | nothing := false
        | just (msg, sig) :=
-         LinkedResourceSetMessage.consumed msg == selfCm
+         LinkedCommitmentSetMessage.consumed msg == selfCm
            && anomaVerifyDetached sig msg (getOwner self)
            && isSubset
-             (LinkedResourceSetMessage.createdSet msg)
+             (LinkedCommitmentSetMessage.createdSet msg)
              (commitmentSet tx);
