@@ -63,9 +63,6 @@ getDecimals (r : Resource) : Nat :=
 getSupply (r : Resource) : Supply :=
   Label.supply (getLabel r);
 
-getUniqueness (r : Resource) : Helper.Nullifier :=
-  Label.uniqueness (getLabel r);
-
 terminating
 containsWrongLabel
   (labels : List Label) (label : Label) : Maybe Label :=

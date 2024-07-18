@@ -12,8 +12,8 @@ tokenLogic
   (supply : Supply) : Resource -> Transaction -> Bool :=
   case supply of
     | Unbound := unboundSupplyLogic
-    | Fixed := fixedSupplyLogic
-    | Capped := cappedSupplyLogic;
+    | Capped := cappedSupplyLogic
+    | Fixed f := fixedSupplyLogic (FixingNullifier.nf f);
 
 unboundSupplyLogic
   (self : Resource) (tx : Transaction) : Bool :=
@@ -23,13 +23,15 @@ unboundSupplyLogic
     | Unknown := false;
 
 fixedSupplyLogic
-  (self : Resource) (tx : Transaction) : Bool :=
+  (nf : Helper.Nullifier)
+  (self : Resource)
+  (tx : Transaction)
+  : Bool :=
   case ephemerality self of
     | NonEphemeral := unboundSupplyLogic self tx
     | Ephemeral :=
       case lifecycle self tx of
-        | Consumed := isNullifierPresent (getUniqueness self) tx
-        | Created := false
-        | Unknown := false;
+        | Consumed := isNullifierPresent nf tx
+        | _ := false;
 
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;
