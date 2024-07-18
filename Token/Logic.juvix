@@ -25,16 +25,11 @@ unboundSupplyLogic
 fixedSupplyLogic
   (self : Resource) (tx : Transaction) : Bool :=
   case ephemerality self of
+    | NonEphemeral := unboundSupplyLogic self tx
     | Ephemeral :=
-      case lifecycle self tx of {
+      case lifecycle self tx of
         | Consumed := isNullifierPresent (getUniqueness self) tx
         | Created := false
-        | NonExistent := false
-      }
-    | NonEphemeral :=
-      case lifecycle self tx of
-        | Consumed := isAuthorizedByOwner self tx
-        | Created := true
         | NonExistent := false;
 
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;
