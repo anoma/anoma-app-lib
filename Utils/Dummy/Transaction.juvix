@@ -7,7 +7,7 @@ import AnomaHelpers open;
 
 import Utils.Dummy.Resource open;
 
-createDummy (_self : KeyPair) : Transaction :=
+initializeDummy (_self : KeyPair) : Transaction :=
   let
     dummy : Resource :=
       mkDummy@{
@@ -21,7 +21,7 @@ createDummy (_self : KeyPair) : Transaction :=
     extraData := empty
   };
 
-consumeDummy
+finalizeDummy
   (_self : KeyPair) (_dummy : Resource) : Transaction :=
   mkTransaction@{
     nullifierKey := KeyPair.privKey _self;

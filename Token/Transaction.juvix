@@ -39,7 +39,7 @@ mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey)
        | (Fixed f) := pass
           composeTransactions@{
             tx1 := tx;
-            tx2 := consumeDummy@{_self := self; _dummy := anomaGet(FixingNullifier.nf f)}
+            tx2 := finalizeDummy@{_self := self; _dummy := anomaGet(FixingNullifier.nf f)}
           };
 
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
