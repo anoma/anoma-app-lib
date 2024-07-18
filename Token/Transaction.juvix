@@ -11,6 +11,7 @@ import Authorization.Owner open;
 import Authorization.Message open;
 import Token.Resource open;
 import Token.Label open;
+import Token.Supply open;
 import Token.Logic open;
 import Token.Error open;
 import Authorization.Owner open;
@@ -36,10 +37,10 @@ mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Ei
      case Label.supply label of
        | Unbound := pass tx
        | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
-       | Fixed := pass
+       | (Fixed f) := pass
           composeTransactions@{
             tx1 := tx;
-            tx2 := consumeDummy@{_self := self; _dummy := anomaGet(Label.uniqueness label)}
+            tx2 := consumeDummy@{_self := self; _dummy := anomaGet(FixingNullifier.nf f)}
           };
 
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
@@ -63,7 +64,7 @@ burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
         case getSupply token of
           | Unbound := pass (mkTransaction mySecret consumedRs createdRs extraData)
           | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
-          | Fixed := pass (mkTransaction mySecret consumedRs createdRs extraData);
+          | (Fixed _) := throw mkError@{msg := "Tokens with fixed supply cannot be burned."};
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
