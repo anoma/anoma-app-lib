@@ -9,20 +9,16 @@ import Utils.Dummy.Resource open;
 
 createDummy (_self : KeyPair) : Transaction :=
   let
-    nk : PrivateKey := KeyPair.privKey _self;
     dummy : Resource :=
       mkDummy@{
         _npk := KeyPair.pubKey _self;
         _eph := false
       };
-    ephDummy : Resource := dummy@Resource{eph := true};
-    k := natToBytes32 (nullifier dummy nk);
-    v := natToBytes (anomaEncode dummy);
   in mkTransaction@{
-    nullifierKey := nk;
-    consumed := [ephDummy];
+    nullifierKey := KeyPair.privKey _self;
+    consumed := [dummy@Resource{eph := true}];
     created := [dummy];
-    extraData := Data.Map.fromList [k, v]
+    extraData := empty
   };
 
 consumeDummy
