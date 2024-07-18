@@ -125,13 +125,6 @@ isConsumed (r : Resource) (tx : Transaction) : Bool :=
     r
     (ResourcePartition.consumed (partitionResources tx));
 
-isPresent (r : Resource) (tx : Transaction) : Bool :=
-  let
-    rs := partitionResources tx;
-    consumed := ResourcePartition.consumed rs;
-    created := ResourcePartition.created rs;
-  in elem (==) r (consumed ++ created);
-
 type Lifecycle :=
   | Consumed
   | Created
