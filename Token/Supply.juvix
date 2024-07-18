@@ -28,5 +28,8 @@ Supply-Show : Show Supply :=
     \ {
       | Unbound := "Unbound"
       | Capped := "Capped"
-      | (Fixed f) := "Fixed"
+      | (Fixed f) :=
+        "Fixed (nf: "
+          ++str natToString (FixingNullifier.nf f)
+          ++str ")"
     };
