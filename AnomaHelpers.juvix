@@ -135,7 +135,7 @@ isPresent (r : Resource) (tx : Transaction) : Bool :=
 type Lifecycle :=
   | Consumed
   | Created
-  | NonExistent;
+  | Unknown;
 
 lifecycle (r : Resource) (tx : Transaction) : Lifecycle :=
   let
@@ -145,7 +145,7 @@ lifecycle (r : Resource) (tx : Transaction) : Lifecycle :=
   in if
     | elem (==) r consumed := Consumed
     | elem (==) r created := Created
-    | else := NonExistent;
+    | else := Unknown;
 
 isEphemeral (r : Resource) : Bool := Resource.eph r;
 

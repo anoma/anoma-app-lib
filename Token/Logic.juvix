@@ -20,7 +20,7 @@ unboundSupplyLogic
   case lifecycle self tx of
     | Consumed := isAuthorizedByOwner self tx
     | Created := true
-    | NonExistent := false;
+    | Unknown := false;
 
 fixedSupplyLogic
   (self : Resource) (tx : Transaction) : Bool :=
@@ -30,6 +30,6 @@ fixedSupplyLogic
       case lifecycle self tx of
         | Consumed := isNullifierPresent (getUniqueness self) tx
         | Created := false
-        | NonExistent := false;
+        | Unknown := false;
 
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;
