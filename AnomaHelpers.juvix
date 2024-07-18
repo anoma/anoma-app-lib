@@ -125,7 +125,38 @@ isConsumed (r : Resource) (tx : Transaction) : Bool :=
     r
     (ResourcePartition.consumed (partitionResources tx));
 
+isPresent (r : Resource) (tx : Transaction) : Bool :=
+  let
+    rs := partitionResources tx;
+    consumed := ResourcePartition.consumed rs;
+    created := ResourcePartition.created rs;
+  in elem (==) r (consumed ++ created);
+
+type Lifecycle :=
+  | Consumed
+  | Created
+  | NonExistent;
+
+lifecycle (r : Resource) (tx : Transaction) : Lifecycle :=
+  let
+    rs := partitionResources tx;
+    consumed := ResourcePartition.consumed rs;
+    created := ResourcePartition.created rs;
+  in if
+    | elem (==) r consumed := Consumed
+    | elem (==) r created := Created
+    | else := NonExistent;
+
 isEphemeral (r : Resource) : Bool := Resource.eph r;
+
+type Ephemerality :=
+  | NonEphemeral
+  | Ephemeral;
+
+ephemerality (r : Resource) : Ephemerality :=
+  if
+    | isEphemeral r := Ephemeral
+    | else := NonEphemeral;
 
 isNullifierPresent
   (nf : Helper.Nullifier) (tx : Transaction) : Bool :=

@@ -62,11 +62,11 @@ isAuthorizedByOwner'
   in any (nf in Data.Set.toList nfs)
        {let
          lookupResult
-           : Maybe (Pair LinkedResourceSetMessage' Signature) :=
+           : Maybe (Pair LinkedCommitmentSetMessage' Signature) :=
            lookupExtraData (natToBytes32 nf) tx;
        in case lookupResult of
             | nothing := false
             | just (msg, sig) :=
-              LinkedResourceSetMessage'.consumed msg == nf
+              LinkedCommitmentSetMessage'.consumed msg == nf
                 && anomaVerifyDetached sig msg owner
-                && isSubset (LinkedResourceSetMessage'.createdSet msg) nfs};
+                && isSubset (LinkedCommitmentSetMessage'.createdSet msg) nfs};

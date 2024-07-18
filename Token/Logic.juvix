@@ -6,10 +6,10 @@ import AnomaHelpers open;
 
 import Authorization.Owner open;
 import Token.Supply open;
+import Token.Label open;
 
 tokenLogic
-  (supply : Supply)
-  : Resource -> Transaction -> Bool :=
+  (supply : Supply) : Resource -> Transaction -> Bool :=
   case supply of
     | Unbound := unboundSupplyLogic
     | Fixed := fixedSupplyLogic
@@ -17,30 +17,24 @@ tokenLogic
 
 unboundSupplyLogic
   (self : Resource) (tx : Transaction) : Bool :=
-  if
-    | isConsumed self tx := isAuthorizedByOwner self tx
-    | isCreated self tx := true
-    | else := false;
+  case lifecycle self tx of
+    | Consumed := isAuthorizedByOwner self tx
+    | Created := true
+    | NonExistent := false;
 
---- This function allows an ephemeral token ;Resource; to be consumed once
---- if a specific ;Helper.Nullifier; is present in the ;Transaction;s
---- nullifier set, which would be the `mint` case.
---- It does not allow an ephemeral token resource to be created, which would be
---- the `burn` case.
 fixedSupplyLogic
-  (self : Resource)
-  (tx : Transaction)
-  : Bool :=
-  if
-    | isConsumed self tx :=
-      isAuthorizedByOwner self tx
-        && if
-          | isEphemeral self := isNullifierPresent (getUniqueness self) tx
-          | else := true
-    | isCreated self tx :=
-      if
-        | isEphemeral self := false
-        | else := true
-    | else := false;
+  (self : Resource) (tx : Transaction) : Bool :=
+  case ephemerality self of
+    | Ephemeral :=
+      case lifecycle self tx of {
+        | Consumed := isNullifierPresent (getUniqueness self) tx
+        | Created := false
+        | NonExistent := false
+      }
+    | NonEphemeral :=
+      case lifecycle self tx of
+        | Consumed := isAuthorizedByOwner self tx
+        | Created := true
+        | NonExistent := false;
 
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;
