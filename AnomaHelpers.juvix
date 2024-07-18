@@ -187,7 +187,7 @@ lookupExtraData
   in lookup key keyValueMap;
 
 mkTransaction
-  (self : PrivateKey)
+  (nullifierKey : PrivateKey)
   (consumed : List Resource)
   (created : List Resource)
   (extraData : Map Bytes32 Bytes)
@@ -195,9 +195,30 @@ mkTransaction
   Transaction.mk@{
     roots := [];
     commitments := map commitment created;
-    nullifiers := map (r in consumed) nullifier r self;
+    nullifiers := map (r in consumed) nullifier r nullifierKey;
     proofs := consumed ++ created;
     delta := [];
     extra := anomaEncode (extraData);
+    preference := 0
+  };
+
+composeTransactions (tx1 tx2 : Transaction) : Transaction :=
+  Transaction.mk@{
+    roots := Transaction.roots tx1 ++ Transaction.roots tx2;
+    commitments :=
+      Transaction.commitments tx1
+        ++ Transaction.commitments tx2;
+    nullifiers :=
+      Transaction.nullifiers tx1 ++ Transaction.nullifiers tx2;
+    proofs := Transaction.proofs tx1 ++ Transaction.proofs tx2;
+    delta := Transaction.delta tx1 ++ Transaction.delta tx2;
+    extra :=
+      let
+        kvList1 : List (Pair Bytes32 Bytes) :=
+          Data.Map.toList (anomaDecode (Transaction.extra tx1));
+        kvList2 : List (Pair Bytes32 Bytes) :=
+          Data.Map.toList (anomaDecode (Transaction.extra tx2));
+      in anomaEncode (Data.Map.fromList (kvList1 ++ kvList2));
+
     preference := 0
   };

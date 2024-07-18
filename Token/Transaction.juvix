@@ -14,6 +14,7 @@ import Token.Label open;
 import Token.Logic open;
 import Token.Error open;
 import Authorization.Owner open;
+import Utils.Dummy.Transaction open;
 
 --- Mints a token ;Resource; owned by an receiver ;PublicKey;.
 --- This requires an ephemeral resource to be consumed.
@@ -30,12 +31,16 @@ mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Ei
     createdRs : List Resource := [newToken];
     extraData : Map Bytes32 Bytes :=
       mkLinkedCommitmentSetExtraData mySecret consumedRs createdRs;
+    tx : Transaction := mkTransaction mySecret consumedRs createdRs extraData;
    in
      case Label.supply label of
-       | Unbound := pass (mkTransaction mySecret consumedRs createdRs extraData)
+       | Unbound := pass tx
        | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
-       | Fixed := throw mkError@{msg := "Tokens with fixed supply are not supported yet."};
-
+       | Fixed := pass
+          composeTransactions@{
+            tx1 := tx;
+            tx2 := consumeDummy@{_self := self; _dummy := anomaGet(Label.uniqueness label)}
+          };
 
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
@@ -58,7 +63,7 @@ burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
         case getSupply token of
           | Unbound := pass (mkTransaction mySecret consumedRs createdRs extraData)
           | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
-          | Fixed := throw mkError@{msg := "Tokens with fixed supply are not supported yet."};
+          | Fixed := pass (mkTransaction mySecret consumedRs createdRs extraData);
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
