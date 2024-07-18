@@ -1,7 +1,6 @@
 module Token.Transaction;
 
 import Stdlib.Prelude open;
-import Stdlib.Debug.Fail open using {failwith};
 import Stdlib.Data.Nat.Ord open using {compare};
 import Data.Map open;
 import Anoma open;
@@ -9,18 +8,18 @@ import AnomaHelpers open;
 
 import Authorization.Owner open;
 import Authorization.Message open;
+import Utils.Dummy.Transaction open;
 import Token.Resource open;
 import Token.Label open;
 import Token.Supply open;
 import Token.Logic open;
 import Token.Error open;
-import Authorization.Owner open;
-import Utils.Dummy.Transaction open;
 
 --- Mints a token ;Resource; owned by an receiver ;PublicKey;.
 --- This requires an ephemeral resource to be consumed.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
-mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Either TokenError Transaction :=
+mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey)
+: Either TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -46,7 +45,8 @@ mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey) : Ei
 --- Burns a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
-burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
+burn (self : KeyPair) (token : Resource)
+: Either TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -68,11 +68,8 @@ burn (self : KeyPair) (token : Resource) : Either TokenError Transaction :=
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
-transfer
-  (self : KeyPair)
-  (token : Resource)
-  (receiver : PublicKey)
-  : Either TokenError Transaction  :=
+transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
+: Either TokenError Transaction  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -93,11 +90,8 @@ transfer
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not the owner or
 --- - the amounts do not balance,
-split
-  (self : KeyPair)
-  (token : Resource)
-  (amountsAndReceivers : List (Pair Nat PublicKey))
-  : Either TokenError Transaction :=
+split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat PublicKey))
+: Either TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -122,12 +116,8 @@ split
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not the owner or
 --- - the amount exceeds the quantity of the resource.
-send
-  (self : KeyPair)
-  (token : Resource)
-  (amount : Nat)
-  (receiver : PublicKey)
-  : Either TokenError Transaction  :=
+send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
+: Either TokenError Transaction  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     availableAmount : Nat := Resource.quantity token;
@@ -147,11 +137,8 @@ send
 --- - the calling ;KeyPair; is not the owner of the tokens or
 --- - one of the token ;Label;s differs or
 --- - one of the token ;Resource; logics differs.
-merge
-  (self : KeyPair)
-  (tokens : List Resource)
-  (receiver : PublicKey)
-  : Either TokenError Transaction :=
+merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
+: Either TokenError Transaction :=
   case tokens of
     | nil := throw mkInsufficientElementsError@{limit := 1; actual := 0}
     | (t :: ts) :=
