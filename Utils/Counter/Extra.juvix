@@ -1,6 +1,7 @@
 module Utils.Counter.Extra;
 
 import Stdlib.Prelude open;
+import Data.Set open;
 import Anoma open;
 import AnomaHelpers open;
 
@@ -14,15 +15,22 @@ findCreatedCounter
   let
     selfCm : Helper.Commitment := commitment consumedCounter;
     lookupResult
-      : Maybe (Pair LinkedCommitmentMessage Signature) :=
+      : Maybe (Pair ResourceRelationship Signature) :=
       lookupExtraData (natToBytes32 selfCm) tx;
   in case lookupResult of
        | nothing := nothing
        | just (msg, _) :=
          let
-           foundCounter : Resource :=
-             commitmentResource (LinkedCommitmentMessage.created msg);
-         in if
-           | LinkedCommitmentMessage.consumed msg == selfCm
-             && isCreated foundCounter tx := just foundCounter
-           | else := nothing;
+           searchResult : Maybe Resource :=
+             case
+               Data.Set.toList (ResourceRelationship.mustBeCreated msg)
+             of
+               | [elem] := just (commitmentResource elem)
+               | _ := nothing;
+         in case searchResult of
+              | just foundCounter :=
+                if
+                  | ResourceRelationship.origin msg == selfCm
+                    && isCreated foundCounter tx := searchResult
+                  | else := nothing
+              | nothing := nothing;

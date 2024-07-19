@@ -42,31 +42,16 @@ isAuthorizedByOwner
   let
     selfCm : Helper.Commitment := commitment self;
     lookupResult
-      : Maybe (Pair LinkedCommitmentSetMessage Signature) :=
+      : Maybe (Pair ResourceRelationship Signature) :=
       lookupExtraData (natToBytes32 selfCm) tx;
   in case lookupResult of
        | nothing := false
        | just (msg, sig) :=
-         LinkedCommitmentSetMessage.consumed msg == selfCm
+         ResourceRelationship.origin msg == selfCm
            && anomaVerifyDetached sig msg (getOwner self)
            && isSubset
-             (LinkedCommitmentSetMessage.createdSet msg)
+             (ResourceRelationship.mustBeConsumed msg)
+             (nullifierSet tx)
+           && isSubset
+             (ResourceRelationship.mustBeCreated msg)
              (commitmentSet tx);
-
--- Iterates over all nullifiers until a valid one is found
-isAuthorizedByOwner'
-  (self : Resource) (tx : Transaction) : Bool :=
-  let
-    owner : PublicKey := getOwner self;
-    nfs : Set Helper.Nullifier := nullifierSet tx;
-  in any (nf in Data.Set.toList nfs)
-       {let
-         lookupResult
-           : Maybe (Pair LinkedCommitmentSetMessage' Signature) :=
-           lookupExtraData (natToBytes32 nf) tx;
-       in case lookupResult of
-            | nothing := false
-            | just (msg, sig) :=
-              LinkedCommitmentSetMessage'.consumed msg == nf
-                && anomaVerifyDetached sig msg owner
-                && isSubset (LinkedCommitmentSetMessage'.createdSet msg) nfs};

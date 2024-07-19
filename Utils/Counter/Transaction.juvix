@@ -66,10 +66,13 @@ incrementCounter
         count := Resource.data currentCounter + 1
       };
     extra :=
-      mkLinkedCommitmentExtraData
-        universalPrivKey
-        [currentCounter]
-        updatedCounter;
+    Data.Map.fromList [
+    mkResourceRelationshipExtraDataMapEntry@{
+        nullifierKey := universalPrivKey; 
+        origin := currentCounter;
+        mustBeConsumed := [];
+        mustBeCreated := [updatedCounter]
+      }];
   in mkTransaction
     universalPrivKey
     [currentCounter]

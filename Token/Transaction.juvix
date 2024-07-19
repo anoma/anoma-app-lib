@@ -29,8 +29,12 @@ mint (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey)
 
     consumedRs : List Resource := [ephToken];
     createdRs : List Resource := [newToken];
-    extraData : Map Bytes32 Bytes :=
-      mkLinkedCommitmentSetExtraData mySecret consumedRs createdRs;
+    extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
+      nullifierKey := mySecret; 
+      origins := consumedRs;
+      mustBeConsumed := [];
+      mustBeCreated := createdRs
+    };
     tx : Transaction := mkTransaction mySecret consumedRs createdRs extraData;
    in
      case Label.supply label of
@@ -56,8 +60,12 @@ burn (self : KeyPair) (token : Resource)
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [ephToken];
-    extraData : Map Bytes32 Bytes :=
-      mkLinkedCommitmentSetExtraData mySecret consumedRs createdRs;
+    extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
+      nullifierKey := mySecret; 
+      origins := consumedRs;
+      mustBeConsumed := [];
+      mustBeCreated := createdRs
+    };
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | else :=
@@ -79,8 +87,12 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [newToken];
-    extraData : Map Bytes32 Bytes :=
-      mkLinkedCommitmentSetExtraData mySecret consumedRs createdRs;
+    extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
+      nullifierKey := mySecret; 
+      origins := consumedRs;
+      mustBeConsumed := [];
+      mustBeCreated := createdRs
+    };
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
@@ -103,7 +115,12 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := map ((amount, receiver) in amountsAndReceivers) {mkToken false amount label mkOwner@{owner := receiver;}};
-    extraData : Map Bytes32 Bytes := mkLinkedCommitmentSetExtraData mySecret consumedRs createdRs;
+    extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
+      nullifierKey := mySecret; 
+      origins := consumedRs;
+      mustBeConsumed := [];
+      mustBeCreated := createdRs
+    };
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
@@ -154,7 +171,12 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
       merged : Resource := mkToken false sum label mkOwner@{owner := myself};
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
-      extraData : Map Bytes32 Bytes := mkLinkedCommitmentSetExtraData mySecret consumedRs createdRs;
+      extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
+        nullifierKey := mySecret; 
+        origins := consumedRs;
+        mustBeConsumed := [];
+        mustBeCreated := createdRs
+      };
       in case find ((/=) owner) (map getOwner tokens) of
         | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
         | nothing :=

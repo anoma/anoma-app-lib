@@ -6,85 +6,51 @@ import Data.Set open;
 import Anoma open;
 import AnomaHelpers open;
 
--- TODO: Use nullifier once v2 specs are implemented.
-type LinkedCommitmentMessage :=
-  mkLinkedCommitmentMessage {
-    consumed : Helper.Commitment;
-    created : Helper.Commitment
-  };
-
-type LinkedCommitmentSetMessage :=
-  mkLinkedCommitmentSetMessage {
-    consumed : Helper.Commitment;
-    createdSet : Set Helper.Commitment
-  };
-
---- Use nullifier as the lookup key.
-type LinkedCommitmentSetMessage' :=
-  mkLinkedResourceSetMessage' {
-    consumed : Helper.Nullifier;
-    createdSet : Set Helper.Commitment
+type ResourceRelationship :=
+  mkResourceRelationship {
+    origin : Helper.Commitment;
+    -- TODO use Helper.Nullifier once we comply with v2 specs
+    mustBeCreated : Set Helper.Commitment;
+    mustBeConsumed : Set Helper.Commitment
   };
 
 -- TODO make signing optional
-mkLinkedCommitmentExtraDataMapEntry
-  (self : PrivateKey)
-  (created : Resource)
-  (consumed : Resource)
+mkResourceRelationshipExtraDataMapEntry
+  (nullifierKey : PrivateKey)
+  (mustBeConsumed : List Resource)
+  (mustBeCreated : List Resource)
+  (origin : Resource)
   : Pair Bytes32 Bytes :=
   let
-    consumedCm : Helper.Commitment := commitment consumed;
-    createdCm : Helper.Commitment := commitment created;
-    msg : LinkedCommitmentMessage :=
-      mkLinkedCommitmentMessage@{
-        consumed := consumedCm;
-        created := createdCm
-      };
-
-    k : Bytes32 := natToBytes32 consumedCm;
-    v : Bytes :=
-      natToBytes
-        (anomaEncode (msg, anomaSignDetached msg self));
-  in k, v;
-
--- TODO make signing optional
-mkLinkedCommitmentSetExtraDataMapEntry
-  (self : PrivateKey)
-  (created : List Resource)
-  (consumed : Resource)
-  : Pair Bytes32 Bytes :=
-  let
-    consumedCm : Helper.Commitment := commitment consumed;
+    originCm : Helper.Commitment := commitment origin;
+    consumedNfs : Set Helper.Nullifier :=
+      Data.Set.fromList
+        (map \ {r := nullifier r nullifierKey} mustBeConsumed);
     createdCms : Set Helper.Commitment :=
-      Data.Set.fromList (map commitment created);
-    msg : LinkedCommitmentSetMessage :=
-      mkLinkedCommitmentSetMessage@{
-        consumed := consumedCm;
-        createdSet := createdCms
+      Data.Set.fromList (map commitment mustBeCreated);
+    msg : ResourceRelationship :=
+      mkResourceRelationship@{
+        origin := originCm;
+        mustBeConsumed := consumedNfs;
+        mustBeCreated := createdCms
       };
 
-    k : Bytes32 := natToBytes32 consumedCm;
+    k : Bytes32 := natToBytes32 originCm;
     v : Bytes :=
       natToBytes
-        (anomaEncode (msg, anomaSignDetached msg self));
+        (anomaEncode (msg, anomaSignDetached msg nullifierKey));
   in k, v;
 
-mkLinkedCommitmentExtraData
-  (self : PrivateKey)
-  (consumed : List Resource)
-  (created : Resource)
+mkResourceRelationshipExtraData
+  (nullifierKey : PrivateKey)
+  (origins : List Resource)
+  (mustBeConsumed : List Resource)
+  (mustBeCreated : List Resource)
   : Map Bytes32 Bytes :=
   Data.Map.fromList
     (map
-      (mkLinkedCommitmentExtraDataMapEntry self created)
-      consumed);
-
-mkLinkedCommitmentSetExtraData
-  (self : PrivateKey)
-  (consumed : List Resource)
-  (created : List Resource)
-  : Map Bytes32 Bytes :=
-  Data.Map.fromList
-    (map
-      (mkLinkedCommitmentSetExtraDataMapEntry self created)
-      consumed);
+      (mkResourceRelationshipExtraDataMapEntry
+        nullifierKey
+        mustBeConsumed
+        mustBeCreated)
+      origins);
