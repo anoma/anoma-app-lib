@@ -6,10 +6,10 @@ import Data.Set as Set open using {Set};
 import Anoma open;
 import AnomaHelpers open;
 
+-- TODO use Helper.Nullifier once we comply with v2 specs
 type ResourceRelationship :=
   mkResourceRelationship {
     origin : Helper.Commitment;
-    -- TODO use Helper.Nullifier once we comply with v2 specs
     mustBeCreated : Set Helper.Commitment;
     mustBeConsumed : Set Helper.Commitment
   };
