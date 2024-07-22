@@ -4,17 +4,16 @@ import Stdlib.Prelude open;
 import Anoma open;
 import AnomaHelpers open;
 
-type Label := mkLabel {uniqueness : Helper.Nullifier};
+type Label := mkLabel {nf : Helper.Nullifier};
 
 instance
 Label-Eq : Eq Label :=
   mkEq@{
-    eq (l1 l2 : Label) : Bool :=
-      Label.uniqueness l1 == Label.uniqueness l2
+    eq (l1 l2 : Label) : Bool := Label.nf l1 == Label.nf l2
   };
 
 getLabel (r : Resource) : Label :=
   anomaDecode (Resource.label r);
 
-getUniqueness (r : Resource) : Helper.Nullifier :=
-  Label.uniqueness (getLabel r);
+getNullifierfFromLabel (r : Resource) : Helper.Nullifier :=
+  Label.nf (getLabel r);

@@ -1,8 +1,8 @@
 module Token.Projection;
 
 import Stdlib.Prelude open;
-import Data.Map open;
-import Data.Set open;
+import Data.Set as Set open using {Set};
+import Data.Map as Map open using {Map};
 
 import Anoma open;
 
@@ -13,12 +13,12 @@ import Anoma open;
 --- consumed ;Resource;s are present.
 getBalance (kind : Kind) (account : PublicKey) : Nat :=
   let
-    ledgers : Map PublicKey (Set Helper.Commitment) :=
+    ledger : Map PublicKey (Set Helper.Commitment) :=
       anomaGet (anomaEncode (kind));
-    result := lookup account ledgers;
+    result := Map.lookup account ledger;
   in case result of
        | just ledger :=
-         for (sum := 0) (cm in Data.Set.toList ledger)
+         for (sum := 0) (cm in Set.toList ledger)
            {let
              q := Resource.quantity (commitmentResource cm);
            in q + sum}

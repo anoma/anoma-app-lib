@@ -6,21 +6,32 @@ import AnomaHelpers open;
 
 import Authorization.Owner open;
 import Token.Supply open;
+import Token.Label open;
 
 tokenLogic
   (supply : Supply) : Resource -> Transaction -> Bool :=
   case supply of
     | Unbound := unboundSupplyLogic
-    | Fixed := fixedSupplyLogic
-    | Capped := cappedSupplyLogic;
+    | Capped := cappedSupplyLogic
+    | Fixed f := fixedSupplyLogic (FixingNullifier.nf f);
 
 unboundSupplyLogic
   (self : Resource) (tx : Transaction) : Bool :=
-  if
-    | isConsumed self tx := isAuthorizedByOwner self tx
-    | isCreated self tx := true
-    | else := false;
+  case lifecycle self tx of
+    | Consumed := isAuthorizedByOwner self tx
+    | Created := true
+    | Unknown := false;
 
-axiom fixedSupplyLogic : Resource -> Transaction -> Bool;
+fixedSupplyLogic
+  (nf : Helper.Nullifier)
+  (self : Resource)
+  (tx : Transaction)
+  : Bool :=
+  case ephemerality self of
+    | NonEphemeral := unboundSupplyLogic self tx
+    | Ephemeral :=
+      case lifecycle self tx of
+        | Consumed := isNullifierPresent nf tx
+        | _ := false;
 
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;

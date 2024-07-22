@@ -1,10 +1,12 @@
 module AnomaHelpers;
 
 import Stdlib.Prelude open;
+import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
+
 import Anoma open;
 
-import Data.Set open;
-import Data.Map open;
+import Data.Set as Set open using {Set};
+import Data.Map as Map open using {Map};
 
 -- Should be added to the `juvix-stdlib`
 type Either Error Result :=
@@ -24,18 +26,25 @@ find {A} (predicate : A → Bool) : List A → Maybe A
 type Bytes32 := mkBytes32 {unBytes32 : Nat};
 
 instance
-Bytes32Ord : Ord Bytes32 :=
+Bytes32-Ord : Ord Bytes32 :=
   mkOrd@{
     cmp : Bytes32 -> Bytes32 -> Ordering
       | (mkBytes32 b1) (mkBytes32 b2) := Ord.cmp b1 b2
   };
+
+instance
+Bytes32-Eq : Eq Bytes32 := Stdlib.Trait.Ord.Eq.fromOrdToEq;
+
+instance
+Bytes32-Show : Show Bytes32 :=
+  mkShow \ {b := natToString (Bytes32.unBytes32 b)};
 
 natToBytes32 : Nat -> Bytes32 := mkBytes32;
 
 type Bytes := mkBytes {unBytes : Nat};
 
 instance
-BytesOrd : Ord Bytes :=
+Bytes-Ord : Ord Bytes :=
   mkOrd@{
     cmp : Bytes -> Bytes -> Ordering
       | (mkBytes b1) (mkBytes b2) := Ord.cmp b1 b2
@@ -116,25 +125,49 @@ isConsumed (r : Resource) (tx : Transaction) : Bool :=
     r
     (ResourcePartition.consumed (partitionResources tx));
 
+type Lifecycle :=
+  | Consumed
+  | Created
+  | Unknown;
+
+lifecycle (r : Resource) (tx : Transaction) : Lifecycle :=
+  let
+    rs := partitionResources tx;
+    consumed := ResourcePartition.consumed rs;
+    created := ResourcePartition.created rs;
+  in if
+    | elem (==) r consumed := Consumed
+    | elem (==) r created := Created
+    | else := Unknown;
+
 isEphemeral (r : Resource) : Bool := Resource.eph r;
+
+type Ephemerality :=
+  | NonEphemeral
+  | Ephemeral;
+
+ephemerality (r : Resource) : Ephemerality :=
+  if
+    | isEphemeral r := Ephemeral
+    | else := NonEphemeral;
 
 isNullifierPresent
   (nf : Helper.Nullifier) (tx : Transaction) : Bool :=
   elem (==) nf (Transaction.nullifiers tx);
 
 isSubset {A} {{Ord A}} (sub sup : Set A) : Bool :=
-  all (x in Data.Set.toList sub)
-    member? x sup;
+  all (x in Set.toList sub)
+    Set.member? x sup;
 
 isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
   all (x in sub)
-    member? x (Data.Set.fromList sup);
+    Set.member? x (Set.fromList sup);
 
 commitmentSet (tx : Transaction) : Set Helper.Commitment :=
-  Data.Set.fromList (Transaction.commitments tx);
+  Set.fromList (Transaction.commitments tx);
 
 nullifierSet (tx : Transaction) : Set Helper.Nullifier :=
-  Data.Set.fromList (Transaction.nullifiers tx);
+  Set.fromList (Transaction.nullifiers tx);
 
 lookupExtraData
   {Value : Type}
@@ -144,10 +177,10 @@ lookupExtraData
   let
     keyValueMap : Map Bytes32 Value :=
       anomaDecode (Transaction.extra tx);
-  in lookup key keyValueMap;
+  in Map.lookup key keyValueMap;
 
 mkTransaction
-  (self : PrivateKey)
+  (nullifierKey : PrivateKey)
   (consumed : List Resource)
   (created : List Resource)
   (extraData : Map Bytes32 Bytes)
@@ -155,9 +188,30 @@ mkTransaction
   Transaction.mk@{
     roots := [];
     commitments := map commitment created;
-    nullifiers := map (r in consumed) nullifier r self;
+    nullifiers := map (r in consumed) nullifier r nullifierKey;
     proofs := consumed ++ created;
     delta := [];
     extra := anomaEncode (extraData);
+    preference := 0
+  };
+
+composeTransactions (tx1 tx2 : Transaction) : Transaction :=
+  Transaction.mk@{
+    roots := Transaction.roots tx1 ++ Transaction.roots tx2;
+    commitments :=
+      Transaction.commitments tx1
+        ++ Transaction.commitments tx2;
+    nullifiers :=
+      Transaction.nullifiers tx1 ++ Transaction.nullifiers tx2;
+    proofs := Transaction.proofs tx1 ++ Transaction.proofs tx2;
+    delta := Transaction.delta tx1 ++ Transaction.delta tx2;
+    extra :=
+      let
+        kvList1 : List (Pair Bytes32 Bytes) :=
+          Map.toList (anomaDecode (Transaction.extra tx1));
+        kvList2 : List (Pair Bytes32 Bytes) :=
+          Map.toList (anomaDecode (Transaction.extra tx2));
+      in anomaEncode (Map.fromList (kvList1 ++ kvList2));
+
     preference := 0
   };

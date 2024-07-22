@@ -1,16 +1,31 @@
 module Utils.Dummy.Transaction;
 
+import Data.Map as Map open using {Map};
 import Stdlib.Prelude open;
-import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
 
 import Utils.Dummy.Resource open;
 
-createDummy (_self : KeyPair) : Transaction :=
+initialize (_self : KeyPair) : Transaction :=
+  let
+    dummy : Resource :=
+      mkDummy@{
+        _npk := KeyPair.pubKey _self;
+        _eph := false
+      };
+  in mkTransaction@{
+    nullifierKey := KeyPair.privKey _self;
+    consumed := [dummy@Resource{eph := true}];
+    created := [dummy];
+    extraData := Map.empty
+  };
+
+finalize
+  (_self : KeyPair) (_dummy : Resource) : Transaction :=
   mkTransaction@{
-    self := KeyPair.privKey _self;
-    consumed := [mkDummy@{_npk := KeyPair.pubKey _self; _eph := true}];
-    created := [mkDummy@{_npk := KeyPair.pubKey _self; _eph := false}];
-    extraData := empty
+    nullifierKey := KeyPair.privKey _self;
+    consumed := [_dummy];
+    created := [_dummy@Resource{eph := true}];
+    extraData := Map.empty
   };
