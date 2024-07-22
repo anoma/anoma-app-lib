@@ -8,18 +8,22 @@ import AnomaHelpers open;
 import Authorization.Message open;
 import Utils.Counter.Count open;
 
+-- TODO use nullifier instead of commitment
 findCreatedCounter
   (consumedCounter : Resource)
-  (tx : Transaction)
+  (_tx : Transaction)
   : Maybe Resource :=
   let
-    selfCm : Helper.Commitment := commitment consumedCounter;
-    lookupResult
-      : Maybe (Pair ResourceRelationship Signature) :=
-      lookupExtraData (natToBytes32 selfCm) tx;
-  in case lookupResult of
+    cm : Helper.Commitment := commitment consumedCounter;
+  in case
+       lookupExtraData@{
+         key := natToBytes32 cm;
+         Value := ResourceRelationship;
+         tx := _tx
+       }
+     of
        | nothing := nothing
-       | just (msg, _) :=
+       | just msg :=
          case
            Set.toList (ResourceRelationship.mustBeCreated msg)
          of
@@ -28,6 +32,6 @@ findCreatedCounter
              let
                foundCounter : Resource := commitmentResource elem;
              in if
-               | ResourceRelationship.origin msg == selfCm
-                 && isCreated foundCounter tx := just foundCounter
+               | ResourceRelationship.origin msg == cm
+                 && isCreated foundCounter _tx := just foundCounter
                | else := nothing;
