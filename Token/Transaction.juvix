@@ -5,7 +5,7 @@ import Stdlib.Data.Nat.Ord open using {compare};
 import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
-
+import Authorization.Check open;
 import Authorization.Owner open;
 import Authorization.Message open;
 import Utils.Dummy.Transaction as Dummy open using {finalize};
