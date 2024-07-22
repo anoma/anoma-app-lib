@@ -35,22 +35,3 @@ UnauthorizedError-Show : Show UnauthorizedError :=
         ++str "actual"
         ++str (e |> UnauthorizedError.actual |> Show.show)
         ++str "}"};
-
-isAuthorizedByOwner
-  (self : Resource) (tx : Transaction) : Bool :=
-  let
-    selfCm : Helper.Commitment := commitment self;
-    lookupResult
-      : Maybe (Pair ResourceRelationship Signature) :=
-      lookupExtraData (natToBytes32 selfCm) tx;
-  in case lookupResult of
-       | nothing := false
-       | just (msg, sig) :=
-         ResourceRelationship.origin msg == selfCm
-           && anomaVerifyDetached sig msg (getOwner self)
-           && isSubset
-             (ResourceRelationship.mustBeConsumed msg)
-             (nullifierSet tx)
-           && isSubset
-             (ResourceRelationship.mustBeCreated msg)
-             (commitmentSet tx);
