@@ -1,7 +1,7 @@
 module Utils.Counter.Extra;
 
 import Stdlib.Prelude open;
-import Data.Set open;
+import Data.Set as Set open using {Set};
 import Anoma open;
 import AnomaHelpers open;
 
@@ -23,7 +23,7 @@ findCreatedCounter
          let
            searchResult : Maybe Resource :=
              case
-               Data.Set.toList (ResourceRelationship.mustBeCreated msg)
+               Set.toList (ResourceRelationship.mustBeCreated msg)
              of
                | [elem] := just (commitmentResource elem)
                | _ := nothing;

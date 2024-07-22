@@ -5,8 +5,8 @@ import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
 
 import Anoma open;
 
-import Data.Set open;
-import Data.Map open;
+import Data.Set as Set open using {Set};
+import Data.Map as Map open using {Map};
 
 -- Should be added to the `juvix-stdlib`
 type Either Error Result :=
@@ -156,18 +156,18 @@ isNullifierPresent
   elem (==) nf (Transaction.nullifiers tx);
 
 isSubset {A} {{Ord A}} (sub sup : Set A) : Bool :=
-  all (x in Data.Set.toList sub)
-    member? x sup;
+  all (x in Set.toList sub)
+    Set.member? x sup;
 
 isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
   all (x in sub)
-    member? x (Data.Set.fromList sup);
+    Set.member? x (Set.fromList sup);
 
 commitmentSet (tx : Transaction) : Set Helper.Commitment :=
-  Data.Set.fromList (Transaction.commitments tx);
+  Set.fromList (Transaction.commitments tx);
 
 nullifierSet (tx : Transaction) : Set Helper.Nullifier :=
-  Data.Set.fromList (Transaction.nullifiers tx);
+  Set.fromList (Transaction.nullifiers tx);
 
 lookupExtraData
   {Value : Type}
@@ -177,7 +177,7 @@ lookupExtraData
   let
     keyValueMap : Map Bytes32 Value :=
       anomaDecode (Transaction.extra tx);
-  in lookup key keyValueMap;
+  in Map.lookup key keyValueMap;
 
 mkTransaction
   (nullifierKey : PrivateKey)
@@ -208,10 +208,10 @@ composeTransactions (tx1 tx2 : Transaction) : Transaction :=
     extra :=
       let
         kvList1 : List (Pair Bytes32 Bytes) :=
-          Data.Map.toList (anomaDecode (Transaction.extra tx1));
+          Map.toList (anomaDecode (Transaction.extra tx1));
         kvList2 : List (Pair Bytes32 Bytes) :=
-          Data.Map.toList (anomaDecode (Transaction.extra tx2));
-      in anomaEncode (Data.Map.fromList (kvList1 ++ kvList2));
+          Map.toList (anomaDecode (Transaction.extra tx2));
+      in anomaEncode (Map.fromList (kvList1 ++ kvList2));
 
     preference := 0
   };

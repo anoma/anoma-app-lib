@@ -1,7 +1,7 @@
 module Utils.Counter.Transaction;
 
 import Stdlib.Prelude open;
-import Data.Map open;
+import Data.Map as Map open using {Map};
 import Anoma open;
 import AnomaHelpers open;
 
@@ -53,7 +53,7 @@ createCounter
           mySecret
           (consumableDummy :: ephCounter :: nil)
           (ephDummy :: newCounter :: nil)
-          empty);
+          Map.empty);
 
 incrementCounter
   (currentCounter : Resource) : Transaction :=
@@ -66,7 +66,7 @@ incrementCounter
         count := Resource.data currentCounter + 1
       };
     extra :=
-    Data.Map.fromList [
+    Map.fromList [
     mkResourceRelationshipExtraDataMapEntry@{
         nullifierKey := universalPrivKey; 
         origin := currentCounter;
