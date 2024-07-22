@@ -8,7 +8,7 @@ import AnomaHelpers open;
 
 import Authorization.Owner open;
 import Authorization.Message open;
-import Utils.Dummy.Transaction open;
+import Utils.Dummy.Transaction as Dummy open using {finalize};
 import Token.Resource open;
 import Token.Label open;
 import Token.Supply open;
@@ -43,7 +43,7 @@ initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey
        | (Fixed f) := pass
           composeTransactions@{
             tx1 := tx;
-            tx2 := finalizeDummy@{_self := self; _dummy := anomaGet(FixingNullifier.nf f)}
+            tx2 := Dummy.finalize@{_self := self; _dummy := anomaGet(FixingNullifier.nf f)}
           };
 
 --- Finalizes a token ;Resource;, if the calling ;KeyPair; is the owner.
