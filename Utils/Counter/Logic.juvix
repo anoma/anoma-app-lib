@@ -9,19 +9,14 @@ import Utils.Counter.Label open;
 import Utils.Counter.Extra open;
 
 counterLogic (self : Resource) (tx : Transaction) : Bool :=
-  case ephemerality self of
-    | Ephemeral :=
-      case lifecycle self tx of {
-        | Consumed :=
-          isNullifierPresent (getNullifierfFromLabel self) tx
-        | _ := false
+  case lifecycle self tx, ephemerality self of
+    | Consumed, Ephemeral :=
+      isNullifierPresent (getNullifierfFromLabel self) tx
+    | Consumed, NonEphemeral :=
+      case findCreatedCounter self tx of {
+        | just found := isIncremented self found
+        | nothing := false
       }
-    | NonEphemeral :=
-      case lifecycle self tx of
-        | Consumed :=
-          case findCreatedCounter self tx of {
-            | just found := isIncremented self found
-            | nothing := false
-          }
-        | Created := true
-        | Unknown := false;
+    | Created, Ephemeral := false
+    | Created, NonEphemeral := true
+    | Unknown, _ := false;
