@@ -20,17 +20,14 @@ findCreatedCounter
   in case lookupResult of
        | nothing := nothing
        | just (msg, _) :=
-         let
-           searchResult : Maybe Resource :=
-             case
-               Set.toList (ResourceRelationship.mustBeCreated msg)
-             of
-               | [elem] := just (commitmentResource elem)
-               | _ := nothing;
-         in case searchResult of
-              | just foundCounter :=
-                if
-                  | ResourceRelationship.origin msg == selfCm
-                    && isCreated foundCounter tx := searchResult
-                  | else := nothing
-              | nothing := nothing;
+         case
+           Set.toList (ResourceRelationship.mustBeCreated msg)
+         of
+           | _ := nothing
+           | [elem] :=
+             let
+               foundCounter : Resource := commitmentResource elem;
+             in if
+               | ResourceRelationship.origin msg == selfCm
+                 && isCreated foundCounter tx := just foundCounter
+               | else := nothing;
