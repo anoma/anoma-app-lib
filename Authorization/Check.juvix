@@ -8,7 +8,7 @@ import Authorization.Message open;
 
 -- TODO use nullifer instead of commitment
 isAuthorizedBy
-  (account : PublicKey)
+  (signer : PublicKey)
   (self : Resource)
   (tx : Transaction)
   : Bool :=
@@ -18,7 +18,7 @@ isAuthorizedBy
        | nothing := false
        | just (msg, sig) :=
          ResourceRelationship.origin msg == cm
-           && anomaVerifyDetached sig msg account
+           && anomaVerifyDetached sig msg signer
            && isSubset
              (ResourceRelationship.mustBeConsumed msg)
              (nullifierSet tx)
