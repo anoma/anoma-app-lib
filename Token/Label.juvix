@@ -8,7 +8,7 @@ import Token.Supply open;
 
 type Label :=
   mkLabel {
-    name : Nat;
+    name : String;
     symbol : String;
     decimals : Nat;
     supply : Supply;
@@ -52,7 +52,7 @@ Label-Show : Show Label :=
 getLabel (r : Resource) : Label :=
   anomaDecode (Resource.label r);
 
-getName (r : Resource) : Nat := Label.name (getLabel r);
+getName (r : Resource) : String := Label.name (getLabel r);
 
 getSymbol (r : Resource) : String :=
   Label.symbol (getLabel r);
