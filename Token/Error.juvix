@@ -19,46 +19,46 @@ instance
 TokenError-Show : Show TokenError := mkShow \ {e := "TokenError:\n" ++str Show.show e};
 
 trait
-type TokenThrowable Error Result := mkTokenThrowable {throw : Error -> Either TokenError Result};
+type TokenThrowable E A := mkTokenThrowable {throw : E -> Result TokenError A};
 
 instance
 UnauthorizedTokenThrowable {A} : TokenThrowable UnauthorizedError A :=
   mkTokenThrowable@{
-    throw (e : UnauthorizedError) : Either TokenError A := left {_} {A} (ErrTokenUnauthorized e)
+    throw (e : UnauthorizedError) : Result TokenError A := error {_} {A} (ErrTokenUnauthorized e)
   };
 
 instance
 InsufficientQuantityThrowable {A} : TokenThrowable InsufficientQuantityError A :=
   mkTokenThrowable@{
-    throw (e : InsufficientQuantityError) : Either TokenError A :=
-      left {_} {A} (ErrTokenInsufficientQuantity e)
+    throw (e : InsufficientQuantityError) : Result TokenError A :=
+      error {_} {A} (ErrTokenInsufficientQuantity e)
   };
 
 instance
 InsufficientElementsThrowable {A} : TokenThrowable InsufficientElementsError A :=
   mkTokenThrowable@{
-    throw (e : InsufficientElementsError) : Either TokenError A :=
-      left {_} {A} (ErrTokenInsufficientElements e)
+    throw (e : InsufficientElementsError) : Result TokenError A :=
+      error {_} {A} (ErrTokenInsufficientElements e)
   };
 
 instance
 InvalidLabelThrowable {A} : TokenThrowable InvalidLabelError A :=
   mkTokenThrowable@{
-    throw (e : InvalidLabelError) : Either TokenError A := left {_} {A} (ErrTokenInvalidLabel e)
+    throw (e : InvalidLabelError) : Result TokenError A := error {_} {A} (ErrTokenInvalidLabel e)
   };
 
 instance
 InvalidLogicThrowable {A} : TokenThrowable InvalidLogicError A :=
   mkTokenThrowable@{
-    throw (e : InvalidLogicError) : Either TokenError A := left {_} {A} (ErrTokenInvalidLogic e)
+    throw (e : InvalidLogicError) : Result TokenError A := error {_} {A} (ErrTokenInvalidLogic e)
   };
 
 instance
 ErrorThrowable {A} : TokenThrowable Error A :=
   mkTokenThrowable@{
-    throw (e : Error) : Either TokenError A := left {_} {A} (ErrTokenDefault e)
+    throw (e : Error) : Result TokenError A := error {_} {A} (ErrTokenDefault e)
   };
 
 open TokenThrowable public;
 
-pass {A} (a : A) : Either TokenError A := right a;
+pass {A} (a : A) : Result TokenError A := ok a;

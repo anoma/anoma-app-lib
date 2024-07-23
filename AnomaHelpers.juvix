@@ -8,11 +8,6 @@ import Anoma open;
 import Data.Set as Set open using {Set};
 import Data.Map as Map open using {Map};
 
--- Should be added to the `juvix-stdlib`
-type Either Error Result :=
-  | left Error
-  | right Result;
-
 -- Should be added to the `juvix-anoma-stdlib`
 instance
 PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (PublicKey.unPublicKey k)};

@@ -20,7 +20,7 @@ import Token.Error open;
 --- This requires an ephemeral resource to be consumed.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey)
-: Either TokenError Transaction :=
+: Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -51,7 +51,7 @@ initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey
 --- This requires an ephemeral resource to be created.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 finalize (self : KeyPair) (token : Resource)
-: Either TokenError Transaction :=
+: Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -78,7 +78,7 @@ finalize (self : KeyPair) (token : Resource)
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
-: Either TokenError Transaction  :=
+: Result TokenError Transaction  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -104,7 +104,7 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
 --- - the calling ;KeyPair; is not the owner or
 --- - the amounts do not balance,
 split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat PublicKey))
-: Either TokenError Transaction :=
+: Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -135,7 +135,7 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
 --- - the calling ;KeyPair; is not the owner or
 --- - the amount exceeds the quantity of the resource.
 send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
-: Either TokenError Transaction  :=
+: Result TokenError Transaction  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     availableAmount : Nat := Resource.quantity token;
@@ -156,7 +156,7 @@ send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
 --- - one of the token ;Label;s differs or
 --- - one of the token ;Resource; logics differs.
 merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
-: Either TokenError Transaction :=
+: Result TokenError Transaction :=
   case tokens of
     | nil := throw mkInsufficientElementsError@{limit := 1; actual := 0}
     | (t :: ts) :=

@@ -13,7 +13,7 @@ import Utils.Counter.Error open;
 import Utils.Counter.Resource open;
 
 --- Requires a consumable `Utils.Dummy.Resource`.
-createCounter (self : KeyPair) (consumableDummy : Resource) : Either CounterError Transaction :=
+createCounter (self : KeyPair) (consumableDummy : Resource) : Result CounterError Transaction :=
   let
     ephDummy : Resource :=
       mkDummy@{
