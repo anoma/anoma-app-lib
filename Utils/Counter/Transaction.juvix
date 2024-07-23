@@ -32,15 +32,15 @@ createCounter (self : KeyPair) (consumableDummy : Resource) : Either CounterErro
         mySecret : PrivateKey := KeyPair.privKey self;
         ephCounter : Resource :=
           mkCounter@{
-            nullifierPubKey := myself;
-            ephemeral := true;
+            npk := myself;
+            eph := true;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
           };
         newCounter :=
           mkCounter@{
-            nullifierPubKey := Universal.pubKey;
-            ephemeral := false;
+            npk := Universal.pubKey;
+            eph := false;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
           };
@@ -51,8 +51,8 @@ incrementCounter (currentCounter : Resource) : Transaction :=
   let
     updatedCounter : Resource :=
       mkCounter@{
-        nullifierPubKey := Universal.pubKey;
-        ephemeral := false;
+        npk := Universal.pubKey;
+        eph := false;
         uniqueLabel := getLabel currentCounter;
         count := Resource.data currentCounter + 1
       };
