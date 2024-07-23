@@ -168,7 +168,7 @@ mkTransaction
     preference := 0
   };
 
-composeTransactions (tx1 tx2 : Transaction) : Transaction :=
+compose (tx1 tx2 : Transaction) : Transaction :=
   Transaction.mk@{
     roots := Transaction.roots tx1 ++ Transaction.roots tx2;
     commitments := Transaction.commitments tx1 ++ Transaction.commitments tx2;
@@ -181,6 +181,5 @@ composeTransactions (tx1 tx2 : Transaction) : Transaction :=
         kvList1 : List (Pair Bytes32 Bytes) := Map.toList (anomaDecode (Transaction.extra tx1));
         kvList2 : List (Pair Bytes32 Bytes) := Map.toList (anomaDecode (Transaction.extra tx2));
       in anomaEncode (Map.fromList (kvList1 ++ kvList2));
-
     preference := 0
   };

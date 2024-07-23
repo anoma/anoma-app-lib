@@ -42,7 +42,7 @@ initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey
        | Unbound := ok tx
        | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
        | (Fixed f) := ok
-          composeTransactions@{
+          compose@{
             tx1 := tx;
             tx2 := Dummy.finalize@{self; dummy := anomaGet(FixingNullifier.nf f)}
           };
