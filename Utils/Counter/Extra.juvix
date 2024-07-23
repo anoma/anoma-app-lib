@@ -28,10 +28,11 @@ findCreatedCounter
            Set.toList (ResourceRelationship.mustBeCreated msg)
          of
            | _ := nothing
-           | [elem] :=
+           | [foundCm] :=
              let
-               foundCounter : Resource := commitmentResource elem;
+               foundCounter : Resource := commitmentResource foundCm;
              in if
                | ResourceRelationship.origin msg == cm
+                 && anomaKind consumedCounter == anomaKind foundCounter
                  && isCreated foundCounter _tx := just foundCounter
                | else := nothing;
