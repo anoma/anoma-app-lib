@@ -146,7 +146,7 @@ send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
       let
         remainder : Nat := toNat (intSubNat availableAmount amount);
       in
-        split self token ((amount, receiver) :: (remainder, myself) :: nil);
+        split self token [(amount, receiver); (remainder, myself)];
 
 --- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
 --- of them and the ;Label;s match.
