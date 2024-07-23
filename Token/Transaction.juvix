@@ -95,6 +95,7 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
       mustBeCreated := createdRs
     };
   in if
+    | not (isTransferable token) := throw mkNonTransferableError
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | else := ok (mkTransaction mySecret consumedRs createdRs extraData);
 
@@ -123,6 +124,7 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
       mustBeCreated := createdRs
     };
   in if
+    | not (isTransferable token) := throw mkNonTransferableError
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
     | else := ok (mkTransaction mySecret consumedRs createdRs extraData);
@@ -139,15 +141,14 @@ send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
   let
     myself : PublicKey := KeyPair.pubKey self;
     availableAmount : Nat := Resource.quantity token;
-  in
-    case (compare availableAmount amount) of
-    | LT := throw mkInsufficientQuantityError@{limit := availableAmount; actual := amount}
-    | EQ := transfer self token receiver
-    | GT :=
-      let
-        remainder : Nat := toNat (intSubNat availableAmount amount);
-      in
-        split self token [(amount, receiver); (remainder, myself)];
+  in case (compare availableAmount amount) of
+      | LT := throw mkInsufficientQuantityError@{limit := availableAmount; actual := amount}
+      | EQ := transfer self token receiver
+      | GT :=
+        let
+          remainder : Nat := toNat (intSubNat availableAmount amount);
+        in
+          split self token [(amount, receiver); (remainder, myself)];
 
 --- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
 --- of them and the ;Label;s match.
@@ -178,12 +179,15 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
         mustBeConsumed := [];
         mustBeCreated := createdRs
       };
-      in case find ((/=) owner) (map getOwner tokens) of
-        | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
-        | nothing :=
-          case find ((/=) label) (map getLabel tokens) of
-          | just wrongLabel := throw mkInvalidLabelError@{expected := label; actual := wrongLabel}
-          | nothing :=
-            case find ((/=) logic) (map getLogic tokens) of
-            | just wrongLogic := throw mkInvalidLogicError@{expected := logic; actual := wrongLogic}
-            | nothing := ok (mkTransaction mySecret consumedRs createdRs extraData);
+      in if 
+        | not (isTransferable t) := throw mkNonTransferableError
+        | else :=
+          case find ((/=) owner) (map getOwner tokens) of
+            | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
+            | nothing :=
+              case find ((/=) label) (map getLabel tokens) of
+              | just wrongLabel := throw mkInvalidLabelError@{expected := label; actual := wrongLabel}
+              | nothing :=
+                case find ((/=) logic) (map getLogic tokens) of
+                | just wrongLogic := throw mkInvalidLogicError@{expected := logic; actual := wrongLogic}
+                | nothing := ok (mkTransaction mySecret consumedRs createdRs extraData);
