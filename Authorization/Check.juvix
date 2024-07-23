@@ -10,18 +10,42 @@ import Authorization.Message open;
 isAuthorizedBy
   (signer : PublicKey)
   (self : Resource)
-  (tx : Transaction)
+  (_tx : Transaction)
   : Bool :=
   let
     cm := commitment self;
-  in case lookupExtraData (natToBytes32 cm) tx of
+  in case
+       lookupExtraData@{
+         key := natToBytes32 cm;
+         Value := Pair ResourceRelationship Signature;
+         tx := _tx
+       }
+     of
        | nothing := false
        | just (msg, sig) :=
          ResourceRelationship.origin msg == cm
            && anomaVerifyDetached sig msg signer
            && isSubset
              (ResourceRelationship.mustBeConsumed msg)
-             (nullifierSet tx)
+             (nullifierSet _tx)
            && isSubset
              (ResourceRelationship.mustBeCreated msg)
-             (commitmentSet tx);
+             (commitmentSet _tx);
+
+type UnauthorizedError :=
+  mkUnauthorizedError {
+    expected : PublicKey;
+    actual : PublicKey
+  };
+
+instance
+UnauthorizedError-Show : Show UnauthorizedError :=
+  mkShow
+    \ {e :=
+      "UnauthorizedError:\n{"
+        ++str "expected : "
+        ++str (e |> UnauthorizedError.expected |> Show.show)
+        ++str ", "
+        ++str "actual"
+        ++str (e |> UnauthorizedError.actual |> Show.show)
+        ++str "}"};

@@ -51,8 +51,8 @@ createCounter
       in pass
         (mkTransaction
           mySecret
-          (consumableDummy :: ephCounter :: nil)
-          (ephDummy :: newCounter :: nil)
+          [consumableDummy; ephCounter]
+          [ephDummy; newCounter]
           Map.empty);
 
 incrementCounter
@@ -66,13 +66,14 @@ incrementCounter
         count := Resource.data currentCounter + 1
       };
     extra :=
-    Map.fromList [
-    mkResourceRelationshipExtraDataMapEntry@{
-        nullifierKey := universalPrivKey; 
-        origin := currentCounter;
-        mustBeConsumed := [];
-        mustBeCreated := [updatedCounter]
-      }];
+      Map.fromList
+        [ mkResourceRelationshipExtraDataMapEntry@{
+          nullifierKey := universalPrivKey;
+          origin := currentCounter;
+          mustBeConsumed := [];
+          mustBeCreated := [updatedCounter]
+        }
+        ];
   in mkTransaction
     universalPrivKey
     [currentCounter]

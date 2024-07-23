@@ -2,9 +2,6 @@ module Authorization.Owner;
 
 import Stdlib.Prelude open;
 import Anoma open;
-import AnomaHelpers open;
-
-import Authorization.Message open;
 
 type Owner := mkOwner {owner : PublicKey};
 
@@ -17,21 +14,3 @@ Owner-Eq : Eq Owner :=
 
 getOwner (r : Resource) : PublicKey :=
   Owner.owner (anomaDecode (Resource.data r));
-
-type UnauthorizedError :=
-  mkUnauthorizedError {
-    expected : PublicKey;
-    actual : PublicKey
-  };
-
-instance
-UnauthorizedError-Show : Show UnauthorizedError :=
-  mkShow
-    \ {e :=
-      "UnauthorizedError:\n{"
-        ++str "expected : "
-        ++str (e |> UnauthorizedError.expected |> Show.show)
-        ++str ", "
-        ++str "actual"
-        ++str (e |> UnauthorizedError.actual |> Show.show)
-        ++str "}"};
