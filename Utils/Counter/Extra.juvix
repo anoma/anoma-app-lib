@@ -25,14 +25,15 @@ findCreatedCounter
        | nothing := nothing
        | just msg :=
          case
-           Set.toList (ResourceRelationship.mustBeCreated msg)
+           Set.toList (ResourceRelationship.mustBeConsumed msg)
+             , Set.toList (ResourceRelationship.mustBeCreated msg)
          of
-           | _ := nothing
-           | [foundCm] :=
+           | nil, [foundCm] :=
              let
                foundCounter : Resource := commitmentResource foundCm;
              in if
                | ResourceRelationship.origin msg == cm
                  && anomaKind consumedCounter == anomaKind foundCounter
                  && isCreated foundCounter _tx := just foundCounter
-               | else := nothing;
+               | else := nothing
+           | _, _ := nothing;
