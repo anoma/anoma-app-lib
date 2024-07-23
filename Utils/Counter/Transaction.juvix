@@ -24,7 +24,7 @@ createCounter (self : KeyPair) (consumableDummy : Resource) : Result CounterErro
     | anomaKind consumableDummy /= anomaKind ephDummy :=
       throw
         mkError@{
-          msg := "The passed consumable resource has the wrong kind."
+          msg := "The oked consumable resource has the wrong kind."
         }
     | else :=
       let
@@ -44,8 +44,7 @@ createCounter (self : KeyPair) (consumableDummy : Resource) : Result CounterErro
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
           };
-      in pass
-        (mkTransaction mySecret [consumableDummy; ephCounter] [ephDummy; newCounter] Map.empty);
+      in ok (mkTransaction mySecret [consumableDummy; ephCounter] [ephDummy; newCounter] Map.empty);
 
 incrementCounter (currentCounter : Resource) : Transaction :=
   let

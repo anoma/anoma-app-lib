@@ -18,5 +18,3 @@ ErrorThrowable {A} : CounterThrowable Error A :=
   };
 
 open CounterThrowable public;
-
-pass {A} (a : A) : Result CounterError A := ok a;

@@ -60,5 +60,3 @@ ErrorThrowable {A} : TokenThrowable Error A :=
   };
 
 open TokenThrowable public;
-
-pass {A} (a : A) : Result TokenError A := ok a;

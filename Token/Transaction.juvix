@@ -39,9 +39,9 @@ initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey
     tx : Transaction := mkTransaction mySecret consumedRs createdRs extraData;
    in
      case Label.supply label of
-       | Unbound := pass tx
+       | Unbound := ok tx
        | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
-       | (Fixed f) := pass
+       | (Fixed f) := ok
           composeTransactions@{
             tx1 := tx;
             tx2 := Dummy.finalize@{self; dummy := anomaGet(FixingNullifier.nf f)}
@@ -71,7 +71,7 @@ finalize (self : KeyPair) (token : Resource)
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | else :=
         case getSupply token of
-          | Unbound := pass (mkTransaction mySecret consumedRs createdRs extraData)
+          | Unbound := ok (mkTransaction mySecret consumedRs createdRs extraData)
           | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
           | (Fixed _) := throw mkError@{msg := "Tokens with fixed supply cannot be burned."};
 
@@ -96,7 +96,7 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
     };
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
-    | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
+    | else := ok (mkTransaction mySecret consumedRs createdRs extraData);
 
 
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
@@ -125,7 +125,7 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
-    | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
+    | else := ok (mkTransaction mySecret consumedRs createdRs extraData);
 
 
 --- Sends an amount of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
@@ -186,4 +186,4 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
           | nothing :=
             case find ((/=) logic) (map getLogic tokens) of
             | just wrongLogic := throw mkInvalidLogicError@{expected := logic; actual := wrongLogic}
-            | nothing := pass (mkTransaction mySecret consumedRs createdRs extraData);
+            | nothing := ok (mkTransaction mySecret consumedRs createdRs extraData);
