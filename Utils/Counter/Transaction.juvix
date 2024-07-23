@@ -13,22 +13,18 @@ import Utils.Counter.Error open;
 import Utils.Counter.Resource open;
 
 --- Requires a consumable `Utils.Dummy.Resource`.
-createCounter
-  (self : KeyPair)
-  (consumableDummy : Resource)
-  : Either CounterError Transaction :=
+createCounter (self : KeyPair) (consumableDummy : Resource) : Result CounterError Transaction :=
   let
     ephDummy : Resource :=
       mkDummy@{
-        _npk := KeyPair.pubKey self;
-        _eph := true
+        npk := KeyPair.pubKey self;
+        eph := true
       };
   in if
     | anomaKind consumableDummy /= anomaKind ephDummy :=
       throw
         mkError@{
-          msg :=
-            "The passed consumable resource has the wrong kind."
+          msg := "The oked consumable resource has the wrong kind."
         }
     | else :=
       let
@@ -36,46 +32,36 @@ createCounter
         mySecret : PrivateKey := KeyPair.privKey self;
         ephCounter : Resource :=
           mkCounter@{
-            nullifierPubKey := myself;
-            ephemeral := true;
+            npk := myself;
+            eph := true;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
           };
         newCounter :=
           mkCounter@{
-            nullifierPubKey := universalPubKey;
-            ephemeral := false;
+            npk := Universal.pubKey;
+            eph := false;
             uniqueLabel := mkLabel (nullifier consumableDummy mySecret);
             count := 0
           };
-      in pass
-        (mkTransaction
-          mySecret
-          [consumableDummy; ephCounter]
-          [ephDummy; newCounter]
-          Map.empty);
+      in ok (mkTransaction mySecret [consumableDummy; ephCounter] [ephDummy; newCounter] Map.empty);
 
-incrementCounter
-  (currentCounter : Resource) : Transaction :=
+incrementCounter (currentCounter : Resource) : Transaction :=
   let
     updatedCounter : Resource :=
       mkCounter@{
-        nullifierPubKey := universalPubKey;
-        ephemeral := false;
+        npk := Universal.pubKey;
+        eph := false;
         uniqueLabel := getLabel currentCounter;
         count := Resource.data currentCounter + 1
       };
     extra :=
       Map.fromList
         [ mkResourceRelationshipExtraDataMapEntry@{
-          nullifierKey := universalPrivKey;
+          nullifierKey := Universal.privKey;
           origin := currentCounter;
           mustBeConsumed := [];
           mustBeCreated := [updatedCounter]
         }
         ];
-  in mkTransaction
-    universalPrivKey
-    [currentCounter]
-    [updatedCounter]
-    extra;
+  in mkTransaction Universal.privKey [currentCounter] [updatedCounter] extra;

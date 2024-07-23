@@ -7,18 +7,13 @@ import Token.Label open;
 import Token.Logic open;
 import Authorization.Owner open;
 
-mkToken
-  (ephemeral : Bool)
-  (amount : Nat)
-  (tokenLabel : Label)
-  (owner : Owner)
-  : Resource :=
+mkToken (eph : Bool) (quantity : Nat) (tokenLabel : Label) (owner : Owner) : Resource :=
   Resource.mk@{
     logic := tokenLogic (Label.supply tokenLabel);
     label := anomaEncode tokenLabel;
-    quantity := amount;
+    quantity;
     data := anomaEncode owner;
-    eph := ephemeral;
+    eph;
     npk := Owner.owner owner;
     nonce := 0;
     rseed := 0

@@ -2,3 +2,4 @@
 .history
 *.nockma
 .DS_Store
+.vscode/*

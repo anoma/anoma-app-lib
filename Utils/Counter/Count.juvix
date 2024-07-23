@@ -3,8 +3,7 @@ module Utils.Counter.Count;
 import Stdlib.Prelude open;
 import Anoma open;
 
-getCount (r : Resource) : Nat :=
-  anomaDecode (Resource.data r);
+getCount (r : Resource) : Nat := anomaDecode (Resource.data r);
 
 isIncremented (old new : Resource) : Bool :=
   let

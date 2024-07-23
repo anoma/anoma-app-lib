@@ -3,8 +3,7 @@ module Token.Supply;
 import Stdlib.Prelude open;
 import Anoma open;
 
-type FixingNullifier :=
-  mkFixingNullifier {nf : Helper.Nullifier};
+type FixingNullifier := mk {nf : Nullifier};
 
 type Supply :=
   | Unbound
@@ -17,8 +16,7 @@ Supply-Eq : Eq Supply :=
     eq : Supply -> Supply -> Bool
       | Unbound Unbound := true
       | Capped Capped := true
-      | (Fixed f1) (Fixed f2) :=
-        FixingNullifier.nf f1 == FixingNullifier.nf f2
+      | (Fixed f1) (Fixed f2) := FixingNullifier.nf f1 == FixingNullifier.nf f2
       | _ _ := false
   };
 
@@ -28,8 +26,5 @@ Supply-Show : Show Supply :=
     \ {
       | Unbound := "Unbound"
       | Capped := "Capped"
-      | (Fixed f) :=
-        "Fixed (nf: "
-          ++str natToString (FixingNullifier.nf f)
-          ++str ")"
+      | (Fixed f) := "Fixed (nf: " ++str natToString (anomaEncode (FixingNullifier.nf f)) ++str ")"
     };

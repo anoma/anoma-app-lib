@@ -5,6 +5,7 @@ import Stdlib.Data.Nat.Ord open using {compare};
 import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
+import Authorization.Identities open;
 import Authorization.Check open;
 import Authorization.Owner open;
 import Authorization.Message open;
@@ -19,7 +20,7 @@ import Token.Error open;
 --- This requires an ephemeral resource to be consumed.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey)
-: Either TokenError Transaction :=
+: Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -38,25 +39,25 @@ initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey
     tx : Transaction := mkTransaction mySecret consumedRs createdRs extraData;
    in
      case Label.supply label of
-       | Unbound := pass tx
+       | Unbound := ok tx
        | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
-       | (Fixed f) := pass
-          composeTransactions@{
+       | (Fixed f) := ok
+          compose@{
             tx1 := tx;
-            tx2 := Dummy.finalize@{_self := self; _dummy := anomaGet(FixingNullifier.nf f)}
+            tx2 := Dummy.finalize@{self; dummy := anomaGet(FixingNullifier.nf f)}
           };
 
 --- Finalizes a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 finalize (self : KeyPair) (token : Resource)
-: Either TokenError Transaction :=
+: Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
-    ephToken := mkToken true (Resource.quantity token) (getLabel token) mkOwner@{owner := 0};
+    ephToken := mkToken true (Resource.quantity token) (getLabel token) mkOwner@{owner := Zero.pubKey};
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [ephToken];
@@ -70,14 +71,14 @@ finalize (self : KeyPair) (token : Resource)
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | else :=
         case getSupply token of
-          | Unbound := pass (mkTransaction mySecret consumedRs createdRs extraData)
+          | Unbound := ok (mkTransaction mySecret consumedRs createdRs extraData)
           | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
           | (Fixed _) := throw mkError@{msg := "Tokens with fixed supply cannot be burned."};
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
-: Either TokenError Transaction  :=
+: Result TokenError Transaction  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -95,7 +96,7 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
     };
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
-    | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
+    | else := ok (mkTransaction mySecret consumedRs createdRs extraData);
 
 
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
@@ -103,7 +104,7 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
 --- - the calling ;KeyPair; is not the owner or
 --- - the amounts do not balance,
 split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat PublicKey))
-: Either TokenError Transaction :=
+: Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
@@ -124,7 +125,7 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
   in if
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
-    | else := pass (mkTransaction mySecret consumedRs createdRs extraData);
+    | else := ok (mkTransaction mySecret consumedRs createdRs extraData);
 
 
 --- Sends an amount of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
@@ -134,7 +135,7 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
 --- - the calling ;KeyPair; is not the owner or
 --- - the amount exceeds the quantity of the resource.
 send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
-: Either TokenError Transaction  :=
+: Result TokenError Transaction  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     availableAmount : Nat := Resource.quantity token;
@@ -155,7 +156,7 @@ send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
 --- - one of the token ;Label;s differs or
 --- - one of the token ;Resource; logics differs.
 merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
-: Either TokenError Transaction :=
+: Result TokenError Transaction :=
   case tokens of
     | nil := throw mkInsufficientElementsError@{limit := 1; actual := 0}
     | (t :: ts) :=
@@ -185,4 +186,4 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
           | nothing :=
             case find ((/=) logic) (map getLogic tokens) of
             | just wrongLogic := throw mkInvalidLogicError@{expected := logic; actual := wrongLogic}
-            | nothing := pass (mkTransaction mySecret consumedRs createdRs extraData);
+            | nothing := ok (mkTransaction mySecret consumedRs createdRs extraData);

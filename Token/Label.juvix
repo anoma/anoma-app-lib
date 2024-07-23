@@ -19,11 +19,7 @@ instance
 Label-Eq : Eq Label :=
   let
     toProd (l : Label) : _ :=
-      Label.name l
-        , Label.symbol l
-        , Label.decimals l
-        , Label.supply l
-        , Label.originator l;
+      Label.name l, Label.symbol l, Label.decimals l, Label.supply l, Label.originator l;
   in mkEq@{
     eq (l1 l2 : Label) : Bool := toProd l1 == toProd l2
   };
@@ -49,26 +45,20 @@ Label-Show : Show Label :=
         ++str (l |> Label.supply |> Show.show)
         ++str "}"};
 
-getLabel (r : Resource) : Label :=
-  anomaDecode (Resource.label r);
+getLabel (r : Resource) : Label := anomaDecode (Resource.label r);
 
 getName (r : Resource) : String := Label.name (getLabel r);
 
-getSymbol (r : Resource) : String :=
-  Label.symbol (getLabel r);
+getSymbol (r : Resource) : String := Label.symbol (getLabel r);
 
-getDecimals (r : Resource) : Nat :=
-  Label.decimals (getLabel r);
+getDecimals (r : Resource) : Nat := Label.decimals (getLabel r);
 
-getSupply (r : Resource) : Supply :=
-  Label.supply (getLabel r);
+getSupply (r : Resource) : Supply := Label.supply (getLabel r);
 
-getOriginator (r : Resource) : PublicKey :=
-  Label.originator (getLabel r);
+getOriginator (r : Resource) : PublicKey := Label.originator (getLabel r);
 
 terminating
-containsWrongLabel
-  (labels : List Label) (label : Label) : Maybe Label :=
+containsWrongLabel (labels : List Label) (label : Label) : Maybe Label :=
   case labels of
     | nil := nothing
     | l :: ls :=

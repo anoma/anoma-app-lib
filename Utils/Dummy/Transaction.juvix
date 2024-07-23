@@ -7,25 +7,24 @@ import AnomaHelpers open;
 
 import Utils.Dummy.Resource open;
 
-initialize (_self : KeyPair) : Transaction :=
+initialize (self : KeyPair) : Transaction :=
   let
     dummy : Resource :=
       mkDummy@{
-        _npk := KeyPair.pubKey _self;
-        _eph := false
+        npk := KeyPair.pubKey self;
+        eph := false
       };
   in mkTransaction@{
-    nullifierKey := KeyPair.privKey _self;
+    nullifierKey := KeyPair.privKey self;
     consumed := [dummy@Resource{eph := true}];
     created := [dummy];
     extraData := Map.empty
   };
 
-finalize
-  (_self : KeyPair) (_dummy : Resource) : Transaction :=
+finalize (self : KeyPair) (dummy : Resource) : Transaction :=
   mkTransaction@{
-    nullifierKey := KeyPair.privKey _self;
-    consumed := [_dummy];
-    created := [_dummy@Resource{eph := true}];
+    nullifierKey := KeyPair.privKey self;
+    consumed := [dummy];
+    created := [dummy@Resource{eph := true}];
     extraData := Map.empty
   };
