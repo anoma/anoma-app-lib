@@ -18,16 +18,21 @@ tokenLogic (supply : Supply) : Resource -> Transaction -> Bool :=
 unboundSupplyLogic (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
     | Consumed, Ephemeral := isAuthorizedBy (getOriginator self) self tx
-    | Consumed, NonEphemeral := isAuthorizedBy (getOwner self) self tx
+    | Consumed, NonEphemeral := transferLogic self tx
     | Created, _ := true
     | Unknown, _ := false;
 
 fixedSupplyLogic (nf : Nullifier) (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
     | Consumed, Ephemeral := isAuthorizedBy (getOriginator self) self tx && isNullifierPresent nf tx
-    | Consumed, NonEphemeral := isAuthorizedBy (getOwner self) self tx
+    | Consumed, NonEphemeral := transferLogic self tx
     | Created, Ephemeral := false
     | Created, NonEphemeral := true
     | Unknown, _ := false;
 
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;
+
+transferLogic (self : Resource) (tx : Transaction) : Bool :=
+  case isTransferable self of
+    | true := isAuthorizedBy (getOwner self) self tx
+    | false := false;

@@ -12,6 +12,7 @@ type Label :=
     symbol : String;
     decimals : Nat;
     supply : Supply;
+    transferable : Bool;
     originator : PublicKey
   };
 
@@ -41,6 +42,9 @@ Label-Show : Show Label :=
         ++str "supply : "
         ++str (l |> Label.supply |> Show.show)
         ++str ", "
+        ++str "transferable : "
+        ++str (l |> Label.transferable |> Show.show)
+        ++str ", "
         ++str "originator : "
         ++str (l |> Label.supply |> Show.show)
         ++str "}"};
@@ -54,6 +58,8 @@ getSymbol (r : Resource) : String := Label.symbol (getLabel r);
 getDecimals (r : Resource) : Nat := Label.decimals (getLabel r);
 
 getSupply (r : Resource) : Supply := Label.supply (getLabel r);
+
+isTransferable (r : Resource) : Bool := Label.transferable (getLabel r);
 
 getOriginator (r : Resource) : PublicKey := Label.originator (getLabel r);
 
@@ -83,3 +89,8 @@ InvalidLabelError-Show : Show InvalidLabelError :=
         ++str "actual"
         ++str (e |> InvalidLabelError.actual |> Show.show)
         ++str "}"};
+
+type NonTransferableError := mkNonTransferableError;
+
+instance
+NonTransferableError-Show : Show NonTransferableError := mkShow \ {e := "NonTransferableError"};
