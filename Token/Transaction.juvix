@@ -141,10 +141,7 @@ send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
   let
     myself : PublicKey := KeyPair.pubKey self;
     availableAmount : Nat := Resource.quantity token;
-  in if 
-    | not (isTransferable token) := throw mkNonTransferableError
-    | else :=
-      case (compare availableAmount amount) of
+  in case (compare availableAmount amount) of
       | LT := throw mkInsufficientQuantityError@{limit := availableAmount; actual := amount}
       | EQ := transfer self token receiver
       | GT :=
