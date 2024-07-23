@@ -51,26 +51,18 @@ exactly (a : Asset) : QuantifiedAssets :=
     assets := [a]
   };
 
-want
-  (a : QuantifiedAssets) : Pair Intention QuantifiedAssets :=
-  Want, a;
+want (a : QuantifiedAssets) : Pair Intention QuantifiedAssets := Want, a;
 
-give
-  (a : QuantifiedAssets) : Pair Intention QuantifiedAssets :=
-  Give, a;
+give (a : QuantifiedAssets) : Pair Intention QuantifiedAssets := Give, a;
 
 syntax operator for pair;
 
-for
-  (l : Pair Intention QuantifiedAssets)
-  (qs : QuantifiedAssets)
-  : Clause :=
+for (l : Pair Intention QuantifiedAssets) (qs : QuantifiedAssets) : Clause :=
   mkClause@{
     lhs := l;
     rhs := qs
   };
 
-intent (clauses : List Clause) : Resource :=
-  mkIntent clauses;
+intent (clauses : List Clause) : Resource := mkIntent clauses;
 
 axiom mkIntent : List Clause -> Resource;

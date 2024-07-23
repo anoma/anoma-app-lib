@@ -4,7 +4,7 @@ import Stdlib.Prelude open;
 import Anoma open;
 import AnomaHelpers open;
 
-type Label := mkLabel {nf : Helper.Nullifier};
+type Label := mkLabel {nf : Nullifier};
 
 instance
 Label-Eq : Eq Label :=
@@ -12,8 +12,6 @@ Label-Eq : Eq Label :=
     eq (l1 l2 : Label) : Bool := Label.nf l1 == Label.nf l2
   };
 
-getLabel (r : Resource) : Label :=
-  anomaDecode (Resource.label r);
+getLabel (r : Resource) : Label := anomaDecode (Resource.label r);
 
-getNullifierfFromLabel (r : Resource) : Helper.Nullifier :=
-  Label.nf (getLabel r);
+getNullifierfFromLabel (r : Resource) : Nullifier := Label.nf (getLabel r);

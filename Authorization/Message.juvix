@@ -6,12 +6,12 @@ import Data.Set as Set open using {Set};
 import Anoma open;
 import AnomaHelpers open;
 
--- TODO use Helper.Nullifier once we comply with v2 specs
+-- TODO use Nullifier once we comply with v2 specs
 type ResourceRelationship :=
   mkResourceRelationship {
-    origin : Helper.Commitment;
-    mustBeCreated : Set Helper.Commitment;
-    mustBeConsumed : Set Helper.Commitment
+    origin : Commitment;
+    mustBeCreated : Set Commitment;
+    mustBeConsumed : Set Nullifier
   };
 
 -- TODO make signing optional
@@ -22,23 +22,18 @@ mkResourceRelationshipExtraDataMapEntry
   (origin : Resource)
   : Pair Bytes32 Bytes :=
   let
-    originCm : Helper.Commitment := commitment origin;
-    consumedNfs : Set Helper.Nullifier :=
-      Set.fromList
-        (map \ {r := nullifier r nullifierKey} mustBeConsumed);
-    createdCms : Set Helper.Commitment :=
-      Set.fromList (map commitment mustBeCreated);
+    originCm : Commitment := commitment origin;
+    consumedNfs : Set Nullifier :=
+      Set.fromList (map \ {r := nullifier r nullifierKey} mustBeConsumed);
+    createdCms : Set Commitment := Set.fromList (map commitment mustBeCreated);
     msg : ResourceRelationship :=
       mkResourceRelationship@{
         origin := originCm;
         mustBeConsumed := consumedNfs;
         mustBeCreated := createdCms
       };
-
-    k : Bytes32 := natToBytes32 originCm;
-    v : Bytes :=
-      natToBytes
-        (anomaEncode (msg, anomaSignDetached msg nullifierKey));
+    k : Bytes32 := natToBytes32 (anomaEncode originCm);
+    v : Bytes := natToBytes (anomaEncode (msg, anomaSignDetached msg nullifierKey));
   in k, v;
 
 mkResourceRelationshipExtraData
@@ -49,8 +44,5 @@ mkResourceRelationshipExtraData
   : Map Bytes32 Bytes :=
   Map.fromList
     (map
-      (mkResourceRelationshipExtraDataMapEntry
-        nullifierKey
-        mustBeConsumed
-        mustBeCreated)
+      (mkResourceRelationshipExtraDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       origins);

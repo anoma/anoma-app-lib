@@ -9,34 +9,23 @@ import Authorization.Check open;
 import Token.Supply open;
 import Token.Label open;
 
-tokenLogic
-  (supply : Supply) : Resource -> Transaction -> Bool :=
+tokenLogic (supply : Supply) : Resource -> Transaction -> Bool :=
   case supply of
     | Unbound := unboundSupplyLogic
     | Capped := cappedSupplyLogic
     | Fixed f := fixedSupplyLogic (FixingNullifier.nf f);
 
-unboundSupplyLogic
-  (self : Resource) (tx : Transaction) : Bool :=
+unboundSupplyLogic (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
-    | Consumed, Ephemeral :=
-      isAuthorizedBy (getOriginator self) self tx
-    | Consumed, NonEphemeral :=
-      isAuthorizedBy (getOwner self) self tx
+    | Consumed, Ephemeral := isAuthorizedBy (getOriginator self) self tx
+    | Consumed, NonEphemeral := isAuthorizedBy (getOwner self) self tx
     | Created, _ := true
     | Unknown, _ := false;
 
-fixedSupplyLogic
-  (nf : Helper.Nullifier)
-  (self : Resource)
-  (tx : Transaction)
-  : Bool :=
+fixedSupplyLogic (nf : Nullifier) (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
-    | Consumed, Ephemeral :=
-      isAuthorizedBy (getOriginator self) self tx
-        && isNullifierPresent nf tx
-    | Consumed, NonEphemeral :=
-      isAuthorizedBy (getOwner self) self tx
+    | Consumed, Ephemeral := isAuthorizedBy (getOriginator self) self tx && isNullifierPresent nf tx
+    | Consumed, NonEphemeral := isAuthorizedBy (getOwner self) self tx
     | Created, Ephemeral := false
     | Created, NonEphemeral := true
     | Unknown, _ := false;

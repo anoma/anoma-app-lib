@@ -8,9 +8,7 @@ type Owner := mkOwner {owner : PublicKey};
 instance
 Owner-Eq : Eq Owner :=
   mkEq@{
-    eq (d1 d2 : Owner) : Bool :=
-      Owner.owner d1 == Owner.owner d2
+    eq (d1 d2 : Owner) : Bool := Owner.owner d1 == Owner.owner d2
   };
 
-getOwner (r : Resource) : PublicKey :=
-  Owner.owner (anomaDecode (Resource.data r));
+getOwner (r : Resource) : PublicKey := Owner.owner (anomaDecode (Resource.data r));

@@ -7,19 +7,18 @@ import Data.Map as Map open using {Map};
 import Anoma open;
 
 --- Returns the total quantity of all resources  ;Kind; by looking up
---- a ;Set; of ;Helper.Commitment;s associated with an account's ;PublicKey;
+--- a ;Set; of ;Commitment;s associated with an account's ;PublicKey;
 --- from the key-value storage.
---- This assume that the set is is up-to-date an no ;Helper.Commitment;s of
+--- This assume that the set is is up-to-date an no ;Commitment;s of
 --- consumed ;Resource;s are present.
 getBalance (kind : Kind) (account : PublicKey) : Nat :=
   let
-    ledger : Map PublicKey (Set Helper.Commitment) :=
-      anomaGet (anomaEncode (kind));
+    ledger : Map PublicKey (Set Commitment) := anomaGet (anomaEncode (kind));
     result := Map.lookup account ledger;
   in case result of
+       | nothing := 0
        | just ledger :=
          for (sum := 0) (cm in Set.toList ledger)
            {let
              q := Resource.quantity (commitmentResource cm);
-           in q + sum}
-       | nothing := 0;
+           in q + sum};

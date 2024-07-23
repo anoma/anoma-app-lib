@@ -13,16 +13,13 @@ type Either Error Result :=
   | left Error
   | right Result;
 
---- Returns the leftmost element of the list satisfying the predicate or
---- nothing if there's no such element.
-find {A} (predicate : A → Bool) : List A → Maybe A
-  | nil := nothing
-  | (x :: xs) :=
-    if
-      | predicate x := just x
-      | else := find predicate xs;
-
 -- Should be added to the `juvix-anoma-stdlib`
+instance
+PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (PublicKey.unPublicKey k)};
+
+instance
+PrivateKey-Show : Show PrivateKey := mkShow \ {k := natToString (PrivateKey.unPrivateKey k)};
+
 type Bytes32 := mkBytes32 {unBytes32 : Nat};
 
 instance
@@ -36,8 +33,7 @@ instance
 Bytes32-Eq : Eq Bytes32 := Stdlib.Trait.Ord.Eq.fromOrdToEq;
 
 instance
-Bytes32-Show : Show Bytes32 :=
-  mkShow \ {b := natToString (Bytes32.unBytes32 b)};
+Bytes32-Show : Show Bytes32 := mkShow \ {b := natToString (Bytes32.unBytes32 b)};
 
 natToBytes32 : Nat -> Bytes32 := mkBytes32;
 
@@ -52,8 +48,7 @@ Bytes-Ord : Ord Bytes :=
 
 natToBytes : Nat -> Bytes := mkBytes;
 
-getLogic (r : Resource) : Nat :=
-  anomaEncode (Resource.logic r);
+getLogic (r : Resource) : Nat := anomaEncode (Resource.logic r);
 
 type Error := mkError {msg : String};
 
@@ -64,8 +59,7 @@ type InsufficientElementsError :=
   };
 
 instance
-InsufficientElementsError-Show
-  : Show InsufficientElementsError :=
+InsufficientElementsError-Show : Show InsufficientElementsError :=
   mkShow
     \ {e :=
       "InsufficientElementsError:\n{"
@@ -83,8 +77,7 @@ type InsufficientQuantityError :=
   };
 
 instance
-InsufficientQuantityError-Show
-  : Show InsufficientQuantityError :=
+InsufficientQuantityError-Show : Show InsufficientQuantityError :=
   mkShow
     \ {e :=
       "InsufficientQuantityError:\n{"
@@ -114,16 +107,10 @@ InvalidLogicError-Show : Show InvalidLogicError :=
         ++str "}"};
 
 isCreated (r : Resource) (tx : Transaction) : Bool :=
-  elem
-    (==)
-    r
-    (ResourcePartition.created (partitionResources tx));
+  elem (==) r (ResourcePartition.created (partitionResources tx));
 
 isConsumed (r : Resource) (tx : Transaction) : Bool :=
-  elem
-    (==)
-    r
-    (ResourcePartition.consumed (partitionResources tx));
+  elem (==) r (ResourcePartition.consumed (partitionResources tx));
 
 type Lifecycle :=
   | Consumed
@@ -151,32 +138,22 @@ ephemerality (r : Resource) : Ephemerality :=
     | isEphemeral r := Ephemeral
     | else := NonEphemeral;
 
-isNullifierPresent
-  (nf : Helper.Nullifier) (tx : Transaction) : Bool :=
+isNullifierPresent (nf : Nullifier) (tx : Transaction) : Bool :=
   elem (==) nf (Transaction.nullifiers tx);
 
-isSubset {A} {{Ord A}} (sub sup : Set A) : Bool :=
-  all (x in Set.toList sub)
-    Set.member? x sup;
+isSubset {A} {{Ord A}} (sub sup : Set A) : Bool := all (x in Set.toList sub) Set.member? x sup;
 
 isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
   all (x in sub)
     Set.member? x (Set.fromList sup);
 
-commitmentSet (tx : Transaction) : Set Helper.Commitment :=
-  Set.fromList (Transaction.commitments tx);
+commitmentSet (tx : Transaction) : Set Commitment := Set.fromList (Transaction.commitments tx);
 
-nullifierSet (tx : Transaction) : Set Helper.Nullifier :=
-  Set.fromList (Transaction.nullifiers tx);
+nullifierSet (tx : Transaction) : Set Nullifier := Set.fromList (Transaction.nullifiers tx);
 
-lookupExtraData
-  {Value : Type}
-  (key : Bytes32)
-  (tx : Transaction)
-  : Maybe Value :=
+lookupExtraData {Value : Type} (key : Bytes32) (tx : Transaction) : Maybe Value :=
   let
-    keyValueMap : Map Bytes32 Value :=
-      anomaDecode (Transaction.extra tx);
+    keyValueMap : Map Bytes32 Value := anomaDecode (Transaction.extra tx);
   in Map.lookup key keyValueMap;
 
 mkTransaction
@@ -190,6 +167,7 @@ mkTransaction
     commitments := map commitment created;
     nullifiers := map (r in consumed) nullifier r nullifierKey;
     proofs := consumed ++ created;
+    complianceProofs := [];
     delta := [];
     extra := anomaEncode (extraData);
     preference := 0
@@ -198,19 +176,15 @@ mkTransaction
 composeTransactions (tx1 tx2 : Transaction) : Transaction :=
   Transaction.mk@{
     roots := Transaction.roots tx1 ++ Transaction.roots tx2;
-    commitments :=
-      Transaction.commitments tx1
-        ++ Transaction.commitments tx2;
-    nullifiers :=
-      Transaction.nullifiers tx1 ++ Transaction.nullifiers tx2;
+    commitments := Transaction.commitments tx1 ++ Transaction.commitments tx2;
+    nullifiers := Transaction.nullifiers tx1 ++ Transaction.nullifiers tx2;
     proofs := Transaction.proofs tx1 ++ Transaction.proofs tx2;
+    complianceProofs := Transaction.complianceProofs tx1 ++ Transaction.complianceProofs tx2;
     delta := Transaction.delta tx1 ++ Transaction.delta tx2;
     extra :=
       let
-        kvList1 : List (Pair Bytes32 Bytes) :=
-          Map.toList (anomaDecode (Transaction.extra tx1));
-        kvList2 : List (Pair Bytes32 Bytes) :=
-          Map.toList (anomaDecode (Transaction.extra tx2));
+        kvList1 : List (Pair Bytes32 Bytes) := Map.toList (anomaDecode (Transaction.extra tx1));
+        kvList2 : List (Pair Bytes32 Bytes) := Map.toList (anomaDecode (Transaction.extra tx2));
       in anomaEncode (Map.fromList (kvList1 ++ kvList2));
 
     preference := 0

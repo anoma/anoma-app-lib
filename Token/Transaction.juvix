@@ -5,6 +5,7 @@ import Stdlib.Data.Nat.Ord open using {compare};
 import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
+import Authorization.Identities open;
 import Authorization.Check open;
 import Authorization.Owner open;
 import Authorization.Message open;
@@ -43,7 +44,7 @@ initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey
        | (Fixed f) := pass
           composeTransactions@{
             tx1 := tx;
-            tx2 := Dummy.finalize@{_self := self; _dummy := anomaGet(FixingNullifier.nf f)}
+            tx2 := Dummy.finalize@{self; dummy := anomaGet(FixingNullifier.nf f)}
           };
 
 --- Finalizes a token ;Resource;, if the calling ;KeyPair; is the owner.
@@ -56,7 +57,7 @@ finalize (self : KeyPair) (token : Resource)
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
-    ephToken := mkToken true (Resource.quantity token) (getLabel token) mkOwner@{owner := 0};
+    ephToken := mkToken true (Resource.quantity token) (getLabel token) mkOwner@{owner := Zero.pubKey};
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [ephToken];

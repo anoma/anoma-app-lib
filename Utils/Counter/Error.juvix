@@ -6,19 +6,16 @@ import AnomaHelpers open;
 type CounterError := ErrCounterDefault Error;
 
 instance
-CounterError-Show : Show CounterError :=
-  mkShow \ {e := "CounterError:\n" ++str Show.show e};
+CounterError-Show : Show CounterError := mkShow \ {e := "CounterError:\n" ++str Show.show e};
 
 trait
 type CounterThrowable Error Result :=
-  mkCounterThrowable {throw : Error
-    -> Either CounterError Result};
+  mkCounterThrowable {throw : Error -> Either CounterError Result};
 
 instance
 ErrorThrowable {A} : CounterThrowable Error A :=
   mkCounterThrowable@{
-    throw (e : Error) : Either CounterError A :=
-      left {_} {A} (ErrCounterDefault e)
+    throw (e : Error) : Either CounterError A := left {_} {A} (ErrCounterDefault e)
   };
 
 open CounterThrowable public;

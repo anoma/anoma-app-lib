@@ -7,30 +7,22 @@ import AnomaHelpers open;
 import Authorization.Message open;
 
 -- TODO use nullifer instead of commitment
-isAuthorizedBy
-  (signer : PublicKey)
-  (self : Resource)
-  (_tx : Transaction)
-  : Bool :=
+isAuthorizedBy (signer : PublicKey) (self : Resource) (tx : Transaction) : Bool :=
   let
     cm := commitment self;
   in case
        lookupExtraData@{
-         key := natToBytes32 cm;
+         key := natToBytes32 (anomaEncode cm);
          Value := Pair ResourceRelationship Signature;
-         tx := _tx
+         tx
        }
      of
        | nothing := false
        | just (msg, sig) :=
          ResourceRelationship.origin msg == cm
            && anomaVerifyDetached sig msg signer
-           && isSubset
-             (ResourceRelationship.mustBeConsumed msg)
-             (nullifierSet _tx)
-           && isSubset
-             (ResourceRelationship.mustBeCreated msg)
-             (commitmentSet _tx);
+           && isSubset (ResourceRelationship.mustBeConsumed msg) (nullifierSet tx)
+           && isSubset (ResourceRelationship.mustBeCreated msg) (commitmentSet tx);
 
 type UnauthorizedError :=
   mkUnauthorizedError {
