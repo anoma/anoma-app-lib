@@ -18,7 +18,8 @@ unboundSupplyLogic (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
     | Consumed, Ephemeral := unboundSupplyInitializationLogic self tx
     | Consumed, NonEphemeral := transferLogic self tx
-    | Created, _ := true
+    | Created, Ephemeral := true
+    | Created, NonEphemeral := true
     | Unknown, _ := false;
 
 unboundSupplyInitializationLogic (self : Resource) (tx : Transaction) : Bool :=
