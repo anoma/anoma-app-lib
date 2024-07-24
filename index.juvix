@@ -3,7 +3,6 @@ module index;
 import Authorization.Check;
 import Authorization.Identities;
 import Authorization.Message;
-import Authorization.Owner;
 
 import Intent.DSL;
 
