@@ -4,7 +4,6 @@ import Stdlib.Prelude open;
 import Anoma open;
 import AnomaHelpers open;
 
-import Authorization.Owner open;
 import Authorization.Check open;
 import Token.Supply open;
 import Token.Label open;
@@ -36,3 +35,5 @@ transferLogic (self : Resource) (tx : Transaction) : Bool :=
   case isTransferable self of
     | true := isAuthorizedBy (getOwner self) self tx
     | false := false;
+
+getOwner (r : Resource) : PublicKey := Resource.npk r;

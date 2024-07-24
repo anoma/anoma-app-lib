@@ -5,9 +5,9 @@ import Stdlib.Data.Nat.Ord open using {compare};
 import Data.Map open;
 import Anoma open;
 import AnomaHelpers open;
+
 import Authorization.Identities open;
 import Authorization.Check open;
-import Authorization.Owner open;
 import Authorization.Message open;
 import Utils.Dummy.Transaction as Dummy open using {finalize};
 import Token.Resource open;
@@ -25,8 +25,8 @@ initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
 
-    ephToken : Resource := mkToken true amount label mkOwner@{owner := myself};
-    newToken : Resource := mkToken false amount label mkOwner@{owner := receiver};
+    ephToken : Resource := mkToken true amount label myself;
+    newToken : Resource := mkToken false amount label receiver;
 
     consumedRs : List Resource := [ephToken];
     createdRs : List Resource := [newToken];
@@ -57,7 +57,7 @@ finalize (self : KeyPair) (token : Resource)
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
-    ephToken := mkToken true (Resource.quantity token) (getLabel token) mkOwner@{owner := Zero.pubKey};
+    ephToken := mkToken true (Resource.quantity token) (getLabel token) Zero.pubKey;
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [ephToken];
@@ -84,7 +84,7 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
-    newToken := mkToken false (Resource.quantity token) (getLabel token) mkOwner@{owner := receiver};
+    newToken := mkToken false (Resource.quantity token) (getLabel token) receiver;
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [newToken];
@@ -116,7 +116,7 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
     balance := Resource.quantity token;
 
     consumedRs : List Resource := [token];
-    createdRs : List Resource := map ((amount, receiver) in amountsAndReceivers) {mkToken false amount label mkOwner@{owner := receiver;}};
+    createdRs : List Resource := map ((amount, receiver) in amountsAndReceivers) {mkToken false amount label receiver};
     extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
       nullifierKey := mySecret; 
       origins := consumedRs;
@@ -170,7 +170,7 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
       owner : PublicKey := getOwner t;
       sum : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
 
-      merged : Resource := mkToken false sum label mkOwner@{owner := myself};
+      merged : Resource := mkToken false sum label myself;
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
       extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
