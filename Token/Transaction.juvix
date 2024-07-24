@@ -172,7 +172,7 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
       owner : PublicKey := getOwner t;
       sum : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
 
-      merged : Resource := mkToken@{quantity := sum; tokenLabel := label; owner := myself};
+      merged : Resource := mkToken@{quantity := sum; tokenLabel := label; owner := receiver};
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
       extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
