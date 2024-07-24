@@ -33,7 +33,7 @@ fixedSupplyLogic (nf : Nullifier) (self : Resource) (tx : Transaction) : Bool :=
     | Unknown, _ := false;
 
 fixedSupplyInitializationLogic (nf : Nullifier) (self : Resource) (tx : Transaction) : Bool :=
-  isAuthorizedBy (getOriginator self) self tx && isNullifierPresent nf tx;
+  isNullifierPresent nf tx && isAuthorizedBy (getOriginator self) self tx;
 
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;
 

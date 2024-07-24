@@ -6,7 +6,8 @@ import Anoma open;
 import Token.Label open;
 import Token.Logic open;
 
-mkToken (eph : Bool) (quantity : Nat) (tokenLabel : Label) (owner : PublicKey) : Resource :=
+mkToken
+  (quantity : Nat) (tokenLabel : Label) (owner : PublicKey) {eph : Bool := false} : Resource :=
   Resource.mk@{
     logic := tokenLogic (Label.supply tokenLabel);
     label := anomaEncode (tokenLabel);
@@ -17,5 +18,3 @@ mkToken (eph : Bool) (quantity : Nat) (tokenLabel : Label) (owner : PublicKey) :
     nonce := 0;
     rseed := 0
   };
-
-
