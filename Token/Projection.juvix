@@ -13,12 +13,9 @@ import Anoma open;
 --- consumed ;Resource;s are present.
 getBalance (kind : Kind) (account : PublicKey) : Nat :=
   let
-    ledger : Map PublicKey (Set Commitment) := anomaGet (anomaEncode (kind));
-    result := Map.lookup account ledger;
-  in case result of
-       | nothing := 0
-       | just ledger :=
-         for (sum := 0) (cm in Set.toList ledger)
-           {let
-             q := Resource.quantity (commitmentResource cm);
-           in q + sum};
+    ownedResources : Set Commitment := anomaGet (kind, account);
+  in
+       for (sum := 0) (cm in Set.toList ownedResources)
+       {let
+         q := Resource.quantity (commitmentResource cm);
+       in q + sum};
