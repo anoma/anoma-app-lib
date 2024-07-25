@@ -84,7 +84,7 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
-    newToken := mkToken@{quantity := (Resource.quantity token); tokenLabel := (getLabel token); owner := receiver};
+    newToken := token@Resource{npk := receiver};
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [newToken];
