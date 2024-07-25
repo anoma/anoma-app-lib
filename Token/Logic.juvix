@@ -39,6 +39,4 @@ fixedSupplyInitializationLogic (nf : Nullifier) (self : Resource) (tx : Transact
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;
 
 transferLogic (self : Resource) (tx : Transaction) : Bool :=
-  isTransferable self && isAuthorizedBy (getOwner self) self tx;
-
-getOwner (r : Resource) : PublicKey := Resource.npk r;
+  isTransferable self && isAuthorizedBy (Resource.npk self) self tx;

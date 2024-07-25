@@ -19,14 +19,14 @@ import Token.Error open;
 --- Initializes a token ;Resource; owned by an receiver ;PublicKey;.
 --- This requires an ephemeral resource to be consumed.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
-initialize (self : KeyPair) (label : Label) (amount : Nat) (receiver : PublicKey)
+initialize (self : KeyPair) (label : Label) (quantity : Nat) (receiver : PublicKey)
 : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
 
-    ephToken : Resource := mkToken@{quantity := amount; tokenLabel := label; owner := myself; eph := true};
-    newToken : Resource := mkToken@{quantity := amount; tokenLabel := label; owner := receiver};
+    newToken : Resource := mkToken@{quantity; tokenLabel := label; npk := receiver};
+    ephToken := newToken@Resource{npk := myself; eph := true};
 
     consumedRs : List Resource := [ephToken];
     createdRs : List Resource := [newToken];
@@ -55,7 +55,7 @@ finalize (self : KeyPair) (token : Resource)
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
-    owner : PublicKey := getOwner token;
+    owner : PublicKey := Resource.npk token;
 
     ephToken := token@Resource{eph := true; npk := Zero.pubKey};
 
@@ -82,7 +82,7 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
-    owner : PublicKey := getOwner token;
+    owner : PublicKey := Resource.npk token;
 
     newToken := token@Resource{npk := receiver};
 
@@ -103,21 +103,21 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not the owner or
---- - the amounts do not balance,
-split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat PublicKey))
+--- - the quantities do not balance,
+split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair Nat PublicKey))
 : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     mySecret : PrivateKey := KeyPair.privKey self;
-    owner : PublicKey := getOwner token;
+    owner : PublicKey := Resource.npk token;
 
     label : Label := anomaDecode (Resource.label token);
-    sum : Nat := for (acc := 0) ((amount, _) in amountsAndReceivers) {amount + acc};
+    sum : Nat := for (acc := 0) ((quantity, _) in quantitiesAndReceivers) {quantity + acc};
     balance := Resource.quantity token;
 
     consumedRs : List Resource := [token];
-    createdRs : List Resource := map ((amount, receiver) in amountsAndReceivers) {
-        mkToken@{quantity := amount; tokenLabel := label; owner := receiver}
+    createdRs : List Resource := map ((quantity, receiver) in quantitiesAndReceivers) {
+        mkToken@{quantity; tokenLabel := label; npk := receiver}
       };
     extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
       nullifierKey := mySecret; 
@@ -132,25 +132,25 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
     | else := ok (mkTransaction mySecret consumedRs createdRs extraData);
 
 
---- Sends an amount of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
---- If the amount is lower than of the quantity of the consumed ;Resource;, the function creates
+--- Sends an quantity of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
+--- If the quantity is lower than of the quantity of the consumed ;Resource;, the function creates
 --- a second ;Resource; with the difference being owned by the caller.
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not the owner or
---- - the amount exceeds the quantity of the resource.
-send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
+--- - the quantity exceeds the quantity of the resource.
+send (self : KeyPair) (token : Resource) (quantity : Nat) (receiver : PublicKey)
 : Result TokenError Transaction  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
-    availableAmount : Nat := Resource.quantity token;
-  in case (compare availableAmount amount) of
-      | LT := throw mkInsufficientQuantityError@{limit := availableAmount; actual := amount}
+    availableQuantity : Nat := Resource.quantity token;
+  in case (compare availableQuantity quantity) of
+      | LT := throw mkInsufficientQuantityError@{limit := availableQuantity; actual := quantity}
       | EQ := transfer self token receiver
       | GT :=
         let
-          difference : Nat := toNat (intSubNat availableAmount amount);
+          difference : Nat := toNat (intSubNat availableQuantity quantity);
         in
-          split self token [(amount, receiver); (difference, myself)];
+          split self token [(quantity, receiver); (difference, myself)];
 
 --- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
 --- of them and the ;Label;s match.
@@ -182,9 +182,9 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
       in if 
         | not (isTransferable t) := throw mkNonTransferableError
         | else :=
-          case find ((/=) myself) (map getOwner tokens) of
-            | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
+          case find ((/=) myself) (map Resource.npk tokens) of
+            | just notMyself := throw mkUnauthorizedError@{expected := myself; actual := notMyself}
             | nothing :=
               case find ((/=) kind) (map anomaKind tokens) of
-                | just wrongKind := throw mkInvalidKindError@{expected := kind; actual := wrongKind}
+                | just otherKind := throw mkInvalidKindError@{expected := kind; actual := otherKind}
                 | nothing := ok (mkTransaction mySecret consumedRs createdRs extraData);
