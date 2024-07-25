@@ -162,16 +162,15 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
 : Result TokenError Transaction :=
   case tokens of
     | nil := throw mkInsufficientElementsError@{limit := 1; actual := 0}
-    | (t :: ts) :=
+    | (t :: _) :=
     let
       myself : PublicKey := KeyPair.pubKey self;
       mySecret : PrivateKey := KeyPair.privKey self;
 
       kind : Kind := anomaKind t;
-      owner : PublicKey := getOwner t;
-      sum : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
+      totalQuantity : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
 
-      merged : Resource := t@Resource{quantity := sum; npk := receiver};
+      merged : Resource := t@Resource{quantity := totalQuantity; npk := receiver};
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
       extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
@@ -183,7 +182,7 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
       in if 
         | not (isTransferable t) := throw mkNonTransferableError
         | else :=
-          case find ((/=) owner) (map getOwner tokens) of
+          case find ((/=) myself) (map getOwner tokens) of
             | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
             | nothing :=
               case find ((/=) kind) (map anomaKind tokens) of
