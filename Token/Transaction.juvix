@@ -57,7 +57,7 @@ finalize (self : KeyPair) (token : Resource)
     mySecret : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := getOwner token;
 
-    ephToken := mkToken@{quantity := Resource.quantity token; tokenLabel := (getLabel token); owner := Zero.pubKey; eph := true};
+    ephToken := token@Resource{eph := true; npk := Zero.pubKey};
 
     consumedRs : List Resource := [token];
     createdRs : List Resource := [ephToken];
@@ -134,7 +134,7 @@ split (self : KeyPair) (token : Resource) (amountsAndReceivers : List (Pair Nat 
 
 --- Sends an amount of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- If the amount is lower than of the quantity of the consumed ;Resource;, the function creates
---- a second ;Resource; with the remainder being owned by the caller.
+--- a second ;Resource; with the difference being owned by the caller.
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not the owner or
 --- - the amount exceeds the quantity of the resource.
@@ -148,9 +148,9 @@ send (self : KeyPair) (token : Resource) (amount : Nat) (receiver : PublicKey)
       | EQ := transfer self token receiver
       | GT :=
         let
-          remainder : Nat := toNat (intSubNat availableAmount amount);
+          difference : Nat := toNat (intSubNat availableAmount amount);
         in
-          split self token [(amount, receiver); (remainder, myself)];
+          split self token [(amount, receiver); (difference, myself)];
 
 --- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
 --- of them and the ;Label;s match.
@@ -167,12 +167,11 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
       myself : PublicKey := KeyPair.pubKey self;
       mySecret : PrivateKey := KeyPair.privKey self;
 
-      label : Label := getLabel t;
-      logic : Nat := anomaEncode(Resource.logic t);
+      kind : Kind := anomaKind t;
       owner : PublicKey := getOwner t;
       sum : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
 
-      merged : Resource := mkToken@{quantity := sum; tokenLabel := label; owner := receiver};
+      merged : Resource := t@Resource{quantity := sum; npk := receiver};
       consumedRs : List Resource := tokens;
       createdRs : List Resource := [merged];
       extraData : Map Bytes32 Bytes := mkResourceRelationshipExtraData@{
@@ -187,9 +186,6 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
           case find ((/=) owner) (map getOwner tokens) of
             | just wrongOwner := throw mkUnauthorizedError@{expected := myself; actual := wrongOwner}
             | nothing :=
-              case find ((/=) label) (map getLabel tokens) of
-              | just wrongLabel := throw mkInvalidLabelError@{expected := label; actual := wrongLabel}
-              | nothing :=
-                case find ((/=) logic) (map getLogic tokens) of
-                | just wrongLogic := throw mkInvalidLogicError@{expected := logic; actual := wrongLogic}
+              case find ((/=) kind) (map anomaKind tokens) of
+                | just wrongKind := throw mkInvalidKindError@{expected := kind; actual := wrongKind}
                 | nothing := ok (mkTransaction mySecret consumedRs createdRs extraData);
