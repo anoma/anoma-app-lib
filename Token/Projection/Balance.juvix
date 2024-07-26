@@ -2,8 +2,6 @@ module Token.Projection.Balance;
 
 import Stdlib.Prelude open;
 import Data.Set as Set open using {Set};
-import Data.Map as Map open using {Map};
-
 import Anoma open;
 
 --- Returns the total quantity of all resources  ;Kind; by looking up

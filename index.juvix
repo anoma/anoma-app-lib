@@ -24,5 +24,4 @@ import Utils.Counter.Transaction;
 
 import Utils.Dummy.Logic;
 import Utils.Dummy.Resource;
-import Utils.Dummy.Transaction.Initialize;
-import Utils.Dummy.Transaction.Finalize;
+import Utils.Dummy.Transaction;
