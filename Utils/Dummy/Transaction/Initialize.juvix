@@ -1,6 +1,6 @@
 module Utils.Dummy.Transaction.Initialize;
 
-import Stdlib.Prelude ope;
+import Stdlib.Prelude open;
 import Data.Map as Map open using {Map};
 import Anoma open;
 import AnomaHelpers open;

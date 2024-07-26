@@ -10,15 +10,33 @@ import Token.Resource open;
 import Token.Label open;
 import Token.Logic open;
 import Token.Error open;
+import Intent.DSL open;
 
-swapWith (self : KeyPair) (give : Resource) (wanted : Pair Nat Label) (receiver : PublicKey)
+--- Swaps a given ;Resource; for a wanted ;Asset; 
+--- The function returns a ;TokenError; if
+--- - the calling ;KeyPair; is not the owner or
+--- - the quantities do not balance,
+swap (self : KeyPair) (give : Resource) (want : Asset) (receiver : PublicKey)
 : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     giveOwner : PublicKey := Resource.npk give;
-    want := mkToken@{quantity := fst wanted; tokenLabel := snd wanted; npk := myself};
+    receive : Resource :=
+      Resource.mk@{
+        logic := Kind.toLogic (Asset.kind want);
+        label := Kind.toLabel (Asset.kind want);
+        quantity := Asset.quantity want;
+        data := 0;
+        eph := false;
+        npk := myself;
+        nonce := rand;
+        rseed := rand
+      };
   in if
     | not (isTransferable give) := throw mkNonTransferableError
     | giveOwner /= myself := throw mkUnauthorizedError@{expected := myself; actual := giveOwner}
-    | else := ok mkTxWithExtraData@{nk; consumed := [give]; created := [want]};
+    | else := ok mkTxWithExtraData@{nk; consumed := [give]; created := [receive]};
+
+
+settleSwap (tx1 tx2 : Transaction) : Transaction := compose@{tx1; tx2};

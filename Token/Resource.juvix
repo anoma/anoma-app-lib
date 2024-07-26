@@ -2,6 +2,7 @@ module Token.Resource;
 
 import Stdlib.Prelude open;
 import Anoma open;
+import AnomaHelpers open;
 
 import Token.Label open;
 import Token.Logic open;
@@ -14,6 +15,6 @@ mkToken (quantity : Nat) (tokenLabel : Label) (npk : PublicKey) {eph : Bool := f
     data := 0;
     eph;
     npk;
-    nonce := 0;
-    rseed := 0
+    nonce := rand;
+    rseed := rand
   };

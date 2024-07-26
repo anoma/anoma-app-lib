@@ -163,6 +163,17 @@ isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
   all (x in sub)
     Set.member? x (Set.fromList sup);
 
+module Kind;
+  toPair (kind : Kind) : Pair (Resource -> Transaction -> Bool) Nat :=
+    anomaDecode (Kind.unKind kind);
+
+  toLogic (kind : Kind) : Resource -> Transaction -> Bool := fst (toPair kind);
+
+  toLabel (kind : Kind) : Nat := snd (toPair kind);
+
+  open Kind public;
+end;
+
 commitmentSet (tx : Transaction) : Set Commitment := Set.fromList (Transaction.commitments tx);
 
 nullifierSet (tx : Transaction) : Set Nullifier := Set.fromList (Transaction.nullifiers tx);
@@ -204,3 +215,5 @@ compose (tx1 tx2 : Transaction) : Transaction :=
       in anomaEncode (Map.fromList (kvList1 ++ kvList2));
     preference := 0
   };
+
+rand : Nat := 0;

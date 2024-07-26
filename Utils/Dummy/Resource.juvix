@@ -2,6 +2,7 @@ module Utils.Dummy.Resource;
 
 import Stdlib.Prelude open;
 import Anoma open;
+import AnomaHelpers open;
 
 import Utils.Dummy.Logic open;
 
@@ -13,6 +14,6 @@ mkDummy (npk : PublicKey) (eph : Bool) : Resource :=
     data := 0;
     eph;
     npk;
-    nonce := 0;
-    rseed := 0
+    nonce := rand;
+    rseed := rand
   };

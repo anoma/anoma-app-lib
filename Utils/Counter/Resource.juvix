@@ -2,6 +2,7 @@ module Utils.Counter.Resource;
 
 import Stdlib.Prelude open;
 import Anoma open;
+import AnomaHelpers open;
 
 import Utils.Counter.Logic open;
 import Utils.Counter.Label open;
@@ -14,6 +15,6 @@ mkCounter (npk : PublicKey) (eph : Bool) (uniqueLabel : Label) (count : Nat) : R
     data := count;
     eph;
     npk;
-    nonce := 0;
-    rseed := 0
+    nonce := rand;
+    rseed := rand
   };
