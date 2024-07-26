@@ -1,0 +1,36 @@
+module Token.Transaction.Merge;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Authorization.Check open;
+import Authorization.Message open;
+import Token.Label open;
+import Token.Error open;
+
+--- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
+--- of them and the ;Kind;s match.
+--- The function returns a ;TokenError; if
+--- - the calling ;KeyPair; is not the owner of the tokens or
+--- - one of the token ;Kind;s differ
+merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
+: Result TokenError Transaction :=
+  case tokens of
+    | nil := throw mkInsufficientElementsError@{limit := 1; actual := 0}
+    | (t :: _) :=
+    let
+      myself : PublicKey := KeyPair.pubKey self;
+      nk : PrivateKey := KeyPair.privKey self;
+      kind : Kind := anomaKind t;
+      totalQuantity : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
+      merged := t@Resource{quantity := totalQuantity; npk := receiver};
+    in if 
+        | not (isTransferable t) := throw mkNonTransferableError
+        | else :=
+          case find ((/=) myself) (map Resource.npk tokens) of
+            | just notMyself := throw mkUnauthorizedError@{expected := myself; actual := notMyself}
+            | nothing :=
+              case find ((/=) kind) (map anomaKind tokens) of
+                | just otherKind := throw mkInvalidKindError@{expected := kind; actual := otherKind}
+                | nothing := ok (mkTxWithExtraData nk tokens [merged]);
