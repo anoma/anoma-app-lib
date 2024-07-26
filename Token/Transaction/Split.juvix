@@ -31,5 +31,5 @@ split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair N
     | not (isTransferable token) := throw mkNonTransferableError
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
-    | else := ok (mkTxWithExtraData nk [token] created);
+    | else := ok mkTxWithExtraData@{nk; consumed := [token]; created};
 

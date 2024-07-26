@@ -26,7 +26,7 @@ finalize (self : KeyPair) (token : Resource)
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | else :=
         case getSupply token of
-          | Unbound := ok (mkTxWithExtraData nk [token] [ephToken])
+          | Unbound := ok mkTxWithExtraData@{nk; consumed := [token]; created := [ephToken]}
           | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
           | (Fixed _) := throw mkError@{msg := "Tokens with fixed supply cannot be burned."};
 
