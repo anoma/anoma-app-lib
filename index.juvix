@@ -12,13 +12,7 @@ import Token.Logic;
 import Token.Projection;
 import Token.Resource;
 import Token.Supply;
-import Token.Transaction.Initialize;
-import Token.Transaction.Finalize;
-import Token.Transaction.Split;
-import Token.Transaction.Merge;
-import Token.Transaction.Send;
-import Token.Transaction.Transfer;
-import Token.Transaction.Swap;
+import Token.Transaction;
 
 import Utils.Counter.Count;
 import Utils.Counter.Error;

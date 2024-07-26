@@ -1,30 +1,4 @@
 module Utils.Dummy.Transaction;
 
-import Data.Map as Map open using {Map};
-import Stdlib.Prelude open;
-import Anoma open;
-import AnomaHelpers open;
-
-import Utils.Dummy.Resource open;
-
-initialize (self : KeyPair) : Transaction :=
-  let
-    dummy : Resource :=
-      mkDummy@{
-        npk := KeyPair.pubKey self;
-        eph := false
-      };
-  in mkTransaction@{
-    nullifierKey := KeyPair.privKey self;
-    consumed := [dummy@Resource{   eph := true; npk := KeyPair.pubKey self }];
-    created := [dummy];
-    extraData := Map.empty
-  };
-
-finalize (self : KeyPair) (dummy : Resource) : Transaction :=
-  mkTransaction@{
-    nullifierKey := KeyPair.privKey self;
-    consumed := [dummy];
-    created := [dummy@Resource{eph := true}];
-    extraData := Map.empty
-  };
+import Utils.Dummy.Transaction.Initialize open public;
+import Utils.Dummy.Transaction.Finalize open public;

@@ -6,7 +6,7 @@ import Anoma open;
 import AnomaHelpers open;
 
 import Authorization.Message open;
-import Utils.Dummy.Transaction.Finalize as Dummy open;
+import Utils.Dummy.Transaction as Dummy open;
 import Token.Resource open;
 import Token.Label open;
 import Token.Supply open;
