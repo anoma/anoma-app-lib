@@ -1,0 +1,24 @@
+module Token.Transaction.Swap;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Authorization.Check open;
+import Authorization.Message open;
+import Token.Resource open;
+import Token.Label open;
+import Token.Logic open;
+import Token.Error open;
+
+swapWith (self : KeyPair) (give : Resource) (wanted : Pair Nat Label) (receiver : PublicKey)
+: Result TokenError Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    nk : PrivateKey := KeyPair.privKey self;
+    giveOwner : PublicKey := Resource.npk give;
+    want := mkToken@{quantity := fst wanted; tokenLabel := snd wanted; npk := myself};
+  in if
+    | not (isTransferable give) := throw mkNonTransferableError
+    | giveOwner /= myself := throw mkUnauthorizedError@{expected := myself; actual := giveOwner}
+    | else := ok mkTxWithExtraData@{nk; consumed := [give]; created := [want]};
