@@ -13,6 +13,7 @@ import Token.Error open;
 
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if
+--- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantities do not balance,
 split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair Nat PublicKey))

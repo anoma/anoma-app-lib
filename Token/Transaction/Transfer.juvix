@@ -9,7 +9,9 @@ import Token.Label open;
 import Token.Error open;
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
---- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
+--- The function returns a ;TokenError; if 
+--- - the token is non-transferable
+--- - the calling ;KeyPair; is not the owner.
 transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
 : Result TokenError Transaction  :=
   let

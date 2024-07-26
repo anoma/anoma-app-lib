@@ -12,6 +12,7 @@ import Token.Error open;
 --- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
 --- of them and the ;Kind;s match.
 --- The function returns a ;TokenError; if
+--- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner of the tokens or
 --- - one of the token ;Kind;s differ
 merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
