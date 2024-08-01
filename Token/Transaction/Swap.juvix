@@ -6,37 +6,28 @@ import AnomaHelpers open;
 
 import Authorization.Check open;
 import Authorization.Message open;
-import Token.Resource open;
-import Token.Label open;
-import Token.Logic open;
+import Intent.Asset open;
 import Token.Error open;
-import Intent.DSL open;
+import Token.Label open;
+import Token.Transaction.Swap.Logic open;
+import Token.Transaction.Swap.Resource open;
 
---- Swaps a given ;Resource; for a wanted ;Asset; 
+--- Swaps a token ;Resource; for a list of ;QuantifiedAssets;.
 --- The function returns a ;TokenError; if
---- - the calling ;KeyPair; is not the owner or
---- - the quantities do not balance,
-swap (self : KeyPair) (give : Resource) (want : Asset) (receiver : PublicKey)
+--- - the token is non-transferable
+--- - the calling ;KeyPair; is not the owner of the token.
+swapIntent (self : KeyPair) (token : Resource) (want : QuantifiedAssets) (solver : PublicKey)
 : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
-    giveOwner : PublicKey := Resource.npk give;
-    receive : Resource :=
-      Resource.mk@{
-        logic := Kind.toLogic (Asset.kind want);
-        label := Kind.toLabel (Asset.kind want);
-        quantity := Asset.quantity want;
-        data := 0;
-        eph := false;
-        npk := myself;
-        nonce := rand;
-        rseed := rand
-      };
+    owner : PublicKey := Resource.npk token;
   in if
-    | not (isTransferable give) := throw mkNonTransferableError
-    | giveOwner /= myself := throw mkUnauthorizedError@{expected := myself; actual := giveOwner}
-    | else := ok mkTxWithExtraData@{nk; consumed := [give]; created := [receive]};
-
-
-settleSwap (tx1 tx2 : Transaction) : Transaction := compose@{tx1; tx2};
+    | not (isTransferable token) := throw mkNonTransferableError
+    | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
+    | else := ok 
+      mkTxWithExtraData@{
+        nk;
+        consumed := [token];
+        created := [mkSwapIntent@{want; receiver := myself; solver}]
+      };

@@ -4,24 +4,7 @@ module Intent.DSL;
 import Stdlib.Prelude open hiding {for; any; all};
 import Anoma open public;
 
-type Asset :=
-  mkAsset {
-    quantity : Nat;
-    kind : Kind
-  };
-
-type Quantifier :=
-  | Any
-  | All;
-
-type QuantifiedAssets :=
-  mkAssets {
-    quantifier : Quantifier;
-    assets : List Asset
-  };
-
-syntax operator of_ additive;
-syntax alias of_ := mkAsset;
+import Intent.Asset open;
 
 type Intention :=
   | Want
@@ -32,6 +15,9 @@ type Clause :=
     lhs : Pair Intention QuantifiedAssets;
     rhs : QuantifiedAssets
   };
+
+syntax operator of_ additive;
+syntax alias of_ := mkAsset;
 
 any (as : List Asset) : QuantifiedAssets :=
   mkAssets@{
