@@ -9,7 +9,6 @@ import Authorization.Message open;
 import Intent.Asset open;
 import Token.Error open;
 import Token.Label open;
-import Token.Transaction.Swap.Logic open;
 import Token.Transaction.Swap.Resource open;
 
 --- Swaps a token ;Resource; for a list of ;QuantifiedAssets;.
