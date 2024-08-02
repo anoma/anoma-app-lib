@@ -15,7 +15,7 @@ import Token.Transaction.Swap.Resource open;
 --- The function returns a ;TokenError; if
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner of the token.
-swapIntent (self : KeyPair) (token : Resource) (want : QuantifiedAssets) (solver : PublicKey)
+swap (self : KeyPair) (token : Resource) (want : QuantifiedAssets) (solver : PublicKey)
 : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;

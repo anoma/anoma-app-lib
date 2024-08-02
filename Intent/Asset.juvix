@@ -9,15 +9,6 @@ type Asset :=
     kind : Kind
   };
 
---- Checks if an ;Asset; is included in a list of resources.
---- The resource ;Kind; must match, the quantity must be
---- greater or equal, and the `npk` must be the ;PublicKey; of the receiver.
-includesAsset (asset : Asset) (receiver : PublicKey) (resources : List Resource) : Bool :=
-  any (r in resources)
-    Asset.quantity asset <= Resource.quantity r
-      && Asset.kind asset == anomaKind r
-      && receiver == Resource.npk r;
-
 type Quantifier :=
   | Any
   | All;
@@ -27,3 +18,12 @@ type QuantifiedAssets :=
     quantifier : Quantifier;
     assets : List Asset
   };
+
+--- Checks if an ;Asset; is included in a list of resources.
+--- The resource ;Kind; must match, the quantity must be
+--- greater or equal, and the `npk` must be the ;PublicKey; of the receiver.
+includesAsset (asset : Asset) (receiver : PublicKey) (resources : List Resource) : Bool :=
+  any (r in resources)
+    Asset.quantity asset <= Resource.quantity r
+      && Asset.kind asset == anomaKind r
+      && receiver == Resource.npk r;
