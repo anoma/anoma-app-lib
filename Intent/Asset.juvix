@@ -14,7 +14,7 @@ type Quantifier :=
   | All;
 
 type QuantifiedAssets :=
-  mkAssets {
+  mkQuantifiedAssets {
     quantifier : Quantifier;
     assets : List Asset
   };
