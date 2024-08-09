@@ -1,0 +1,24 @@
+module Token.Transaction.Swap.Logic;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Intent.Asset open;
+
+swapIntentLogic (want : QuantifiedAssets) (receiver : PublicKey) (self : Resource) (tx : Transaction) 
+: Bool :=
+  case lifecycle self tx, ephemerality self of
+    | Created, Ephemeral :=
+      let
+        created := map commitmentResource (Transaction.commitments tx);
+      in case QuantifiedAssets.quantifier want of {
+           | Any :=
+             any (asset in QuantifiedAssets.assets want)
+               includesAsset@{ asset; receiver; resources := created}
+           | All :=
+             all (asset in QuantifiedAssets.assets want)
+               includesAsset@{ asset; receiver; resources := created}
+         }
+    | Consumed, Ephemeral := true
+    | _, _ := false;

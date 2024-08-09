@@ -1,0 +1,32 @@
+module Token.Transaction.Swap;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Authorization.Check open;
+import Authorization.Message open;
+import Intent.Asset open;
+import Token.Error open;
+import Token.Label open;
+import Token.Transaction.Swap.Resource open;
+
+--- Swaps a token ;Resource; for a list of ;QuantifiedAssets;.
+--- The function returns a ;TokenError; if
+--- - the token is non-transferable
+--- - the calling ;KeyPair; is not the owner of the token.
+swap (self : KeyPair) (token : Resource) (want : QuantifiedAssets) (solver : PublicKey)
+: Result TokenError Transaction :=
+  let
+    myself : PublicKey := KeyPair.pubKey self;
+    nk : PrivateKey := KeyPair.privKey self;
+    owner : PublicKey := Resource.npk token;
+  in if
+    | not (isTransferable token) := throw mkNonTransferableError
+    | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
+    | else := ok 
+      mkTxWithExtraData@{
+        nk;
+        consumed := [token];
+        created := [mkSwapIntent@{want; receiver := myself; solver}]
+      };

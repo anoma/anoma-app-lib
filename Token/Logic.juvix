@@ -16,24 +16,27 @@ tokenLogic (supply : Supply) : Resource -> Transaction -> Bool :=
 
 unboundSupplyLogic (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
-    | Consumed, Ephemeral := isAuthorizedBy (getOriginator self) self tx
+    | Consumed, Ephemeral := unboundSupplyInitializationLogic self tx
     | Consumed, NonEphemeral := transferLogic self tx
-    | Created, _ := true
+    | Created, Ephemeral := true
+    | Created, NonEphemeral := true
     | Unknown, _ := false;
+
+unboundSupplyInitializationLogic (self : Resource) (tx : Transaction) : Bool :=
+  isAuthorizedBy (getOriginator self) self tx;
 
 fixedSupplyLogic (nf : Nullifier) (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
-    | Consumed, Ephemeral := isAuthorizedBy (getOriginator self) self tx && isNullifierPresent nf tx
+    | Consumed, Ephemeral := fixedSupplyInitializationLogic nf self tx
     | Consumed, NonEphemeral := transferLogic self tx
     | Created, Ephemeral := false
     | Created, NonEphemeral := true
     | Unknown, _ := false;
 
+fixedSupplyInitializationLogic (nf : Nullifier) (self : Resource) (tx : Transaction) : Bool :=
+  isNullifierPresent nf tx && isAuthorizedBy (getOriginator self) self tx;
+
 axiom cappedSupplyLogic : Resource -> Transaction -> Bool;
 
 transferLogic (self : Resource) (tx : Transaction) : Bool :=
-  case isTransferable self of
-    | true := isAuthorizedBy (getOwner self) self tx
-    | false := false;
-
-getOwner (r : Resource) : PublicKey := Resource.npk r;
+  isTransferable self && isAuthorizedBy (Resource.npk self) self tx;

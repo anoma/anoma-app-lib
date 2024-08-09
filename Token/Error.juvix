@@ -12,6 +12,7 @@ type TokenError :=
   | ErrTokenInsufficientQuantity InsufficientQuantityError
   | ErrTokenInvalidLabel InvalidLabelError
   | ErrTokenInvalidLogic InvalidLogicError
+  | ErrTokenInvalidKind InvalidKindError
   | ErrNonTransferable NonTransferableError
   | ErrTokenInsufficientElements InsufficientElementsError
   | ErrTokenDefault Error;
@@ -52,6 +53,12 @@ instance
 InvalidLogicThrowable {A} : TokenThrowable InvalidLogicError A :=
   mkTokenThrowable@{
     throw (e : InvalidLogicError) : Result TokenError A := error {_} {A} (ErrTokenInvalidLogic e)
+  };
+
+instance
+InvalidKindThrowable {A} : TokenThrowable InvalidKindError A :=
+  mkTokenThrowable@{
+    throw (e : InvalidKindError) : Result TokenError A := error {_} {A} (ErrTokenInvalidKind e)
   };
 
 instance

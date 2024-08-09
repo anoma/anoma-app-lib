@@ -2,20 +2,19 @@ module Token.Resource;
 
 import Stdlib.Prelude open;
 import Anoma open;
+import AnomaHelpers open;
 
 import Token.Label open;
 import Token.Logic open;
 
-mkToken (eph : Bool) (quantity : Nat) (tokenLabel : Label) (owner : PublicKey) : Resource :=
+mkToken (quantity : Nat) (tokenLabel : Label) (npk : PublicKey) {eph : Bool := false} : Resource :=
   Resource.mk@{
     logic := tokenLogic (Label.supply tokenLabel);
     label := anomaEncode (tokenLabel);
     quantity;
     data := 0;
     eph;
-    npk := owner;
-    nonce := 0;
-    rseed := 0
+    npk;
+    nonce := rand;
+    rseed := rand
   };
-
-

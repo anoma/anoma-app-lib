@@ -1,0 +1,20 @@
+module Token.Transaction.Swap.Resource;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Intent.Asset open;
+import Token.Transaction.Swap.Logic open;
+
+mkSwapIntent (want : QuantifiedAssets) (receiver solver : PublicKey) : Resource :=
+  Resource.mk@{
+    logic := swapIntentLogic want receiver;
+    label := anomaEncode "TokenSwapIntent";
+    quantity := 1;
+    data := 0;
+    eph := true;
+    npk := solver;
+    nonce := rand;
+    rseed := 0
+  };

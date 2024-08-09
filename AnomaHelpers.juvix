@@ -101,6 +101,27 @@ InvalidLogicError-Show : Show InvalidLogicError :=
         ++str (e |> InvalidLogicError.actual |> Show.show)
         ++str "}"};
 
+instance
+Kind-Show : Show Kind := mkShow \ {k := natToString (Kind.unKind k)};
+
+type InvalidKindError :=
+  mkInvalidKindError {
+    expected : Kind;
+    actual : Kind
+  };
+
+instance
+InvalidKindError-Show : Show InvalidKindError :=
+  mkShow
+    \ {e :=
+      "InvalidLogicError:\n{"
+        ++str "expected : "
+        ++str (e |> InvalidKindError.expected |> Show.show)
+        ++str ", "
+        ++str "actual"
+        ++str (e |> InvalidKindError.actual |> Show.show)
+        ++str "}"};
+
 isCreated (r : Resource) (tx : Transaction) : Bool :=
   elem (==) r (ResourcePartition.created (partitionResources tx));
 
@@ -141,6 +162,17 @@ isSubset {A} {{Ord A}} (sub sup : Set A) : Bool := all (x in Set.toList sub) Set
 isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
   all (x in sub)
     Set.member? x (Set.fromList sup);
+
+module Kind;
+  toPair (kind : Kind) : Pair (Resource -> Transaction -> Bool) Nat :=
+    anomaDecode (Kind.unKind kind);
+
+  toLogic (kind : Kind) : Resource -> Transaction -> Bool := fst (toPair kind);
+
+  toLabel (kind : Kind) : Nat := snd (toPair kind);
+
+  open Kind public;
+end;
 
 commitmentSet (tx : Transaction) : Set Commitment := Set.fromList (Transaction.commitments tx);
 
@@ -183,3 +215,5 @@ compose (tx1 tx2 : Transaction) : Transaction :=
       in anomaEncode (Map.fromList (kvList1 ++ kvList2));
     preference := 0
   };
+
+rand : Nat := 0;
