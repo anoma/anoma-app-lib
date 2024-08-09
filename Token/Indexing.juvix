@@ -1,0 +1,39 @@
+module Token.Indexing;
+
+import Stdlib.Prelude open;
+import Data.Set as Set open using {Set; member?; insert; delete};
+import Anoma open;
+
+ownedCommitmentsKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
+  KeyValue.mkKey (map natToString [Kind.unKind kind; PublicKey.unPublicKey account]);
+
+getOwnedCommitments (kind : Kind) (account : PublicKey) : Set Commitment :=
+  anomaGet (ownedCommitmentsKey kind account);
+
+addOwnedCommitment (kind : Kind) (account : PublicKey) (cm : Commitment) : Set Commitment :=
+  insert cm (getOwnedCommitments kind account);
+
+removeOwnedCommitment (kind : Kind) (account : PublicKey) (cm : Commitment) : Set Commitment :=
+  delete cm (getOwnedCommitments kind account);
+
+combine (a b : Set Commitment) : Set Commitment := Set.fromList (Set.toList a ++ Set.toList b);
+
+instance
+Key-Eq : Eq KeyValue.Key :=
+  mkEq@{
+    eq (l1 l2 : KeyValue.Key) : Bool := anomaEncode l1 == anomaEncode l2
+  };
+
+combineAssignments
+  (a b : KeyValue.Assignment (Set Commitment)) : List (KeyValue.Assignment (Set Commitment)) :=
+  let
+    keyA := KeyValue.Assignment.key a;
+    keyB := KeyValue.Assignment.key b;
+  in case keyA == keyB of
+       | true :=
+         [ KeyValue.assign@{
+           key := keyA;
+           value := combine (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
+         }
+         ]
+       | false := [a; b];
