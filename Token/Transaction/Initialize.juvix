@@ -11,33 +11,31 @@ import Token.Resource open;
 import Token.Label open;
 import Token.Supply open;
 import Token.Error open;
-
-import Anoma open;
 import Token.Indexing open;
 
 --- Initializes a token ;Resource; owned by an receiver ;PublicKey;.
 --- This requires an ephemeral resource to be consumed.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 initialize (self : KeyPair) (label : Label) (quantity : Nat) (receiver : PublicKey)
-: Result TokenError (Pair Transaction (List (KeyValue.Assignment (Set Commitment)))) :=
+: Result TokenError (Pair Transaction (KeyValue.Assignment (Set Commitment))) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     newToken : Resource := mkToken@{quantity; tokenLabel := label; npk := receiver};
     ephToken := newToken@Resource{npk := myself; eph := true};
     tx : Transaction := mkTxWithExtraData@{nk; consumed := [ephToken]; created := [newToken]};
-    key : KeyValue.Key := ownedCommitmentsKey@{kind := anomaKind newToken; account := myself};
-    -- TODO first grab the current key-value store and update it
-    value : Set Commitment := addOwnedCommitment@{kind := anomaKind newToken; account := myself; cm := commitment newToken };
-    assgnmnt := KeyValue.assign@{key; value};
-    -- TODO how to compose two assignments
+    assignment : LedgerAssignment := ledgerAssign@{
+      account := myself; 
+      resource := newToken;
+      operation := Add
+    };
    in
      case Label.supply label of
-       | Unbound := ok (tx, [assgnmnt])
+       | Unbound := ok (tx, assignment)
        | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
        | (Fixed f) := ok
           (compose@{
             tx1 := tx;
             tx2 := Dummy.finalize@{self; dummy := anomaGet(FixingNullifier.nf f)}
-          }, [assgnmnt] );
+          }, assignment );
 

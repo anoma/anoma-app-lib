@@ -4,19 +4,19 @@ import Stdlib.Prelude open;
 import Data.Set as Set open using {Set; member?; insert; delete};
 import Anoma open;
 
-ownedCommitmentsKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
+ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
   KeyValue.mkKey (map natToString [Kind.unKind kind; PublicKey.unPublicKey account]);
 
-getOwnedCommitments (kind : Kind) (account : PublicKey) : Set Commitment :=
-  anomaGet (ownedCommitmentsKey kind account);
+ledgerEntries (kind : Kind) (account : PublicKey) : Set Commitment :=
+  anomaGet (ledgerKey kind account);
 
-addOwnedCommitment (kind : Kind) (account : PublicKey) (cm : Commitment) : Set Commitment :=
-  insert cm (getOwnedCommitments kind account);
+addCommitment (kind : Kind) (account : PublicKey) (cm : Commitment) : Set Commitment :=
+  insert cm (ledgerEntries kind account);
 
-removeOwnedCommitment (kind : Kind) (account : PublicKey) (cm : Commitment) : Set Commitment :=
-  delete cm (getOwnedCommitments kind account);
+removeCommitment (kind : Kind) (account : PublicKey) (cm : Commitment) : Set Commitment :=
+  delete cm (ledgerEntries kind account);
 
-combine (a b : Set Commitment) : Set Commitment := Set.fromList (Set.toList a ++ Set.toList b);
+combine {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
 
 instance
 Key-Eq : Eq KeyValue.Key :=
@@ -24,8 +24,40 @@ Key-Eq : Eq KeyValue.Key :=
     eq (l1 l2 : KeyValue.Key) : Bool := anomaEncode l1 == anomaEncode l2
   };
 
-combineAssignments
-  (a b : KeyValue.Assignment (Set Commitment)) : List (KeyValue.Assignment (Set Commitment)) :=
+LedgerAssignment : Type := KeyValue.Assignment (Set Commitment);
+
+type Operation :=
+  | Add
+  | Remove;
+
+ledgerAssign
+  (account : PublicKey) (resource : Resource) (operation : Operation) : LedgerAssignment :=
+  let
+    kind := anomaKind resource;
+    cm := commitment resource;
+  in KeyValue.assign@{
+    key :=
+      ledgerKey@{
+        kind;
+        account
+      };
+    value :=
+      case operation of
+        | Add :=
+          addCommitment@{
+            kind;
+            account;
+            cm
+          }
+        | Remove :=
+          removeCommitment@{
+            kind;
+            account;
+            cm
+          }
+  };
+
+combineAssignments (a b : LedgerAssignment) : List LedgerAssignment :=
   let
     keyA := KeyValue.Assignment.key a;
     keyB := KeyValue.Assignment.key b;
