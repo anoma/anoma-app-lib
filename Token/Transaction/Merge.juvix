@@ -8,6 +8,7 @@ import Authorization.Check open;
 import Authorization.Message open;
 import Token.Label open;
 import Token.Error open;
+import Token.Indexing open;
 
 --- Merges token ;Resource;s, if the calling ;KeyPair; is the owner of all
 --- of them and the ;Kind;s match.
@@ -16,7 +17,7 @@ import Token.Error open;
 --- - the calling ;KeyPair; is not the owner of the tokens or
 --- - one of the token ;Kind;s differ
 merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
-: Result TokenError Transaction :=
+: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
   case tokens of
     | nil := throw mkInsufficientElementsError@{limit := 1; actual := 0}
     | (t :: _) :=
@@ -34,4 +35,11 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
             | nothing :=
               case find ((/=) kind) (map anomaKind tokens) of
                 | just otherKind := throw mkInvalidKindError@{expected := kind; actual := otherKind}
-                | nothing := ok mkTxWithExtraData@{nk; consumed := tokens; created := [merged]};
+                | nothing := 
+                  ok (
+                    mkTxWithExtraData@{nk; consumed := tokens; created := [merged]},
+                    [
+                      removeFromLedger kind myself (map commitment tokens);
+                      addToLedger kind receiver [commitment merged]
+                    ]
+                  );

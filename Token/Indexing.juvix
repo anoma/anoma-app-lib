@@ -1,7 +1,7 @@
 module Token.Indexing;
 
 import Stdlib.Prelude open;
-import Data.Set as Set open using {Set; member?; insert; delete};
+import Data.Set as Set open using {Set; member?; insert; delete; empty};
 import Anoma open;
 
 ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
@@ -10,11 +10,11 @@ ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
 ledgerEntries (kind : Kind) (account : PublicKey) : Set Commitment :=
   anomaGet (ledgerKey kind account);
 
-addCommitment (kind : Kind) (account : PublicKey) (cm : Commitment) : Set Commitment :=
-  insert cm (ledgerEntries kind account);
+addCommitments (kind : Kind) (account : PublicKey) (cms : List Commitment) : Set Commitment :=
+  for (entries := ledgerEntries kind account) (cm in cms) {insert cm entries};
 
-removeCommitment (kind : Kind) (account : PublicKey) (cm : Commitment) : Set Commitment :=
-  delete cm (ledgerEntries kind account);
+removeCommitments (kind : Kind) (account : PublicKey) (cms : List Commitment) : Set Commitment :=
+  for (entries := ledgerEntries kind account) (cm in cms) {delete cm entries};
 
 combine {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
 
@@ -31,11 +31,12 @@ type Operation :=
   | Remove;
 
 ledgerAssign
-  (account : PublicKey) (resource : Resource) (operation : Operation) : LedgerAssignment :=
-  let
-    kind := anomaKind resource;
-    cm := commitment resource;
-  in KeyValue.assign@{
+  (kind : Kind)
+  (account : PublicKey)
+  (operation : Operation)
+  (cms : List Commitment)
+  : LedgerAssignment :=
+  KeyValue.assign@{
     key :=
       ledgerKey@{
         kind;
@@ -44,28 +45,47 @@ ledgerAssign
     value :=
       case operation of
         | Add :=
-          addCommitment@{
+          addCommitments@{
             kind;
             account;
-            cm
+            cms
           }
         | Remove :=
-          removeCommitment@{
+          removeCommitments@{
             kind;
             account;
-            cm
+            cms
           }
   };
 
+--- TODO delete
 combineAssignments (a b : LedgerAssignment) : List LedgerAssignment :=
   let
     keyA := KeyValue.Assignment.key a;
     keyB := KeyValue.Assignment.key b;
   in case keyA == keyB of
+       | false := [a; b]
        | true :=
          [ KeyValue.assign@{
            key := keyA;
            value := combine (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
          }
-         ]
-       | false := [a; b];
+         ];
+
+addToLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : LedgerAssignment :=
+  KeyValue.assign@{
+    key := ledgerKey kind account;
+    value := for (entries := ledgerEntries kind account) (cm in cms) {insert cm entries}
+  };
+
+removeFromLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : LedgerAssignment :=
+  KeyValue.assign@{
+    key := ledgerKey kind account;
+    value := for (entries := ledgerEntries kind account) (cm in cms) {delete cm entries}
+  };
+
+combineAssignments2 (a b : LedgerAssignment) : LedgerAssignment :=
+  KeyValue.assign@{
+    key := KeyValue.Assignment.key a;
+    value := combine (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
+  };

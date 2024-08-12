@@ -1,10 +1,11 @@
 module Authorization.Message;
 
 import Stdlib.Prelude open;
-import Data.Map as Map open using {Map};
-import Data.Set as Set open using {Set};
+import Data.Map as Map open using {Map; empty};
+import Data.Set as Set open using {Set; insert};
 import Anoma open;
 import AnomaHelpers open;
+import Token.Indexing open;
 
 -- TODO use Nullifier once we comply with v2 specs
 type ResourceRelationship :=
@@ -50,6 +51,38 @@ mkResourceRelationshipExtraData
 mkTxWithExtraData
   (nk : PrivateKey) (consumed : List Resource) (created : List Resource) : Transaction :=
   Transaction.mk@{
+    roots := [];
+    commitments := map commitment created;
+    nullifiers := map (r in consumed) nullifier r nk;
+    proofs := consumed ++ created;
+    complianceProofs := [];
+    delta := [];
+    extra :=
+      anomaEncode
+        mkResourceRelationshipExtraData@{
+          nullifierKey := nk;
+          origins := consumed;
+          mustBeConsumed := [];
+          mustBeCreated := created
+        };
+    preference := 0
+  };
+
+mkTxWithExtraData2
+  (nk : PrivateKey) (consumed : List Resource) (created : List Resource) : Transaction :=
+  let
+    kinds : Set Kind := for (acc := Set.empty) (r in consumed) {insert (anomaKind r) acc};
+    accounts : Set PublicKey := for (acc := Set.empty) (r in consumed) {insert (Resource.npk r) acc};
+    -- anomaGet all relevant commitment sets
+    ledger : Map Kind (Map PublicKey (Set Commitment)) := 
+    for (outerMap := Map.empty) (kind in kinds) {
+      insert kind (
+        for (innerMap := Map.empty) (account in accounts) {
+          insert account ledgerEntries@{kind; account} innerMap
+        }
+      ) outerMap
+    };
+  in Transaction.mk@{
     roots := [];
     commitments := map commitment created;
     nullifiers := map (r in consumed) nullifier r nk;

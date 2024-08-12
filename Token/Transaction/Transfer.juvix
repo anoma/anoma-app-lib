@@ -7,19 +7,27 @@ import Authorization.Check open;
 import Authorization.Message open;
 import Token.Label open;
 import Token.Error open;
+import Token.Indexing open;
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if 
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner.
 transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
-: Result TokenError Transaction  :=
+: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := Resource.npk token;
     newToken := token@Resource{npk := receiver};
+    kind : Kind := anomaKind token;
   in if
     | not (isTransferable token) := throw mkNonTransferableError
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
-    | else := ok mkTxWithExtraData@{nk; consumed := [token]; created := [newToken]};
+    | else := ok (
+      mkTxWithExtraData@{nk; consumed := [token]; created := [newToken]},
+      [
+        removeFromLedger@{kind; account := myself; cms := [commitment token]};
+        addToLedger@{kind; account := receiver; cms := [commitment newToken]}
+      ]
+    );

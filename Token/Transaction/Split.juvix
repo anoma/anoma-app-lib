@@ -9,6 +9,7 @@ import Authorization.Message open;
 import Token.Label open;
 import Token.Resource open;
 import Token.Error open;
+import Token.Indexing open;
 
 
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
@@ -17,20 +18,27 @@ import Token.Error open;
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantities do not balance,
 split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair Nat PublicKey))
-: Result TokenError Transaction :=
+: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := Resource.npk token;
     label : Label := anomaDecode (Resource.label token);
+    kind : Kind := anomaKind token;
     sum : Nat := for (acc := 0) ((quantity, _) in quantitiesAndReceivers) {quantity + acc};
     balance := Resource.quantity token;
     created : List Resource := map ((quantity, receiver) in quantitiesAndReceivers) {
         mkToken@{quantity; tokenLabel := label; npk := receiver}
       };
+    assignments : List LedgerAssignment := 
+      [removeFromLedger@{kind; account := myself; cms := [commitment token]}] 
+      ++ 
+      map (r in created) {
+        addToLedger@{kind; account := Resource.npk r; cms := [commitment r]}
+      }
   in if
     | not (isTransferable token) := throw mkNonTransferableError
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
     | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
-    | else := ok mkTxWithExtraData@{nk; consumed := [token]; created};
+    | else := ok (mkTxWithExtraData@{nk; consumed := [token]; created}, assignments);
 

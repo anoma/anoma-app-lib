@@ -6,6 +6,7 @@ import Anoma open;
 import AnomaHelpers open;
 
 import Token.Error open;
+import Token.Indexing open;
 import Token.Transaction.Transfer open;
 import Token.Transaction.Split open;
 
@@ -16,7 +17,7 @@ import Token.Transaction.Split open;
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantity exceeds the quantity of the resource.
 send (self : KeyPair) (token : Resource) (quantity : Nat) (receiver : PublicKey)
-: Result TokenError Transaction  :=
+: Result TokenError (Pair Transaction (List LedgerAssignment))  :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     balance : Nat := Resource.quantity token;
