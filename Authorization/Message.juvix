@@ -57,7 +57,9 @@ mkTxWithExtraData
     nonEphConsumed := filter \ {r := not (isEphemeral r)} consumed;
     nonEphCreated := filter \ {r := not (isEphemeral r)} created;
 
+    -- Get the current ledger entries associated with all kinds and accounts involved in this transaction.
     ledger : LedgerMapping := getLedger (nonEphConsumed ++ nonEphCreated);
+    -- Replace the ;Set Commitment; in the mapping with one, where the consumed resource commitments have been removed.
     ledgerWithoutConsumed : LedgerMapping :=
       for (acc := ledger) (r in nonEphConsumed)
         {let
@@ -71,6 +73,7 @@ mkTxWithExtraData
                  | nothing := acc
                  | just inner :=
                    Map.insert kind (Map.insert account (Set.delete cm inner) outer) acc};
+    -- Replace the ;Set Commitment; in the mapping with one, where the created resource commitments have been added.
     ledgerWithoutConsumedWithCreated : LedgerMapping :=
       for (acc := ledgerWithoutConsumed) (r in nonEphCreated)
         {let
@@ -84,6 +87,7 @@ mkTxWithExtraData
                  | nothing := acc
                  | just inner :=
                    Map.insert kind (Map.insert account (Set.insert cm inner) outer) acc};
+    -- Create a ;List LedgerAssignment; to be processed by the Anoma node client.
     assignments : List LedgerAssignment :=
       for (outerAcc := []) (outerKey, outerVal in Map.toList ledgerWithoutConsumedWithCreated)
         {for (innerAcc := []) (innerKey, innerVal in Map.toList outerVal)
@@ -97,7 +101,7 @@ mkTxWithExtraData
                  value := innerVal
                }
                ]}};
-
+  -- Return the transaction object and the assignments.
   in Transaction.mk@{
       roots := [];
       commitments := map commitment created;
