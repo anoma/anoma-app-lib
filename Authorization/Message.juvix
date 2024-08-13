@@ -2,7 +2,7 @@ module Authorization.Message;
 
 import Stdlib.Prelude open;
 import Data.Map as Map open using {Map; empty};
-import Data.Set as Set open using {Set; insert};
+import Data.Set as Set open using {Set; insert; delete};
 import Anoma open;
 import AnomaHelpers open;
 import Token.Indexing open;
@@ -71,17 +71,39 @@ mkTxWithExtraData
 mkTxWithExtraData2
   (nk : PrivateKey) (consumed : List Resource) (created : List Resource) : Transaction :=
   let
-    kinds : Set Kind := for (acc := Set.empty) (r in consumed) {insert (anomaKind r) acc};
-    accounts : Set PublicKey := for (acc := Set.empty) (r in consumed) {insert (Resource.npk r) acc};
-    -- anomaGet all relevant commitment sets
-    ledger : Map Kind (Map PublicKey (Set Commitment)) := 
-    for (outerMap := Map.empty) (kind in kinds) {
-      insert kind (
-        for (innerMap := Map.empty) (account in accounts) {
-          insert account ledgerEntries@{kind; account} innerMap
-        }
-      ) outerMap
-    };
+    nonEphConsumed := filter \ {r := not (isEphemeral r)} consumed;
+    nonEphCreated := filter \ {r := not (isEphemeral r)} created;
+    nonEphConsumedSet := Set.fromList (map commitment nonEphConsumed);
+    nonEphCreatedSet := Set.fromList (map commitment nonEphCreated);
+
+    ledger : LedgerMapping := getLedger (nonEphConsumed ++ nonEphCreated);
+    ledgerWithoutConsumed :=
+      for (acc := ledger) (r in nonEphConsumed)
+        {let
+          kind := anomaKind r;
+          account := Resource.npk r;
+          cm := commitment r;
+        in case Map.lookup kind acc of
+             | nothing := acc
+             | just outer :=
+               case Map.lookup account outer of
+                 | nothing := acc
+                 | just inner :=
+                   Map.insert kind (Map.insert account (Set.delete cm inner) outer) acc};
+    ledgerWithoutConsumedWithCreated :=
+      for (acc := ledgerWithoutConsumed) (r in nonEphCreated)
+        {let
+          kind := anomaKind r;
+          account := Resource.npk r;
+          cm := commitment r;
+        in case Map.lookup kind acc of
+             | nothing := acc
+             | just outer :=
+               case Map.lookup account outer of
+                 | nothing := acc
+                 | just inner :=
+                   Map.insert kind (Map.insert account (Set.insert cm inner) outer) acc};
+  -- TODO create ledger assignments from mapping
   in Transaction.mk@{
     roots := [];
     commitments := map commitment created;

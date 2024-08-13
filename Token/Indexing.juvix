@@ -1,7 +1,8 @@
 module Token.Indexing;
 
 import Stdlib.Prelude open;
-import Data.Set as Set open using {Set; member?; insert; delete; empty};
+import Data.Set as Set open using {Set; insert; delete};
+import Data.Map as Map open using {Map};
 import Anoma open;
 
 ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
@@ -10,13 +11,44 @@ ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
 ledgerEntries (kind : Kind) (account : PublicKey) : Set Commitment :=
   anomaGet (ledgerKey kind account);
 
+getKinds (rs : List Resource) : Set Kind :=
+  for (acc := Set.empty) (r in rs) {insert (anomaKind r) acc};
+
+getAccounts (rs : List Resource) : Set PublicKey :=
+  for (acc := Set.empty) (r in rs) {insert (Resource.npk r) acc};
+
+LedgerMapping : Type := Map Kind (Map PublicKey (Set Commitment));
+
+getLedger (rs : List Resource) : LedgerMapping :=
+  let
+    kinds : List Kind := Set.toList (getKinds rs);
+    accounts : List PublicKey := Set.toList (getAccounts rs);
+  in for (outerMap := Map.empty) (kind in kinds)
+       {Map.insert
+         kind
+         (for (innerMap := Map.empty) (account in accounts)
+           {Map.insert
+             account
+             ledgerEntries@{
+               kind;
+               account
+             }
+             innerMap})
+         outerMap};
+
 addCommitments (kind : Kind) (account : PublicKey) (cms : List Commitment) : Set Commitment :=
-  for (entries := ledgerEntries kind account) (cm in cms) {insert cm entries};
+  for (entries := ledgerEntries kind account) (cm in cms) {Set.insert cm entries};
 
 removeCommitments (kind : Kind) (account : PublicKey) (cms : List Commitment) : Set Commitment :=
   for (entries := ledgerEntries kind account) (cm in cms) {delete cm entries};
 
-combine {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
+union {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
+
+-- TODO
+intersection {A} {{Ord A}} (a b : Set A) : Set A := Set.empty;
+
+-- TODO
+difference {A} {{Ord A}} (a b : Set A) : Set A := Set.empty;
 
 instance
 Key-Eq : Eq KeyValue.Key :=
@@ -25,38 +57,6 @@ Key-Eq : Eq KeyValue.Key :=
   };
 
 LedgerAssignment : Type := KeyValue.Assignment (Set Commitment);
-
-type Operation :=
-  | Add
-  | Remove;
-
-ledgerAssign
-  (kind : Kind)
-  (account : PublicKey)
-  (operation : Operation)
-  (cms : List Commitment)
-  : LedgerAssignment :=
-  KeyValue.assign@{
-    key :=
-      ledgerKey@{
-        kind;
-        account
-      };
-    value :=
-      case operation of
-        | Add :=
-          addCommitments@{
-            kind;
-            account;
-            cms
-          }
-        | Remove :=
-          removeCommitments@{
-            kind;
-            account;
-            cms
-          }
-  };
 
 --- TODO delete
 combineAssignments (a b : LedgerAssignment) : List LedgerAssignment :=
@@ -68,14 +68,14 @@ combineAssignments (a b : LedgerAssignment) : List LedgerAssignment :=
        | true :=
          [ KeyValue.assign@{
            key := keyA;
-           value := combine (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
+           value := union (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
          }
          ];
 
 addToLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : LedgerAssignment :=
   KeyValue.assign@{
     key := ledgerKey kind account;
-    value := for (entries := ledgerEntries kind account) (cm in cms) {insert cm entries}
+    value := for (entries := ledgerEntries kind account) (cm in cms) {Set.insert cm entries}
   };
 
 removeFromLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : LedgerAssignment :=
@@ -87,5 +87,5 @@ removeFromLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : L
 combineAssignments2 (a b : LedgerAssignment) : LedgerAssignment :=
   KeyValue.assign@{
     key := KeyValue.Assignment.key a;
-    value := combine (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
+    value := union (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
   };
