@@ -56,8 +56,6 @@ mkTxWithExtraData
   let
     nonEphConsumed := filter \ {r := not (isEphemeral r)} consumed;
     nonEphCreated := filter \ {r := not (isEphemeral r)} created;
-    nonEphConsumedSet := Set.fromList (map commitment nonEphConsumed);
-    nonEphCreatedSet := Set.fromList (map commitment nonEphCreated);
 
     ledger : LedgerMapping := getLedger (nonEphConsumed ++ nonEphCreated);
     ledgerWithoutConsumed : LedgerMapping :=
