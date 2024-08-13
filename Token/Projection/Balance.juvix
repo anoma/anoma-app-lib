@@ -12,7 +12,7 @@ import Token.Indexing open;
 --- This assume that the set is is up-to-date an no ;Commitment;s of
 --- consumed ;Resource;s are present.
 balance (kind : Kind) (account : PublicKey) : Nat :=
-  for (sum := 0) (cm in Set.toList (anomaGet (ownedCommitmentsKey kind account)))
+  for (sum := 0) (cm in Set.toList (anomaGet (ledgerKey kind account)))
     {let
       q := Resource.quantity (commitmentResource cm);
     in q + sum};

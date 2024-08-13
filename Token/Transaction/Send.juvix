@@ -3,7 +3,7 @@ module Token.Transaction.Send;
 import Stdlib.Prelude open;
 import Stdlib.Data.Nat.Ord open using {compare};
 import Anoma open;
-import AnomaHelpers open;
+import AnomaHelpers open using {mkInsufficientQuantityError};
 
 import Token.Error open;
 import Token.Indexing open;

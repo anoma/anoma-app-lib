@@ -14,7 +14,7 @@ intersection {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
   Set.toList s1 |> filter \ {x := Set.member? x s2} |> Set.fromList;
 
 difference {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
-  Set.toList s1 |> filter \ {x := not (Set.member? x s2) } |> Set.fromList;
+  Set.toList s1 |> filter \ {x := not (Set.member? x s2)} |> Set.fromList;
 
 delete {A B} {{Ord A}} (k : A) : Map A B -> Map A B
   | m@(Map.mkMap s) :=

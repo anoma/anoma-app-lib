@@ -30,14 +30,6 @@ split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair N
     created : List Resource := map ((quantity, receiver) in quantitiesAndReceivers) {
         mkToken@{quantity; tokenLabel := label; npk := receiver}
       };
-    -- TODO handle the special case where `self` is also a `receiver`.
-    -- Here we must make sure, that there is only one assignment returned.
-    assignments : List LedgerAssignment := 
-      [removeFromLedger@{kind; account := myself; cms := [commitment token]}] 
-      ++ 
-      map (r in created) {
-        addToLedger@{kind; account := Resource.npk r; cms := [commitment r]}
-      }
   in if
     | not (isTransferable token) := throw mkNonTransferableError
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}

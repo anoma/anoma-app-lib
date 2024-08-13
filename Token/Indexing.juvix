@@ -6,6 +6,8 @@ import Data.Map as Map open using {Map};
 import Anoma as MyAnoma open;
 import AnomaHelpers open;
 
+LedgerAssignment : Type := KeyValue.Assignment (Set Commitment);
+
 ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
   KeyValue.mkKey (map natToString [MyAnoma.Kind.unKind kind; PublicKey.unPublicKey account]);
 
@@ -36,49 +38,3 @@ getLedger (rs : List Resource) : LedgerMapping :=
              }
              innerMap})
          outerMap};
-
-addCommitments (kind : Kind) (account : PublicKey) (cms : List Commitment) : Set Commitment :=
-  for (entries := ledgerEntries kind account) (cm in cms) {Set.insert cm entries};
-
-removeCommitments (kind : Kind) (account : PublicKey) (cms : List Commitment) : Set Commitment :=
-  for (entries := ledgerEntries kind account) (cm in cms) {Set.delete cm entries};
-
-instance
-Key-Eq : Eq KeyValue.Key :=
-  mkEq@{
-    eq (l1 l2 : KeyValue.Key) : Bool := anomaEncode l1 == anomaEncode l2
-  };
-
-LedgerAssignment : Type := KeyValue.Assignment (Set Commitment);
-
---- TODO delete
-combineAssignments (a b : LedgerAssignment) : List LedgerAssignment :=
-  let
-    keyA := KeyValue.Assignment.key a;
-    keyB := KeyValue.Assignment.key b;
-  in case keyA == keyB of
-       | false := [a; b]
-       | true :=
-         [ KeyValue.assign@{
-           key := keyA;
-           value := union (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
-         }
-         ];
-
-addToLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : LedgerAssignment :=
-  KeyValue.assign@{
-    key := ledgerKey kind account;
-    value := for (entries := ledgerEntries kind account) (cm in cms) {Set.insert cm entries}
-  };
-
-removeFromLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : LedgerAssignment :=
-  KeyValue.assign@{
-    key := ledgerKey kind account;
-    value := for (entries := ledgerEntries kind account) (cm in cms) {Set.delete cm entries}
-  };
-
-combineAssignments2 (a b : LedgerAssignment) : LedgerAssignment :=
-  KeyValue.assign@{
-    key := KeyValue.Assignment.key a;
-    value := union (KeyValue.Assignment.value a) (KeyValue.Assignment.value b)
-  };

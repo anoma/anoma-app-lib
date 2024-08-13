@@ -13,6 +13,7 @@ import Token.Projection;
 import Token.Resource;
 import Token.Supply;
 import Token.Transaction;
+import Token.Indexing;
 
 import Utils.Counter.Count;
 import Utils.Counter.Error;
