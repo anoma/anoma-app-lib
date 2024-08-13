@@ -11,65 +11,36 @@ import Token.Resource open;
 import Token.Error open;
 import Token.Indexing open;
 
+
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantities do not balance,
-split
-  (self : KeyPair)
-  (token : Resource)
-  (quantitiesAndReceivers : List (Pair Nat PublicKey))
-  : Result TokenError (Pair Transaction (List LedgerAssignment)) :=
+split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair Nat PublicKey))
+: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := Resource.npk token;
     label : Label := anomaDecode (Resource.label token);
     kind : Kind := anomaKind token;
-    sum : Nat := for (acc := 0) (quantity, _ in quantitiesAndReceivers) {quantity + acc};
+    sum : Nat := for (acc := 0) ((quantity, _) in quantitiesAndReceivers) {quantity + acc};
     balance := Resource.quantity token;
-    created : List Resource :=
-      map (quantity, receiver in quantitiesAndReceivers)
-        {mkToken@{
-          quantity;
-          tokenLabel := label;
-          npk := receiver
-        }};
+    created : List Resource := map ((quantity, receiver) in quantitiesAndReceivers) {
+        mkToken@{quantity; tokenLabel := label; npk := receiver}
+      };
     -- TODO handle the special case where `self` is also a `receiver`.
     -- Here we must make sure, that there is only one assignment returned.
-    assignments : List LedgerAssignment :=
-      [ removeFromLedger@{
-        kind;
-        account := myself;
-        cms := [commitment token]
+    assignments : List LedgerAssignment := 
+      [removeFromLedger@{kind; account := myself; cms := [commitment token]}] 
+      ++ 
+      map (r in created) {
+        addToLedger@{kind; account := Resource.npk r; cms := [commitment r]}
       }
-      ]
-        ++ map (r in created)
-             {addToLedger@{
-               kind;
-               account := Resource.npk r;
-               cms := [commitment r]
-             }};
   in if
     | not (isTransferable token) := throw mkNonTransferableError
-    | owner /= myself :=
-      throw
-        mkUnauthorizedError@{
-          expected := myself;
-          actual := owner
-        }
-    | balance /= sum :=
-      throw
-        mkInsufficientQuantityError@{
-          limit := balance;
-          actual := sum
-        }
-    | else :=
-      ok
-        (mkTxWithExtraData@{
-            nk;
-            consumed := [token];
-            created
-          }
-          , assignments);
+    | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
+    | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
+    | else := ok mkTxWithExtraData@{nk; consumed := [token]; created};
+

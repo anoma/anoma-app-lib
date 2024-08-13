@@ -8,10 +8,19 @@ import Anoma open;
 import Data.Set as Set open using {Set};
 import Data.Map as Map open using {Map};
 
+union {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
+
+-- TODO
+--intersection {A} {{Ord A}} (a b : Set A) : Set A := Set.empty;
+
+-- TODO
+--difference {A} {{Ord A}} (a b : Set A) : Set A := Set.empty;
+
 delete {A B} {{Ord A}} (k : A) : Map A B -> Map A B
-  | m@(Map.mkMap s) := case Set.lookupWith Map.key k s of
-    | nothing := m
-    | (just x) := Set.delete x s |> Map.mkMap;
+  | m@(Map.mkMap s) :=
+    case Set.lookupWith Map.key k s of
+      | nothing := m
+      | just x := Set.delete x s |> Map.mkMap;
 
 -- Should be added to the `juvix-anoma-stdlib`
 instance

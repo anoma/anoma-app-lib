@@ -4,6 +4,7 @@ import Stdlib.Prelude open;
 import Data.Set as Set open using {Set; insert; delete};
 import Data.Map as Map open using {Map};
 import Anoma open;
+import AnomaHelpers open;
 
 ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
   KeyValue.mkKey (map natToString [Kind.unKind kind; PublicKey.unPublicKey account]);
@@ -40,15 +41,7 @@ addCommitments (kind : Kind) (account : PublicKey) (cms : List Commitment) : Set
   for (entries := ledgerEntries kind account) (cm in cms) {Set.insert cm entries};
 
 removeCommitments (kind : Kind) (account : PublicKey) (cms : List Commitment) : Set Commitment :=
-  for (entries := ledgerEntries kind account) (cm in cms) {delete cm entries};
-
-union {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
-
--- TODO
-intersection {A} {{Ord A}} (a b : Set A) : Set A := Set.empty;
-
--- TODO
-difference {A} {{Ord A}} (a b : Set A) : Set A := Set.empty;
+  for (entries := ledgerEntries kind account) (cm in cms) {Set.delete cm entries};
 
 instance
 Key-Eq : Eq KeyValue.Key :=

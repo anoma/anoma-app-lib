@@ -25,11 +25,9 @@ swap (self : KeyPair) (token : Resource) (want : QuantifiedAssets) (solver : Pub
   in if
     | not (isTransferable token) := throw mkNonTransferableError
     | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
-    | else := ok (
+    | else := ok 
         mkTxWithExtraData@{
           nk;
           consumed := [token];
           created := [mkSwapIntent@{want; receiver := myself; solver}]
-        },
-        [removeFromLedger@{kind := anomaKind token; account := myself; cms := [commitment token]}]
-      );
+        };

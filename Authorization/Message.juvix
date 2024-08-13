@@ -48,7 +48,7 @@ mkResourceRelationshipExtraData
       (mkResourceRelationshipExtraDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       origins);
 
-mkTxWithExtraData
+mkTxWithExtraDataOld
   (nk : PrivateKey) (consumed : List Resource) (created : List Resource) : Transaction :=
   Transaction.mk@{
     roots := [];
@@ -68,8 +68,11 @@ mkTxWithExtraData
     preference := 0
   };
 
-mkTxWithExtraData2
-  (nk : PrivateKey) (consumed : List Resource) (created : List Resource) : Transaction :=
+mkTxWithExtraData
+  (nk : PrivateKey)
+  (consumed : List Resource)
+  (created : List Resource)
+  : Pair Transaction (List LedgerAssignment) :=
   let
     nonEphConsumed := filter \ {r := not (isEphemeral r)} consumed;
     nonEphCreated := filter \ {r := not (isEphemeral r)} created;
@@ -77,7 +80,7 @@ mkTxWithExtraData2
     nonEphCreatedSet := Set.fromList (map commitment nonEphCreated);
 
     ledger : LedgerMapping := getLedger (nonEphConsumed ++ nonEphCreated);
-    ledgerWithoutConsumed :=
+    ledgerWithoutConsumed : LedgerMapping :=
       for (acc := ledger) (r in nonEphConsumed)
         {let
           kind := anomaKind r;
@@ -90,7 +93,7 @@ mkTxWithExtraData2
                  | nothing := acc
                  | just inner :=
                    Map.insert kind (Map.insert account (Set.delete cm inner) outer) acc};
-    ledgerWithoutConsumedWithCreated :=
+    ledgerWithoutConsumedWithCreated : LedgerMapping :=
       for (acc := ledgerWithoutConsumed) (r in nonEphCreated)
         {let
           kind := anomaKind r;
@@ -103,21 +106,36 @@ mkTxWithExtraData2
                  | nothing := acc
                  | just inner :=
                    Map.insert kind (Map.insert account (Set.insert cm inner) outer) acc};
-  -- TODO create ledger assignments from mapping
+    -- create ledger assignments from mapping
+    assignments : List LedgerAssignment :=
+      for (outerAcc := []) (outerKey, outerVal in Map.toList ledgerWithoutConsumedWithCreated)
+        {for (innerAcc := []) (innerKey, innerVal in Map.toList outerVal)
+          {outerAcc
+            ++ [ KeyValue.assign@{
+                 key :=
+                   KeyValue.mkKey
+                     (map
+                       natToString
+                       [Kind.unKind outerKey; PublicKey.unPublicKey innerKey]);
+                 value := innerVal
+               }
+               ]}};
+
   in Transaction.mk@{
-    roots := [];
-    commitments := map commitment created;
-    nullifiers := map (r in consumed) nullifier r nk;
-    proofs := consumed ++ created;
-    complianceProofs := [];
-    delta := [];
-    extra :=
-      anomaEncode
-        mkResourceRelationshipExtraData@{
-          nullifierKey := nk;
-          origins := consumed;
-          mustBeConsumed := [];
-          mustBeCreated := created
-        };
-    preference := 0
-  };
+      roots := [];
+      commitments := map commitment created;
+      nullifiers := map (r in consumed) nullifier r nk;
+      proofs := consumed ++ created;
+      complianceProofs := [];
+      delta := [];
+      extra :=
+        anomaEncode
+          mkResourceRelationshipExtraData@{
+            nullifierKey := nk;
+            origins := consumed;
+            mustBeConsumed := [];
+            mustBeCreated := created
+          };
+      preference := 0
+    }
+    , assignments;

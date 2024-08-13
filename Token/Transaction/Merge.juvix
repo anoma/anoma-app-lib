@@ -36,10 +36,4 @@ merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
               case find ((/=) kind) (map anomaKind tokens) of
                 | just otherKind := throw mkInvalidKindError@{expected := kind; actual := otherKind}
                 | nothing := 
-                  ok (
-                    mkTxWithExtraData@{nk; consumed := tokens; created := [merged]},
-                    [
-                      removeFromLedger kind myself (map commitment tokens);
-                      addToLedger kind receiver [commitment merged]
-                    ]
-                  );
+                  ok mkTxWithExtraData@{nk; consumed := tokens; created := [merged]};
