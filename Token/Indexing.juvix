@@ -23,7 +23,7 @@ getAccounts (rs : List Resource) : Set PublicKey :=
 LedgerMapping : Type := Map Kind (Map PublicKey (Set Commitment));
 
 -- This relies on sets having each entry only once, so that we don't overwrite map entries.
-getLedger (rs : List Resource) : LedgerMapping :=
+getLedgerMapping (rs : List Resource) : LedgerMapping :=
   let
     kinds : List Kind := Set.toList (getKinds rs);
     accounts : List PublicKey := Set.toList (getAccounts rs);
