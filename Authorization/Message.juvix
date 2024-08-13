@@ -48,26 +48,6 @@ mkResourceRelationshipExtraData
       (mkResourceRelationshipExtraDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       origins);
 
-mkTxWithExtraDataOld
-  (nk : PrivateKey) (consumed : List Resource) (created : List Resource) : Transaction :=
-  Transaction.mk@{
-    roots := [];
-    commitments := map commitment created;
-    nullifiers := map (r in consumed) nullifier r nk;
-    proofs := consumed ++ created;
-    complianceProofs := [];
-    delta := [];
-    extra :=
-      anomaEncode
-        mkResourceRelationshipExtraData@{
-          nullifierKey := nk;
-          origins := consumed;
-          mustBeConsumed := [];
-          mustBeCreated := created
-        };
-    preference := 0
-  };
-
 mkTxWithExtraData
   (nk : PrivateKey)
   (consumed : List Resource)
@@ -106,7 +86,6 @@ mkTxWithExtraData
                  | nothing := acc
                  | just inner :=
                    Map.insert kind (Map.insert account (Set.insert cm inner) outer) acc};
-    -- create ledger assignments from mapping
     assignments : List LedgerAssignment :=
       for (outerAcc := []) (outerKey, outerVal in Map.toList ledgerWithoutConsumedWithCreated)
         {for (innerAcc := []) (innerKey, innerVal in Map.toList outerVal)

@@ -8,6 +8,8 @@ import Anoma open;
 import Data.Set as Set open using {Set};
 import Data.Map as Map open using {Map};
 
+-- Should be added to the `juvix-containers`
+
 union {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
 
 intersection {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
