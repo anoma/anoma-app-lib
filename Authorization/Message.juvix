@@ -3,7 +3,7 @@ module Authorization.Message;
 import Stdlib.Prelude open;
 import Data.Map as Map open using {Map; empty};
 import Data.Set as Set open using {Set; insert; delete};
-import Anoma open;
+import Anoma as MyAnoma open;
 import AnomaHelpers open;
 import Token.Indexing open;
 
@@ -116,7 +116,7 @@ mkTxWithExtraData
                    KeyValue.mkKey
                      (map
                        natToString
-                       [Kind.unKind outerKey; PublicKey.unPublicKey innerKey]);
+                       [MyAnoma.Kind.unKind outerKey; PublicKey.unPublicKey innerKey]);
                  value := innerVal
                }
                ]}};

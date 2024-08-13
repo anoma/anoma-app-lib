@@ -3,11 +3,11 @@ module Token.Indexing;
 import Stdlib.Prelude open;
 import Data.Set as Set open using {Set; insert; delete};
 import Data.Map as Map open using {Map};
-import Anoma open;
+import Anoma as MyAnoma open;
 import AnomaHelpers open;
 
 ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
-  KeyValue.mkKey (map natToString [Kind.unKind kind; PublicKey.unPublicKey account]);
+  KeyValue.mkKey (map natToString [MyAnoma.Kind.unKind kind; PublicKey.unPublicKey account]);
 
 ledgerEntries (kind : Kind) (account : PublicKey) : Set Commitment :=
   anomaGet (ledgerKey kind account);
@@ -74,7 +74,7 @@ addToLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : Ledger
 removeFromLedger (kind : Kind) (account : PublicKey) (cms : List Commitment) : LedgerAssignment :=
   KeyValue.assign@{
     key := ledgerKey kind account;
-    value := for (entries := ledgerEntries kind account) (cm in cms) {delete cm entries}
+    value := for (entries := ledgerEntries kind account) (cm in cms) {Set.delete cm entries}
   };
 
 combineAssignments2 (a b : LedgerAssignment) : LedgerAssignment :=

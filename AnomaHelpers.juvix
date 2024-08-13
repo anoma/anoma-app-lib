@@ -10,11 +10,11 @@ import Data.Map as Map open using {Map};
 
 union {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
 
--- TODO
---intersection {A} {{Ord A}} (a b : Set A) : Set A := Set.empty;
+intersection {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
+  Set.toList s1 |> filter \ {x := Set.member? x s2} |> Set.fromList;
 
--- TODO
---difference {A} {{Ord A}} (a b : Set A) : Set A := Set.empty;
+difference {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
+  Set.toList s1 |> filter \ {x := not (Set.member? x s2) } |> Set.fromList;
 
 delete {A B} {{Ord A}} (k : A) : Map A B -> Map A B
   | m@(Map.mkMap s) :=
