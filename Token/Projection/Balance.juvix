@@ -4,15 +4,15 @@ import Stdlib.Prelude open;
 import Data.Set as Set open using {Set};
 import Anoma open;
 
---- Returns the total quantity of all resources  ;Kind; by looking up
---- a ;Set; of ;Commitment;s associated with an account's ;PublicKey;
---- from the key-value storage.
+--- Returns the total quantity of a ;Resource; ;Set;.
+balance (resources : Set Resource) : Nat :=
+  for (sum := 0) (r in Set.toList resources) {sum + Resource.quantity r};
+
+--- Returns a ;Set; of ;Resource;s of certain ;Kind; owned by an account ;PublicKey;
+--- by lookup from the key-value storage.
 --- This assume that the set is is up-to-date an no ;Commitment;s of
 --- consumed ;Resource;s are present.
-balance (kind : Kind) (account : PublicKey) : Nat :=
+fetchOwnedResources (kind : Kind) (account : PublicKey) : Set Resource :=
   let
-    ownedResources : Set Commitment := anomaGet (kind, account);
-  in for (sum := 0) (cm in Set.toList ownedResources)
-       {let
-         q := Resource.quantity (commitmentResource cm);
-       in q + sum};
+    ownedResources : List Commitment := anomaGet (kind, account);
+  in Set.fromList (map commitmentResource ownedResources);
