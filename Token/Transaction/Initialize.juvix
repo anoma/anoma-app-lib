@@ -17,7 +17,7 @@ import Token.Indexing open;
 --- This requires an ephemeral resource to be consumed.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 initialize (self : KeyPair) (label : Label) (quantity : Nat) (receiver : PublicKey)
-: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
+: Result TokenError (Pair Transaction (List TokenAssignment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;

@@ -17,7 +17,7 @@ import Token.Indexing open;
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner of the token.
 swap (self : KeyPair) (token : Resource) (want : QuantifiedAssets) (solver : PublicKey)
-: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
+: Result TokenError (Pair Transaction (List TokenAssignment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;

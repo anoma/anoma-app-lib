@@ -48,8 +48,8 @@ mkResourceRelationshipExtraData
       (mkResourceRelationshipExtraDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       origins);
 
--- Creates a ;List LedgerAssignment; to be processed by the Anoma node client.
-prepareAssignments (consumed : List Resource) (created : List Resource) : List LedgerAssignment :=
+-- Creates a ;List TokenAssignment; to be processed by the Anoma node client.
+prepareAssignments (consumed : List Resource) (created : List Resource) : List TokenAssignment :=
   let
     nonEphConsumed := filter \ {r := not (isEphemeral r)} consumed;
     nonEphCreated := filter \ {r := not (isEphemeral r)} created;
@@ -101,7 +101,7 @@ mkTxWithExtraData
   (nk : PrivateKey)
   (consumed : List Resource)
   (created : List Resource)
-  : Pair Transaction (List LedgerAssignment) :=
+  : Pair Transaction (List TokenAssignment) :=
   Transaction.mk@{
       roots := [];
       commitments := map commitment created;

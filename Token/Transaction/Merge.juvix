@@ -17,7 +17,7 @@ import Token.Indexing open;
 --- - the calling ;KeyPair; is not the owner of the tokens or
 --- - one of the token ;Kind;s differ
 merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
-: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
+: Result TokenError (Pair Transaction (List TokenAssignment)) :=
   case tokens of
     | nil := throw mkInsufficientElementsError@{limit := 1; actual := 0}
     | (t :: _) :=

@@ -14,7 +14,7 @@ import Token.Indexing open;
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner.
 transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
-: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
+: Result TokenError (Pair Transaction (List TokenAssignment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;

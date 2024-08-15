@@ -18,7 +18,7 @@ import Token.Indexing open;
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantities do not balance,
 split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair Nat PublicKey))
-: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
+: Result TokenError (Pair Transaction (List TokenAssignment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;

@@ -16,16 +16,24 @@ import Token.Transaction.Split open;
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantity exceeds the quantity of the resource.
-send (self : KeyPair) (token : Resource) (quantity : Nat) (receiver : PublicKey)
-: Result TokenError (Pair Transaction (List LedgerAssignment)) :=
+send
+  (self : KeyPair)
+  (token : Resource)
+  (quantity : Nat)
+  (receiver : PublicKey)
+  : Result TokenError (Pair Transaction (List TokenAssignment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     balance : Nat := Resource.quantity token;
-  in case (compare balance quantity) of
-      | LT := throw mkInsufficientQuantityError@{limit := balance; actual := quantity}
-      | EQ := transfer self token receiver
-      | GT :=
-        let
-          difference : Nat := toNat (intSubNat balance quantity);
-        in
-          split self token [(quantity, receiver); (difference, myself)];
+  in case compare balance quantity of
+       | LT :=
+         throw
+           mkInsufficientQuantityError@{
+             limit := balance;
+             actual := quantity
+           }
+       | EQ := transfer self token receiver
+       | GT :=
+         let
+           difference : Nat := toNat (intSubNat balance quantity);
+         in split self token [quantity, receiver; difference, myself];

@@ -6,7 +6,7 @@ import Data.Map as Map open using {Map};
 import Anoma as MyAnoma open;
 import AnomaHelpers open;
 
-LedgerAssignment : Type := KeyValue.Assignment (Set Commitment);
+TokenAssignment : Type := KeyValue.Assignment (Set Commitment);
 
 ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
   KeyValue.mkKey (map natToString [MyAnoma.Kind.unKind kind; PublicKey.unPublicKey account]);
