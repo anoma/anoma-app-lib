@@ -101,25 +101,29 @@ mkTxWithExtraData
   (nk : PrivateKey)
   (consumed : List Resource)
   (created : List Resource)
-  : Pair Transaction (List TokenAssignment) :=
-  Transaction.mk@{
-      roots := [];
-      commitments := map commitment created;
-      nullifiers := map (r in consumed) nullifier r nk;
-      proofs := consumed ++ created;
-      complianceProofs := [];
-      delta := [];
-      extra :=
-        anomaEncode
-          mkResourceRelationshipExtraData@{
-            nullifierKey := nk;
-            origins := consumed;
-            mustBeConsumed := [];
-            mustBeCreated := created
-          };
-      preference := 0
-    }
-    , prepareAssignments@{
-      consumed;
-      created
-    };
+  : TxData (Set Commitment) :=
+  mkTxData@{
+    tx :=
+      Transaction.mk@{
+        roots := [];
+        commitments := map commitment created;
+        nullifiers := map (r in consumed) nullifier r nk;
+        proofs := consumed ++ created;
+        complianceProofs := [];
+        delta := [];
+        extra :=
+          anomaEncode
+            mkResourceRelationshipExtraData@{
+              nullifierKey := nk;
+              origins := consumed;
+              mustBeConsumed := [];
+              mustBeCreated := created
+            };
+        preference := 0
+      };
+    assignment :=
+      prepareAssignments@{
+        consumed;
+        created
+      }
+  };

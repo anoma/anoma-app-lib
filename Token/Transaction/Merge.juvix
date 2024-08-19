@@ -1,6 +1,7 @@
-module Token.Transaction.Merge;
+module Token.Transaction.Merg;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
 import Anoma open;
 import AnomaHelpers open;
 
@@ -17,7 +18,7 @@ import Token.Indexing open;
 --- - the calling ;KeyPair; is not the owner of the tokens or
 --- - one of the token ;Kind;s differ
 merge (self : KeyPair) (tokens : List Resource) (receiver : PublicKey)
-: Result TokenError (Pair Transaction (List TokenAssignment)) :=
+: Result TokenError (TxData (Set Commitment)) :=
   case tokens of
     | nil := throw mkInsufficientElementsError@{limit := 1; actual := 0}
     | (t :: _) :=

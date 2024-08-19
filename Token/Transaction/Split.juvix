@@ -1,6 +1,7 @@
 module Token.Transaction.Split;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
 import Anoma open;
 import AnomaHelpers open;
 
@@ -11,14 +12,13 @@ import Token.Resource open;
 import Token.Error open;
 import Token.Indexing open;
 
-
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantities do not balance,
 split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair Nat PublicKey))
-: Result TokenError (Pair Transaction (List TokenAssignment)) :=
+: Result TokenError (TxData (Set Commitment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;

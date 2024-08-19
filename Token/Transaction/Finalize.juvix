@@ -1,6 +1,7 @@
 module Token.Transaction.Finalize;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
 import Anoma open;
 import AnomaHelpers open;
 
@@ -17,7 +18,7 @@ import Token.Indexing open;
 --- This requires an ephemeral resource to be created.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
 finalize (self : KeyPair) (token : Resource)
-: Result TokenError (Pair Transaction (List TokenAssignment)) :=
+: Result TokenError (TxData (Set Commitment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;

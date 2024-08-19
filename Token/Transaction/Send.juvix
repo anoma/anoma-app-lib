@@ -21,7 +21,7 @@ send
   (token : Resource)
   (quantity : Nat)
   (receiver : PublicKey)
-  : Result TokenError (Pair Transaction (List TokenAssignment)) :=
+  : Result TokenError (TxData (Set Commitment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     balance : Nat := Resource.quantity token;
