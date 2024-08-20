@@ -24,7 +24,7 @@ swap
   (give : Set Resource)
   (want : QuantifiedAssets)
   (solver : PublicKey)
-  : Result TokenError (TxData (Set Commitment)) :=
+  : Result TokenError Transaction :=
   let
     giveList := Set.toList give;
   in case giveList of
@@ -66,9 +66,8 @@ swap
 settle
   (self : KeyPair)
   (solutions : Set Solution)
-  (txDatas : List (TxData (Set Commitment)))
-  : Result TokenError (TxData (Set Commitment)) :=
+  (txs : List Transaction)
+  : Result TokenError Transaction :=
   let
-    appliedSolutions : List (TxData (Set Commitment)) :=
-      map (Solution.toTxData self) (Set.toList solutions);
-  in ok (composeAllTxData (appliedSolutions ++ txDatas));
+    solutionTxs : List Transaction := map (Solution.toTransaction self) (Set.toList solutions);
+  in ok (composeAll (txs ++ solutionTxs));

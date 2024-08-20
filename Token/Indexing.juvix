@@ -6,8 +6,6 @@ import Data.Map as Map open using {Map};
 import Anoma as MyAnoma open;
 import AnomaHelpers open;
 
-TokenAssignment : Type := KeyValue.Assignment (Set Commitment);
-
 ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
   KeyValue.mkKey (map natToString [MyAnoma.Kind.unKind kind; PublicKey.unPublicKey account]);
 
@@ -39,3 +37,53 @@ getLedgerMapping (rs : List Resource) : LedgerMapping :=
              }
              innerMap})
          outerMap};
+
+-- Creates a ;List TokenAssignment; to be processed by the Anoma node client.
+prepareAssignments (tx : Transaction) : List (KeyValue.Assignment (Set Commitment)) :=
+  let
+    part : ResourcePartition := MyAnoma.partitionResources tx;
+    nonEphConsumed := filter \ {r := not (isEphemeral r)} (ResourcePartition.consumed part);
+    nonEphCreated := filter \ {r := not (isEphemeral r)} (ResourcePartition.created part);
+
+    -- Get the current ledger entries associated with all kinds and accounts involved in this transaction.
+    ledger : LedgerMapping := getLedgerMapping (nonEphConsumed ++ nonEphCreated);
+    -- Replace the ;Set Commitment; in the mapping with one, where the consumed resource commitments have been removed.
+    ledgerWithoutConsumed : LedgerMapping :=
+      for (acc := ledger) (r in nonEphConsumed)
+        {let
+          kind := anomaKind r;
+          account := Resource.npk r;
+          cm := commitment r;
+        in case Map.lookup kind acc of
+             | nothing := acc
+             | just outer :=
+               case Map.lookup account outer of
+                 | nothing := acc
+                 | just inner :=
+                   Map.insert kind (Map.insert account (Set.delete cm inner) outer) acc};
+    -- Replace the ;Set Commitment; in the mapping with one, where the created resource commitments have been added.
+    ledgerWithoutConsumedWithCreated : LedgerMapping :=
+      for (acc := ledgerWithoutConsumed) (r in nonEphCreated)
+        {let
+          kind := anomaKind r;
+          account := Resource.npk r;
+          cm := commitment r;
+        in case Map.lookup kind acc of
+             | nothing := acc
+             | just outer :=
+               case Map.lookup account outer of
+                 | nothing := acc
+                 | just inner :=
+                   Map.insert kind (Map.insert account (Set.insert cm inner) outer) acc};
+  in for (outerAcc := []) (outerKey, outerVal in Map.toList ledgerWithoutConsumedWithCreated)
+       {for (innerAcc := []) (innerKey, innerVal in Map.toList outerVal)
+         {outerAcc
+           ++ [ KeyValue.assign@{
+                key :=
+                  KeyValue.mkKey
+                    (map
+                      natToString
+                      [MyAnoma.Kind.unKind outerKey; PublicKey.unPublicKey innerKey]);
+                value := innerVal
+              }
+              ]}};

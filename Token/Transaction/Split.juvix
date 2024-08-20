@@ -21,7 +21,7 @@ split
   (self : KeyPair)
   (token : Resource)
   (quantitiesAndReceivers : List (Pair Nat PublicKey))
-  : Result TokenError (TxData (Set Commitment)) :=
+  : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;

@@ -2,10 +2,9 @@ module Authorization.Message;
 
 import Stdlib.Prelude open;
 import Data.Map as Map open using {Map; empty};
-import Data.Set as Set open using {Set; insert; delete; empty};
-import Anoma as MyAnoma open;
+import Data.Set as Set open using {Set; empty};
+import Anoma open;
 import AnomaHelpers open;
-import Token.Indexing open;
 
 -- TODO use Nullifier once we comply with v2 specs
 type ResourceRelationship :=
@@ -48,98 +47,22 @@ mkResourceRelationshipExtraData
       (mkResourceRelationshipExtraDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       origins);
 
--- Creates a ;List TokenAssignment; to be processed by the Anoma node client.
-prepareAssignments (consumed : List Resource) (created : List Resource) : List TokenAssignment :=
-  let
-    nonEphConsumed := filter \ {r := not (isEphemeral r)} consumed;
-    nonEphCreated := filter \ {r := not (isEphemeral r)} created;
-
-    -- Get the current ledger entries associated with all kinds and accounts involved in this transaction.
-    ledger : LedgerMapping := getLedgerMapping (nonEphConsumed ++ nonEphCreated);
-    -- Replace the ;Set Commitment; in the mapping with one, where the consumed resource commitments have been removed.
-    ledgerWithoutConsumed : LedgerMapping :=
-      for (acc := ledger) (r in nonEphConsumed)
-        {let
-          kind := anomaKind r;
-          account := Resource.npk r;
-          cm := commitment r;
-        in case Map.lookup kind acc of
-             | nothing := acc
-             | just outer :=
-               case Map.lookup account outer of
-                 | nothing := acc
-                 | just inner :=
-                   Map.insert kind (Map.insert account (Set.delete cm inner) outer) acc};
-    -- Replace the ;Set Commitment; in the mapping with one, where the created resource commitments have been added.
-    ledgerWithoutConsumedWithCreated : LedgerMapping :=
-      for (acc := ledgerWithoutConsumed) (r in nonEphCreated)
-        {let
-          kind := anomaKind r;
-          account := Resource.npk r;
-          cm := commitment r;
-        in case Map.lookup kind acc of
-             | nothing := acc
-             | just outer :=
-               case Map.lookup account outer of
-                 | nothing := acc
-                 | just inner :=
-                   Map.insert kind (Map.insert account (Set.insert cm inner) outer) acc};
-  in for (outerAcc := []) (outerKey, outerVal in Map.toList ledgerWithoutConsumedWithCreated)
-       {for (innerAcc := []) (innerKey, innerVal in Map.toList outerVal)
-         {outerAcc
-           ++ [ KeyValue.assign@{
-                key :=
-                  KeyValue.mkKey
-                    (map
-                      natToString
-                      [MyAnoma.Kind.unKind outerKey; PublicKey.unPublicKey innerKey]);
-                value := innerVal
-              }
-              ]}};
-
 mkTxWithExtraData
-  (nk : PrivateKey)
-  (consumed : List Resource)
-  (created : List Resource)
-  : TxData (Set Commitment) :=
-  mkTxData@{
-    tx :=
-      Transaction.mk@{
-        roots := [];
-        commitments := map commitment created;
-        nullifiers := map (r in consumed) nullifier r nk;
-        proofs := consumed ++ created;
-        complianceProofs := [];
-        delta := [];
-        extra :=
-          anomaEncode
-            mkResourceRelationshipExtraData@{
-              nullifierKey := nk;
-              origins := consumed;
-              mustBeConsumed := [];
-              mustBeCreated := created
-            };
-        preference := 0
-      };
-    assignment :=
-      prepareAssignments@{
-        consumed;
-        created
-      }
+  (nk : PrivateKey) (consumed : List Resource) (created : List Resource) : Transaction :=
+  Transaction.mk@{
+    roots := [];
+    commitments := map commitment created;
+    nullifiers := map (r in consumed) nullifier r nk;
+    proofs := consumed ++ created;
+    complianceProofs := [];
+    delta := [];
+    extra :=
+      anomaEncode
+        mkResourceRelationshipExtraData@{
+          nullifierKey := nk;
+          origins := consumed;
+          mustBeConsumed := [];
+          mustBeCreated := created
+        };
+    preference := 0
   };
-
-composeTxData (txData1 txData2 : TxData (Set Commitment)) : TxData (Set Commitment) :=
-  mkTxData@{
-    tx :=
-      compose@{
-        tx1 := TxData.tx txData1;
-        tx2 := TxData.tx txData2
-      };
-    assignment := TxData.assignment (txData1) ++ TxData.assignment (txData2)
-  };
-
-composeAllTxData (txDatas : List (TxData (Set Commitment))) : TxData (Set Commitment) :=
-  for (acc := mkTxData@{
-      tx := emptyTx;
-      assignment := []
-    }) (tx in txDatas) {composeTxData acc tx};

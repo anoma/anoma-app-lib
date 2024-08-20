@@ -21,7 +21,7 @@ merge
   (self : KeyPair)
   (tokens : List Resource)
   (receiver : PublicKey)
-  : Result TokenError (TxData (Set Commitment)) :=
+  : Result TokenError Transaction :=
   case tokens of
     | nil :=
       throw

@@ -16,10 +16,7 @@ import Token.Indexing open;
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner.
 transfer
-  (self : KeyPair)
-  (token : Resource)
-  (receiver : PublicKey)
-  : Result TokenError (TxData (Set Commitment)) :=
+  (self : KeyPair) (token : Resource) (receiver : PublicKey) : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;

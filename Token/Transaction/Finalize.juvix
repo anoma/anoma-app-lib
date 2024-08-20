@@ -17,18 +17,35 @@ import Token.Indexing open;
 --- Finalizes a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- This requires an ephemeral resource to be created.
 --- The function returns a ;TokenError; if the calling ;KeyPair; is not the owner.
-finalize (self : KeyPair) (token : Resource)
-: Result TokenError (TxData (Set Commitment)) :=
+finalize (self : KeyPair) (token : Resource) : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := Resource.npk token;
-    ephToken := token@Resource{eph := true; npk := Zero.pubKey};
+    ephToken := token@Resource{   eph := true; npk := Zero.pubKey };
   in if
-    | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
+    | owner /= myself :=
+      throw
+        mkUnauthorizedError@{
+          expected := myself;
+          actual := owner
+        }
     | else :=
-        case getSupply token of
-          | Unbound := ok mkTxWithExtraData@{nk; consumed := [token]; created := [ephToken]}
-          | Capped := throw mkError@{msg := "Tokens with capped supply are not supported yet."}
-          | (Fixed _) := throw mkError@{msg := "Tokens with fixed supply cannot be burned."};
-
+      case getSupply token of
+        | Unbound :=
+          ok
+            mkTxWithExtraData@{
+              nk;
+              consumed := [token];
+              created := [ephToken]
+            }
+        | Capped :=
+          throw
+            mkError@{
+              msg := "Tokens with capped supply are not supported yet."
+            }
+        | Fixed _ :=
+          throw
+            mkError@{
+              msg := "Tokens with fixed supply cannot be burned."
+            };

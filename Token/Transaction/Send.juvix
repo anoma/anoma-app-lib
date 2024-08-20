@@ -4,7 +4,7 @@ import Stdlib.Prelude open;
 import Stdlib.Data.Nat.Ord open using {compare};
 import Data.Set as Set open using {Set};
 import Anoma open;
-import AnomaHelpers open using {mkInsufficientQuantityError; TxData};
+import AnomaHelpers open using {mkInsufficientQuantityError};
 
 import Token.Error open;
 import Token.Indexing open;
@@ -22,7 +22,7 @@ send
   (token : Resource)
   (quantity : Nat)
   (receiver : PublicKey)
-  : Result TokenError (TxData (Set Commitment)) :=
+  : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     balance : Nat := Resource.quantity token;

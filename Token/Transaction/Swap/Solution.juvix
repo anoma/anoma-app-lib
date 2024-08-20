@@ -15,7 +15,7 @@ module Solution;
       resources : Set Resource
     };
 
-  toTxData (self : KeyPair) (solution : Solution) : TxData (Set Commitment) :=
+  toTransaction (self : KeyPair) (solution : Solution) : Transaction :=
     mkTxWithExtraData@{
       nk := KeyPair.privKey self;
       consumed := [Solution.intent solution];

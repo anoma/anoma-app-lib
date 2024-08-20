@@ -21,7 +21,7 @@ initialize
   (label : Label)
   (quantity : Nat)
   (receiver : PublicKey)
-  : Result TokenError (TxData (Set Commitment)) :=
+  : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
@@ -47,15 +47,11 @@ initialize
            }
        | Fixed f :=
          ok
-           mkTxData@{
-             tx :=
-               compose@{
-                 tx1 := TxData.tx returnVal;
-                 tx2 :=
-                   Dummy.finalize@{
-                     self;
-                     dummy := anomaGet (FixingNullifier.nf f)
-                   }
-               };
-             assignment := TxData.assignment returnVal
+           compose@{
+             tx1 := returnVal;
+             tx2 :=
+               Dummy.finalize@{
+                 self;
+                 dummy := anomaGet (FixingNullifier.nf f)
+               }
            };
