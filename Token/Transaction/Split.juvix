@@ -17,22 +17,44 @@ import Token.Indexing open;
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantities do not balance,
-split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair Nat PublicKey))
-: Result TokenError (TxData (Set Commitment)) :=
+split
+  (self : KeyPair)
+  (token : Resource)
+  (quantitiesAndReceivers : List (Pair Nat PublicKey))
+  : Result TokenError (TxData (Set Commitment)) :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := Resource.npk token;
     label : Label := anomaDecode (Resource.label token);
     kind : Kind := anomaKind token;
-    sum : Nat := for (acc := 0) ((quantity, _) in quantitiesAndReceivers) {quantity + acc};
+    sum : Nat := for (acc := 0) (quantity, _ in quantitiesAndReceivers) {quantity + acc};
     balance := Resource.quantity token;
-    created : List Resource := map ((quantity, receiver) in quantitiesAndReceivers) {
-        mkToken@{quantity; tokenLabel := label; npk := receiver}
-      };
+    created : List Resource :=
+      map (quantity, receiver in quantitiesAndReceivers)
+        {mkToken@{
+          quantity;
+          tokenLabel := label;
+          npk := receiver
+        }};
   in if
     | not (isTransferable token) := throw mkNonTransferableError
-    | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
-    | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
-    | else := ok mkTxWithExtraData@{nk; consumed := [token]; created};
-
+    | owner /= myself :=
+      throw
+        mkUnauthorizedError@{
+          expected := myself;
+          actual := owner
+        }
+    | balance /= sum :=
+      throw
+        mkInsufficientQuantityError@{
+          limit := balance;
+          actual := sum
+        }
+    | else :=
+      ok
+        mkTxWithExtraData@{
+          nk;
+          consumed := [token];
+          created
+        };

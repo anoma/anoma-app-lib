@@ -2,7 +2,7 @@ module Authorization.Message;
 
 import Stdlib.Prelude open;
 import Data.Map as Map open using {Map; empty};
-import Data.Set as Set open using {Set; insert; delete};
+import Data.Set as Set open using {Set; insert; delete; empty};
 import Anoma as MyAnoma open;
 import AnomaHelpers open;
 import Token.Indexing open;
@@ -127,3 +127,19 @@ mkTxWithExtraData
         created
       }
   };
+
+composeTxData (txData1 txData2 : TxData (Set Commitment)) : TxData (Set Commitment) :=
+  mkTxData@{
+    tx :=
+      compose@{
+        tx1 := TxData.tx txData1;
+        tx2 := TxData.tx txData2
+      };
+    assignment := TxData.assignment (txData1) ++ TxData.assignment (txData2)
+  };
+
+composeAllTxData (txDatas : List (TxData (Set Commitment))) : TxData (Set Commitment) :=
+  for (acc := mkTxData@{
+      tx := emptyTx;
+      assignment := []
+    }) (tx in txDatas) {composeTxData acc tx};

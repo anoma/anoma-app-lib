@@ -239,4 +239,18 @@ compose (tx1 tx2 : Transaction) : Transaction :=
     preference := 0
   };
 
+emptyTx : Transaction := Transaction.mk@{
+      roots := [];
+      commitments := [];
+      nullifiers := [];
+      proofs := [];
+      complianceProofs := [];
+      delta := [];
+      extra := 0;
+      preference := 0
+    };
+
+composeAll (txs : List Transaction) : Transaction :=
+  for (acc := emptyTx) (tx in txs) {compose acc tx};
+
 rand : Nat := 0;
