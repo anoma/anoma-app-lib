@@ -13,14 +13,14 @@ module Solution;
   type Solution :=
     mk {
       intent : Resource;
-      resources : Set Resource
+      created : Set Resource
     };
 
   toTransaction (self : KeyPair) (solution : Solution) : Transaction :=
     mkTxWithExtraData@{
       nk := KeyPair.privKey self;
       consumed := [Solution.intent solution];
-      created := Set.toList (Solution.resources solution)
+      created := Set.toList (Solution.created solution)
     };
 
   open Solution public;

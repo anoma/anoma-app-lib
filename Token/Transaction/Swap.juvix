@@ -62,8 +62,8 @@ swap
                     ]
                 };
 
---- Settles a ;Transaction; ;Set; by composing them with
---- ;Transaction;s obtained from a ;Solution; ;Set;.
+--- Settles a ;Set; of ;Transaction;s by composing them with
+--- ;Transaction;s obtained from a ;Set; of ;Solution;.
 --- The function returns a ;TokenError; if
 --- - the calling ;KeyPair; is not designated intent solver.
 settle
