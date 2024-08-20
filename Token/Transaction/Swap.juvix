@@ -15,59 +15,72 @@ import Token.Indexing open;
 import Token.Transaction.Swap.Resource open;
 import Token.Transaction.Swap.Solution open;
 
---- Swaps a token ;Resource; for a list of ;QuantifiedAssets;.
+--- Swaps a token ;Resource; ;Set; for a list of ;QuantifiedAssets;.
 --- The function returns a ;TokenError; if
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner of the token.
 swap
   (self : KeyPair)
-  (give : Set Resource)
+  -- TODO use Set
+  (give : List Resource)
   (want : QuantifiedAssets)
   (solver : PublicKey)
   : Result TokenError Transaction :=
-  let
-    giveList := Set.toList give;
-  in case giveList of
-       | nil :=
-         throw
-           mkInsufficientElementsError@{
-             limit := 1;
-             actual := 0
-           }
-       | t :: _ :=
-         let
-           myself : PublicKey := KeyPair.pubKey self;
-           nk : PrivateKey := KeyPair.privKey self;
-           owner : PublicKey := Resource.npk t;
-         in if
-           | not (isTransferable t) := throw mkNonTransferableError
-           | else :=
-             case find ((/=) myself) (map Resource.npk giveList) of
-               | just notMyself :=
-                 throw
-                   mkUnauthorizedError@{
-                     expected := myself;
-                     actual := notMyself
-                   }
-               | nothing :=
-                 ok
-                   mkTxWithExtraData@{
-                     nk;
-                     consumed := giveList;
-                     created :=
-                       [ mkSwapIntent@{
-                         want;
-                         receiver := myself;
-                         solver
-                       }
-                       ]
-                   };
+  case give of
+    | nil :=
+      throw
+        mkInsufficientElementsError@{
+          limit := 1;
+          actual := 0
+        }
+    | t :: _ :=
+      let
+        myself : PublicKey := KeyPair.pubKey self;
+        nk : PrivateKey := KeyPair.privKey self;
+        owner : PublicKey := Resource.npk t;
+      in if
+        | not (isTransferable t) := throw mkNonTransferableError
+        | else :=
+          case find ((/=) myself) (map Resource.npk give) of
+            | just notMyself :=
+              throw
+                mkUnauthorizedError@{
+                  expected := myself;
+                  actual := notMyself
+                }
+            | nothing :=
+              ok
+                mkTxWithExtraData@{
+                  nk;
+                  consumed := give;
+                  created :=
+                    [ mkSwapIntent@{
+                      want;
+                      receiver := myself;
+                      solver
+                    }
+                    ]
+                };
 
+--- Settles a ;Transaction; ;Set; by composing them with
+--- ;Transaction;s obtained from a ;Solution; ;Set;.
+--- The function returns a ;TokenError; if
+--- - the calling ;KeyPair; is not designated intent solver.
 settle
   (self : KeyPair)
-  (solutions : Set Solution)
+  -- TODO use Set
   (txs : List Transaction)
+  -- TODO use Set
+  (solutions : List Solution)
   : Result TokenError Transaction :=
   let
-    solutionTxs : List Transaction := map (Solution.toTransaction self) (Set.toList solutions);
-  in ok (composeAll (txs ++ solutionTxs));
+    myself := KeyPair.pubKey self;
+    solutionTxs := map (Solution.toTransaction self) (solutions);
+  in case find ((/=) myself) (map \ {s := Resource.npk (Solution.intent s)} solutions) of
+       | just notMyself :=
+         throw
+           mkUnauthorizedError@{
+             expected := myself;
+             actual := notMyself
+           }
+       | nothing := ok (composeAll (txs ++ solutionTxs));

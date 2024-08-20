@@ -5,12 +5,13 @@ import Data.Set as Set open using {Set};
 import Anoma open;
 import AnomaHelpers open;
 
+import Authorization.Check open;
 import Authorization.Message open;
+import Token.Error open;
 
 module Solution;
   type Solution :=
     mk {
-      owner : PublicKey;
       intent : Resource;
       resources : Set Resource
     };
