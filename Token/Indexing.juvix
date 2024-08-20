@@ -3,11 +3,12 @@ module Token.Indexing;
 import Stdlib.Prelude open;
 import Data.Set as Set open using {Set; insert; delete};
 import Data.Map as Map open using {Map};
-import Anoma as MyAnoma open;
+import Anoma open;
+import Anoma.Rep open;
 import AnomaHelpers open;
 
 ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
-  KeyValue.mkKey (map natToString [MyAnoma.Kind.unKind kind; PublicKey.unPublicKey account]);
+  KeyValue.mkKey (map natToString [Kind.unKind kind; toAtom account]);
 
 ledgerEntries (kind : Kind) (account : PublicKey) : Set Commitment :=
   anomaGet (ledgerKey kind account);
@@ -41,7 +42,7 @@ getLedgerMapping (rs : List Resource) : LedgerMapping :=
 -- Creates a ;List TokenAssignment; to be processed by the Anoma node client.
 prepareAssignments (tx : Transaction) : List (KeyValue.Assignment (Set Commitment)) :=
   let
-    part : ResourcePartition := MyAnoma.partitionResources tx;
+    part : ResourcePartition := partitionResources tx;
     nonEphConsumed := filter \ {r := not (isEphemeral r)} (ResourcePartition.consumed part);
     nonEphCreated := filter \ {r := not (isEphemeral r)} (ResourcePartition.created part);
 
@@ -75,15 +76,11 @@ prepareAssignments (tx : Transaction) : List (KeyValue.Assignment (Set Commitmen
                  | nothing := acc
                  | just inner :=
                    Map.insert kind (Map.insert account (Set.insert cm inner) outer) acc};
-  in for (outerAcc := []) (outerKey, outerVal in Map.toList ledgerWithoutConsumedWithCreated)
-       {for (innerAcc := []) (innerKey, innerVal in Map.toList outerVal)
+  in listFor (outerAcc := []) (outerKey, outerVal in Map.toList ledgerWithoutConsumedWithCreated)
+       {listFor (innerAcc := []) (innerKey, innerVal in Map.toList outerVal)
          {outerAcc
            ++ [ KeyValue.assign@{
-                key :=
-                  KeyValue.mkKey
-                    (map
-                      natToString
-                      [MyAnoma.Kind.unKind outerKey; PublicKey.unPublicKey innerKey]);
+                key := KeyValue.mkKey (map natToString [Kind.unKind outerKey; toAtom innerKey]);
                 value := innerVal
               }
               ]}};

@@ -2,6 +2,8 @@ module Intent.Asset;
 
 import Stdlib.Prelude open;
 import Anoma open;
+import Anoma.Rep open;
+import AnomaHelpers open;
 
 type Asset :=
   mkAsset {

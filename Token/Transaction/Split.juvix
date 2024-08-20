@@ -28,7 +28,7 @@ split
     owner : PublicKey := Resource.npk token;
     label : Label := anomaDecode (Resource.label token);
     kind : Kind := anomaKind token;
-    sum : Nat := for (acc := 0) (quantity, _ in quantitiesAndReceivers) {quantity + acc};
+    sum : Nat := listFor (acc := 0) (quantity, _ in quantitiesAndReceivers) {quantity + acc};
     balance := Resource.quantity token;
     created : List Resource :=
       map (quantity, receiver in quantitiesAndReceivers)

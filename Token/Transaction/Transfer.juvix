@@ -3,6 +3,7 @@ module Token.Transaction.Transfer;
 import Stdlib.Prelude open;
 import Data.Set as Set open using {Set};
 import Anoma open;
+import Anoma.Rep open;
 import AnomaHelpers open;
 
 import Authorization.Check open;
@@ -21,7 +22,7 @@ transfer
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := Resource.npk token;
-    newToken := token@Resource{npk := receiver};
+    newToken := token@Resource{npkContents := toAtom receiver};
   in if
     | not (isTransferable token) := throw mkNonTransferableError
     | owner /= myself :=

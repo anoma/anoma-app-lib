@@ -3,6 +3,7 @@ module Token.Transaction.Initialize;
 import Stdlib.Prelude open;
 import Data.Set as Set open using {Set};
 import Anoma open;
+import Anoma.Rep open;
 import AnomaHelpers open;
 
 import Authorization.Message open;
@@ -31,7 +32,7 @@ initialize
         tokenLabel := label;
         npk := receiver
       };
-    ephToken := newToken@Resource{   npk := myself; eph := true };
+    ephToken := newToken@Resource{   npkContents := toAtom myself; eph := true };
     returnVal :=
       mkTxWithExtraData@{
         nk;

@@ -1,16 +1,50 @@
 module Authorization.Identities;
 
+import Stdlib.Prelude open;
 import Anoma open;
 
 --- The ;KeyPair; generated from the seed `0x0000000000000000000000000000000000000000000000000000000000000000`
 --- (see, e.g., https://cyphr.me/ed25519_tool/ed.html) in little-endian byte order.
 module Universal;
   keyPair : KeyPair :=
-    KeyPair.mk@{
-      pubKey := PublicKey.mk 0x29da598ba148c03aa643e21d77153265730d6f2ad0a8a3622da4b6cebc276a3b;
-      privKey :=
-        PrivateKey.mk
-          0x29da598ba148c03aa643e21d77153265730d6f2ad0a8a3622da4b6cebc276a3b0000000000000000000000000000000000000000000000000000000000000000
+    let
+      pubKeyBytes :=
+        [ 0x3b
+        ; 0x6a
+        ; 0x27
+        ; 0xbc
+        ; 0xce
+        ; 0xb6
+        ; 0xa4
+        ; 0x2d
+        ; 0x62
+        ; 0xa3
+        ; 0xa8
+        ; 0xd0
+        ; 0x2a
+        ; 0x6f
+        ; 0xd
+        ; 0x73
+        ; 0x65
+        ; 0x32
+        ; 0x15
+        ; 0x77
+        ; 0x1d
+        ; 0xe2
+        ; 0x43
+        ; 0xa6
+        ; 0x3a
+        ; 0xc0
+        ; 0x48
+        ; 0xa1
+        ; 0x8b
+        ; 0x59
+        ; 0xda
+        ; 0x29
+        ];
+    in KeyPair.mk@{
+      pubKey := PublicKey.mk pubKeyBytes;
+      privKey := PrivateKey.mk (replicate 32 0x0 ++ pubKeyBytes)
     };
 
   pubKey : PublicKey := KeyPair.pubKey keyPair;
@@ -21,5 +55,5 @@ end;
 --- The zero ;PublicKey; `0x0000000000000000000000000000000000000000000000000000000000000000`
 --- for which the ;PrivateKey; is not known.
 module Zero;
-  pubKey : PublicKey := PublicKey.mk 0x0;
+  pubKey : PublicKey := PublicKey.mk (replicate 32 0x0);
 end;

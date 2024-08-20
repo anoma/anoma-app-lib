@@ -54,7 +54,6 @@ mkTxWithExtraData
     commitments := map commitment created;
     nullifiers := map (r in consumed) nullifier r nk;
     proofs := consumed ++ created;
-    complianceProofs := [];
     delta := [];
     extra :=
       anomaEncode

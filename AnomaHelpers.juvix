@@ -4,6 +4,7 @@ import Stdlib.Prelude open;
 import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
 
 import Anoma open;
+import Anoma.Rep open;
 
 import Data.Set as Set open using {Set};
 import Data.Map as Map open using {Map};
@@ -25,11 +26,18 @@ delete {A B} {{Ord A}} (k : A) : Map A B -> Map A B
       | just x := Set.delete x s |> Map.mkMap;
 
 -- Should be added to the `juvix-anoma-stdlib`
-instance
-PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (PublicKey.unPublicKey k)};
+
+module Resource;
+
+  npk : Resource -> PublicKey := Resource.npkContents >> fromAtom;
+
+end;
 
 instance
-PrivateKey-Show : Show PrivateKey := mkShow \ {k := natToString (PrivateKey.unPrivateKey k)};
+PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (toAtom k)};
+
+instance
+PrivateKey-Show : Show PrivateKey := mkShow \ {k := natToString (toAtom k)};
 
 type Bytes32 := mkBytes32 {unBytes32 : Nat};
 
@@ -210,7 +218,6 @@ mkTransaction
     commitments := map commitment created;
     nullifiers := map (r in consumed) nullifier r nullifierKey;
     proofs := consumed ++ created;
-    complianceProofs := [];
     delta := [];
     extra := anomaEncode (extraData);
     preference := 0
@@ -222,7 +229,6 @@ emptyTx : Transaction :=
     commitments := [];
     nullifiers := [];
     proofs := [];
-    complianceProofs := [];
     delta := [];
     extra := 0;
     preference := 0
@@ -234,7 +240,6 @@ compose (tx1 tx2 : Transaction) : Transaction :=
     commitments := Transaction.commitments tx1 ++ Transaction.commitments tx2;
     nullifiers := Transaction.nullifiers tx1 ++ Transaction.nullifiers tx2;
     proofs := Transaction.proofs tx1 ++ Transaction.proofs tx2;
-    complianceProofs := Transaction.complianceProofs tx1 ++ Transaction.complianceProofs tx2;
     delta := Transaction.delta tx1 ++ Transaction.delta tx2;
     extra :=
       let

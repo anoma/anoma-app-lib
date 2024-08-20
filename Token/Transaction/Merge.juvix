@@ -3,6 +3,7 @@ module Token.Transaction.Merge;
 import Stdlib.Prelude open;
 import Data.Set as Set open using {Set};
 import Anoma open;
+import Anoma.Rep open;
 import AnomaHelpers open;
 
 import Authorization.Check open;
@@ -35,11 +36,11 @@ merge
         nk : PrivateKey := KeyPair.privKey self;
         kind : Kind := anomaKind t;
         totalQuantity : Nat := for (acc := 0) (t in tokens) {Resource.quantity t + acc};
-        merged := t@Resource{   quantity := totalQuantity; npk := receiver };
+        merged := t@Resource{   quantity := totalQuantity; npkContents := toAtom receiver };
       in if
         | not (isTransferable t) := throw mkNonTransferableError
         | else :=
-          case find ((/=) myself) (map Resource.npk tokens) of
+          case find ((/=) myself) (map ( Resource.npkContents >> fromAtom) tokens) of
             | just notMyself :=
               throw
                 mkUnauthorizedError@{
