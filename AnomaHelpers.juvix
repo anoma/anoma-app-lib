@@ -25,13 +25,6 @@ delete {A B} {{Ord A}} (k : A) : Map A B -> Map A B
       | just x := Set.delete x s |> Map.mkMap;
 
 -- Should be added to the `juvix-anoma-stdlib`
-
-type TxData (T : Type) :=
-  mkTxData {
-    tx : Transaction;
-    assignment : List (KeyValue.Assignment T)
-  };
-
 instance
 PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (PublicKey.unPublicKey k)};
 
