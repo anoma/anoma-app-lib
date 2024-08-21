@@ -1,0 +1,75 @@
+module Tests.TokenLogic;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import Anoma.Rep open;
+import AnomaHelpers open;
+import Test.JuvixUnit open;
+
+import Authorization.Identities open;
+import Authorization.Message open;
+import Token.Label open;
+import Token.Logic open;
+import Token.Error open;
+import Token.Resource open;
+import Token.Supply open;
+import Token.Transaction.Transfer open;
+
+import Tests.Helpers open;
+
+transferTx (token : Resource) : Transaction :=
+  mkTxWithExtraData@{
+    nk := KeyPair.privKey self;
+    consumed := [token];
+    created := [token@Resource{npkContents := toAtom Zero.pubKey}]
+  };
+
+module TransferLogic;
+  nonTransferableTokenTest (supply : Supply) : Test :=
+    let
+      token :=
+        exampleToken@Resource{label := anomaEncode
+          exampleLabel@Label{
+            transferable := false;
+            supply := supply
+          }};
+    in testCase
+      ("It should not allow transferring a non-transferable token with "
+        ++str Show.show supply
+        ++str " supply")
+      (assertFalse
+        "Transferring a non-transferable token must result in invalid resource logic."
+        (tokenLogic
+          supply
+          token
+          transferTx@{
+            token
+          }));
+
+  transferableTokenTest (supply : Supply) : Test :=
+    let
+      token :=
+        exampleToken@Resource{label := anomaEncode
+          exampleLabel@Label{
+            transferable := true;
+            supply := supply
+          }};
+    in testCase
+      ("It should allow transferring a transferable token with "
+        ++str Show.show supply
+        ++str " supply")
+      (assertTrue
+        "Transferring a transferable token should be valid but is not."
+        (tokenLogic
+          supply
+          token
+          transferTx@{
+            token
+          }));
+end;
+
+tests : List Test :=
+  map (TransferLogic.nonTransferableTokenTest) [Unbound; Fixed nf]
+    ++ map (TransferLogic.transferableTokenTest) [Unbound; Fixed nf];
+
+main : IO := runTestSuite (testSuite "Token Logic Tests" tests);
