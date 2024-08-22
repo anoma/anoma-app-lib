@@ -17,59 +17,122 @@ import Token.Transaction.Transfer open;
 
 import Tests.Helpers open;
 
-transferTx (token : Resource) : Transaction :=
-  mkTxWithExtraData@{
-    nk := KeyPair.privKey self;
-    consumed := [token];
-    created := [token@Resource{npkContents := toAtom Zero.pubKey}]
-  };
+module ConsumptionSide;
 
-module TransferLogic;
-  nonTransferableTokenTest (supply : Supply) : Test :=
-    let
-      token :=
-        exampleToken@Resource{label := anomaEncode
-          exampleLabel@Label{
-            transferable := false;
-            supply := supply
-          }};
-    in testCase
-      ("It should not allow transferring a non-transferable token with "
-        ++str Show.show supply
-        ++str " supply")
-      (assertFalse
-        "Transferring a non-transferable token must result in invalid resource logic."
-        (tokenLogic
-          supply
-          token
-          transferTx@{
-            token
-          }));
+  module UnboundSupplyInitialization;
 
-  transferableTokenTest (supply : Supply) : Test :=
-    let
-      token :=
-        exampleToken@Resource{label := anomaEncode
-          exampleLabel@Label{
-            transferable := true;
-            supply := supply
-          }};
-    in testCase
-      ("It should allow transferring a transferable token with "
-        ++str Show.show supply
-        ++str " supply")
-      (assertTrue
-        "Transferring a transferable token should be valid but is not."
-        (tokenLogic
-          supply
-          token
-          transferTx@{
+  end;
+
+  module TransferLogic;
+    transferTx (token : Resource) : Transaction :=
+      mkTxWithExtraData@{
+        nk := KeyPair.privKey self;
+        consumed := [token];
+        created := [token@Resource{npkContents := toAtom Zero.pubKey}]
+      };
+
+    nonTransferableTokenTest (supply : Supply) : Test :=
+      let
+        token :=
+          exampleToken@Resource{label := anomaEncode
+            exampleLabel@Label{
+              transferable := false;
+              supply := supply
+            }};
+      in testCase
+        ("Transfer logic should return false when transferring a non-transferable token with "
+          ++str Show.show supply
+          ++str " supply")
+        (assertFalse
+          "Transferring a non-transferable token must result in invalid resource logic."
+          (tokenLogic
+            supply
             token
-          }));
+            transferTx@{
+              token
+            }));
+
+    transferableTokenTest (supply : Supply) : Test :=
+      let
+        token :=
+          exampleToken@Resource{label := anomaEncode
+            exampleLabel@Label{
+              transferable := true;
+              supply := supply
+            }};
+      in testCase
+        ("Transfer logic should return true when transferring a transferable token with "
+          ++str Show.show supply
+          ++str " supply")
+        (assertTrue
+          "Transferring a transferable token should be valid but is not."
+          (tokenLogic
+            supply
+            token
+            transferTx@{
+              token
+            }));
+
+    tests : List Test :=
+      map nonTransferableTokenTest [Unbound; Fixed nf]
+        ++ map transferableTokenTest [Unbound; Fixed nf];
+  end;
 end;
 
-tests : List Test :=
-  map (TransferLogic.nonTransferableTokenTest) [Unbound; Fixed nf]
-    ++ map (TransferLogic.transferableTokenTest) [Unbound; Fixed nf];
+module CreationSide;
+
+  expectedValTest (ephemeral : Bool) (expected : Bool) (supply : Supply) : Test :=
+    let
+      token :=
+        exampleToken@Resource{
+          eph := ephemeral;
+          label := anomaEncode exampleLabel@Label{   transferable := true; supply := supply }
+        };
+      tx :=
+        mkTxWithExtraData@{
+          nk := KeyPair.privKey self;
+          consumed := [];
+          created := [token]
+        };
+    in testCase
+      ("It should be "
+        ++str case expected of {
+                | true := "valid"
+                | false := "invalid"
+              }
+        ++str " for created, "
+        ++str case ephemeral of {
+                | true := "ephemeral"
+                | false := "non-ephemeral"
+              }
+        ++str " tokens with "
+        ++str Show.show supply
+        ++str " supply")
+      (assertEqual
+        ("Creation of a token should be "
+          ++str case expected of {
+                  | true := "valid"
+                  | false := "invalid"
+                }
+          ++str " but is not.")
+        (tokenLogic supply token tx)
+        expected);
+
+  tests : List Test :=
+    [ expectedValTest@{
+      ephemeral := true;
+      expected := true;
+      supply := Unbound
+    }
+    ; expectedValTest@{
+      ephemeral := true;
+      expected := false;
+      supply := Fixed nf
+    }
+    ]
+      ++ map (expectedValTest false true) [Unbound; Fixed nf];
+end;
+
+tests : List Test := ConsumptionSide.TransferLogic.tests ++ CreationSide.tests;
 
 main : IO := runTestSuite (testSuite "Token Logic Tests" tests);
