@@ -9,36 +9,7 @@ import Anoma.Rep open;
 import Data.Set as Set open using {Set};
 import Data.Map as Map open using {Map};
 
--- Should be added to the `juvix-containers`
-
-union {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
-
-intersection {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
-  Set.toList s1 |> filter \ {x := Set.member? x s2} |> Set.fromList;
-
-difference {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
-  Set.toList s1 |> filter \ {x := not (Set.member? x s2)} |> Set.fromList;
-
-delete {A B} {{Ord A}} (k : A) : Map A B -> Map A B
-  | m@(Map.mkMap s) :=
-    case Set.lookupWith Map.key k s of
-      | nothing := m
-      | just x := Set.delete x s |> Map.mkMap;
-
--- Should be added to the `juvix-anoma-stdlib`
-
-module Resource;
-
-  npk : Resource -> PublicKey := Resource.npkContents >> fromAtom;
-
-end;
-
-instance
-PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (toAtom k)};
-
-instance
-PrivateKey-Show : Show PrivateKey := mkShow \ {k := natToString (toAtom k)};
-
+-- TODO Replafe by ByteArray / List Byte and delete
 type Bytes32 := mkBytes32 {unBytes32 : Nat};
 
 instance
@@ -67,7 +38,16 @@ Bytes-Ord : Ord Bytes :=
 
 natToBytes : Nat -> Bytes := mkBytes;
 
-getLogic (r : Resource) : Nat := anomaEncode (Resource.logic r);
+-- Should be added to the `juvix-anoma-stdlib`
+module Resource;
+  npk : Resource -> PublicKey := Resource.npkContents >> fromAtom;
+end;
+
+instance
+PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (toAtom k)};
+
+instance
+PrivateKey-Show : Show PrivateKey := mkShow \ {k := natToString (toAtom k)};
 
 type Error := mkError {msg : String};
 

@@ -40,7 +40,7 @@ merge
       in if
         | not (isTransferable t) := throw mkNonTransferableError
         | else :=
-          case find ((/=) myself) (map ( Resource.npkContents >> fromAtom) tokens) of
+          case find ((/=) myself) (map (Resource.npkContents >> fromAtom) tokens) of
             | just notMyself :=
               throw
                 mkUnauthorizedError@{
