@@ -12,7 +12,7 @@ isAuthorizedBy (signer : PublicKey) (self : Resource) (tx : Transaction) : Bool 
     cm := commitment self;
   in case
        lookupExtraData@{
-         key := natToBytes32 (anomaEncode cm);
+         key := cm;
          Value := Pair ResourceRelationship Signature;
          tx
        }

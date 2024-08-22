@@ -14,7 +14,7 @@ findCreatedCounter (consumedCounter : Resource) (tx : Transaction) : Maybe Resou
     cm : Commitment := commitment consumedCounter;
   in case
        lookupExtraData@{
-         key := natToBytes32 (anomaEncode cm);
+         key := cm;
          Value := ResourceRelationship;
          tx
        }

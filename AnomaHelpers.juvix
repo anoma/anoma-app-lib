@@ -202,10 +202,10 @@ commitmentSet (tx : Transaction) : Set Commitment := Set.fromList (Transaction.c
 
 nullifierSet (tx : Transaction) : Set Nullifier := Set.fromList (Transaction.nullifiers tx);
 
-lookupExtraData {Value : Type} (key : Bytes32) (tx : Transaction) : Maybe Value :=
+lookupExtraData {Key Value : Type} (key : Key) (tx : Transaction) : Maybe Value :=
   let
     keyValueMap : Map Bytes32 Bytes := anomaDecode (Transaction.extra tx);
-  in map (Bytes.unBytes >> anomaDecode) (Map.lookup key keyValueMap);
+  in map (Bytes.unBytes >> anomaDecode) (Map.lookup (anomaEncode key |> natToBytes32) keyValueMap);
 
 mkTransaction
   (nullifierKey : PrivateKey)
