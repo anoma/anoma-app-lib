@@ -204,8 +204,8 @@ nullifierSet (tx : Transaction) : Set Nullifier := Set.fromList (Transaction.nul
 
 lookupExtraData {Value : Type} (key : Bytes32) (tx : Transaction) : Maybe Value :=
   let
-    keyValueMap : Map Bytes32 Value := anomaDecode (Transaction.extra tx);
-  in Map.lookup key keyValueMap;
+    keyValueMap : Map Bytes32 Bytes := anomaDecode (Transaction.extra tx);
+  in map (Bytes.unBytes >> anomaDecode) (Map.lookup key keyValueMap);
 
 mkTransaction
   (nullifierKey : PrivateKey)
