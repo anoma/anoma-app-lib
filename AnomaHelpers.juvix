@@ -230,7 +230,7 @@ emptyTx : Transaction :=
     nullifiers := [];
     proofs := [];
     delta := [];
-    extra := 0;
+    extra := anomaEncode (Map.empty {Bytes32} {Bytes});
     preference := 0
   };
 
