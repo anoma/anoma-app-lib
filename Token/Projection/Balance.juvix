@@ -4,6 +4,8 @@ import Stdlib.Prelude open;
 import Data.Set as Set open using {Set};
 import Anoma open;
 
+import Token.Indexing open;
+
 --- Returns the total quantity of a ;Resource; ;Set;.
 balance (resources : Set Resource) : Nat :=
   for (sum := 0) (r in Set.toList resources) {sum + Resource.quantity r};
@@ -14,5 +16,5 @@ balance (resources : Set Resource) : Nat :=
 --- consumed ;Resource;s are present.
 fetchOwnedResources (kind : Kind) (account : PublicKey) : Set Resource :=
   let
-    ownedResources : List Commitment := anomaGet (kind, account);
+    ownedResources : List Commitment := Set.toList (anomaGet (ledgerKey kind account));
   in Set.fromList (map commitmentResource ownedResources);

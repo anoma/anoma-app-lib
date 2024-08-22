@@ -1,19 +1,22 @@
 module Token.Transaction.Transfer;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
 import Anoma open;
+import AnomaHelpers open;
 
 import Authorization.Check open;
 import Authorization.Message open;
 import Token.Label open;
 import Token.Error open;
+import Token.Indexing open;
 
 --- Transfers the token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
---- The function returns a ;TokenError; if 
+--- The function returns a ;TokenError; if
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner.
-transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
-: Result TokenError Transaction  :=
+transfer
+  (self : KeyPair) (token : Resource) (receiver : PublicKey) : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
@@ -21,5 +24,16 @@ transfer (self : KeyPair) (token : Resource) (receiver : PublicKey)
     newToken := token@Resource{npk := receiver};
   in if
     | not (isTransferable token) := throw mkNonTransferableError
-    | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
-    | else := ok mkTxWithExtraData@{nk; consumed := [token]; created := [newToken]};
+    | owner /= myself :=
+      throw
+        mkUnauthorizedError@{
+          expected := myself;
+          actual := owner
+        }
+    | else :=
+      ok
+        mkTxWithExtraData@{
+          nk;
+          consumed := [token];
+          created := [newToken]
+        };

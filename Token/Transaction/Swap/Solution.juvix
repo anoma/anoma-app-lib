@@ -1,0 +1,29 @@
+module Token.Transaction.Swap.Solution;
+
+import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
+import Anoma open;
+import AnomaHelpers open;
+
+import Authorization.Check open;
+import Authorization.Message open;
+import Token.Error open;
+
+module Solution;
+  type Solution :=
+    mk {
+      intent : Resource;
+      created : Set Resource
+    };
+
+  toTransaction (self : KeyPair) (solution : Solution) : Transaction :=
+    mkTxWithExtraData@{
+      nk := KeyPair.privKey self;
+      consumed := [Solution.intent solution];
+      created := Set.toList (Solution.created solution)
+    };
+
+  open Solution public;
+end;
+
+open Solution using {Solution} public;

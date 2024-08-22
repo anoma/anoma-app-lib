@@ -1,8 +1,8 @@
 module Authorization.Message;
 
 import Stdlib.Prelude open;
-import Data.Map as Map open using {Map};
-import Data.Set as Set open using {Set};
+import Data.Map as Map open using {Map; empty};
+import Data.Set as Set open using {Set; empty};
 import Anoma open;
 import AnomaHelpers open;
 

@@ -1,6 +1,7 @@
 module Token.Transaction.Split;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
 import Anoma open;
 import AnomaHelpers open;
 
@@ -9,28 +10,51 @@ import Authorization.Message open;
 import Token.Label open;
 import Token.Resource open;
 import Token.Error open;
-
+import Token.Indexing open;
 
 --- Splits a token ;Resource;, if the calling ;KeyPair; is the owner.
 --- The function returns a ;TokenError; if
 --- - the token is non-transferable
 --- - the calling ;KeyPair; is not the owner or
 --- - the quantities do not balance,
-split (self : KeyPair) (token : Resource) (quantitiesAndReceivers : List (Pair Nat PublicKey))
-: Result TokenError Transaction :=
+split
+  (self : KeyPair)
+  (token : Resource)
+  (quantitiesAndReceivers : List (Pair Nat PublicKey))
+  : Result TokenError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
     owner : PublicKey := Resource.npk token;
     label : Label := anomaDecode (Resource.label token);
-    sum : Nat := for (acc := 0) ((quantity, _) in quantitiesAndReceivers) {quantity + acc};
+    kind : Kind := anomaKind token;
+    sum : Nat := for (acc := 0) (quantity, _ in quantitiesAndReceivers) {quantity + acc};
     balance := Resource.quantity token;
-    created : List Resource := map ((quantity, receiver) in quantitiesAndReceivers) {
-        mkToken@{quantity; tokenLabel := label; npk := receiver}
-      };
+    created : List Resource :=
+      map (quantity, receiver in quantitiesAndReceivers)
+        {mkToken@{
+          quantity;
+          tokenLabel := label;
+          npk := receiver
+        }};
   in if
     | not (isTransferable token) := throw mkNonTransferableError
-    | owner /= myself := throw mkUnauthorizedError@{expected := myself; actual := owner}
-    | balance /= sum := throw mkInsufficientQuantityError@{limit := balance; actual := sum}
-    | else := ok mkTxWithExtraData@{nk; consumed := [token]; created};
-
+    | owner /= myself :=
+      throw
+        mkUnauthorizedError@{
+          expected := myself;
+          actual := owner
+        }
+    | balance /= sum :=
+      throw
+        mkInsufficientQuantityError@{
+          limit := balance;
+          actual := sum
+        }
+    | else :=
+      ok
+        mkTxWithExtraData@{
+          nk;
+          consumed := [token];
+          created
+        };

@@ -8,6 +8,22 @@ import Anoma open;
 import Data.Set as Set open using {Set};
 import Data.Map as Map open using {Map};
 
+-- Should be added to the `juvix-containers`
+
+union {A} {{Ord A}} (a b : Set A) : Set A := Set.fromList (Set.toList a ++ Set.toList b);
+
+intersection {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
+  Set.toList s1 |> filter \ {x := Set.member? x s2} |> Set.fromList;
+
+difference {A} {{Ord A}} (s1 : Set A) (s2 : Set A) : Set A :=
+  Set.toList s1 |> filter \ {x := not (Set.member? x s2)} |> Set.fromList;
+
+delete {A B} {{Ord A}} (k : A) : Map A B -> Map A B
+  | m@(Map.mkMap s) :=
+    case Set.lookupWith Map.key k s of
+      | nothing := m
+      | just x := Set.delete x s |> Map.mkMap;
+
 -- Should be added to the `juvix-anoma-stdlib`
 instance
 PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (PublicKey.unPublicKey k)};
@@ -200,6 +216,18 @@ mkTransaction
     preference := 0
   };
 
+emptyTx : Transaction :=
+  Transaction.mk@{
+    roots := [];
+    commitments := [];
+    nullifiers := [];
+    proofs := [];
+    complianceProofs := [];
+    delta := [];
+    extra := 0;
+    preference := 0
+  };
+
 compose (tx1 tx2 : Transaction) : Transaction :=
   Transaction.mk@{
     roots := Transaction.roots tx1 ++ Transaction.roots tx2;
@@ -215,5 +243,8 @@ compose (tx1 tx2 : Transaction) : Transaction :=
       in anomaEncode (Map.fromList (kvList1 ++ kvList2));
     preference := 0
   };
+
+composeAll (txs : List Transaction) : Transaction :=
+  for (acc := emptyTx) (tx in txs) {compose acc tx};
 
 rand : Nat := 0;
