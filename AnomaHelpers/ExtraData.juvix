@@ -1,0 +1,36 @@
+module AnomaHelpers.ExtraData;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import Data.Map as Map open using {Map};
+import AnomaHelpers.Types.Base open;
+
+trait
+type ExtraDataKey (Key : Type) := mkExtraDataKey {encode : Key -> Bytes32};
+
+trait
+type ExtraDataValue (Value : Type) :=
+  mkExtraDataValue {
+    encode : Value -> Bytes;
+    decode : Bytes -> Value
+  };
+
+lookupExtraData
+  {Key Value}
+  {{ExtraDataKey Key}}
+  {{ExtraDataValue Value}}
+  (key : Key)
+  (tx : Transaction)
+  : Maybe Value :=
+  let
+    extraDataMap : Map Bytes32 Bytes := anomaDecode (Transaction.extra tx);
+  in map ExtraDataValue.decode (Map.lookup (ExtraDataKey.encode key) extraDataMap);
+
+insertExtraData
+  {Key Value}
+  {{ExtraDataKey Key}}
+  {{ExtraDataValue Value}}
+  (key : Key)
+  (value : Value)
+  : Map Bytes32 Bytes -> Map Bytes32 Bytes :=
+  Map.insert (ExtraDataKey.encode key) (ExtraDataValue.encode value);

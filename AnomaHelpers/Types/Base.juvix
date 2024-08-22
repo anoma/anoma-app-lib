@@ -1,0 +1,32 @@
+module AnomaHelpers.Types.Base;
+
+import Stdlib.Prelude open;
+import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
+
+type Bytes32 := mkBytes32 {unBytes32 : Nat};
+
+instance
+Bytes32-Ord : Ord Bytes32 :=
+  mkOrd@{
+    cmp : Bytes32 -> Bytes32 -> Ordering
+      | (mkBytes32 b1) (mkBytes32 b2) := Ord.cmp b1 b2
+  };
+
+instance
+Bytes32-Eq : Eq Bytes32 := fromOrdToEq;
+
+instance
+Bytes32-Show : Show Bytes32 := mkShow \ {b := natToString (Bytes32.unBytes32 b)};
+
+natToBytes32 : Nat -> Bytes32 := mkBytes32;
+
+type Bytes := mkBytes {unBytes : Nat};
+
+instance
+Bytes-Ord : Ord Bytes :=
+  mkOrd@{
+    cmp : Bytes -> Bytes -> Ordering
+      | (mkBytes b1) (mkBytes b2) := Ord.cmp b1 b2
+  };
+
+natToBytes : Nat -> Bytes := mkBytes;

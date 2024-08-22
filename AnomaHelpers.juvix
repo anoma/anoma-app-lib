@@ -2,6 +2,7 @@ module AnomaHelpers;
 
 import Stdlib.Prelude open;
 import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
+import AnomaHelpers.Types open public;
 
 import Anoma open;
 import Anoma.Rep open;
@@ -26,7 +27,6 @@ delete {A B} {{Ord A}} (k : A) : Map A B -> Map A B
       | just x := Set.delete x s |> Map.mkMap;
 
 -- Should be added to the `juvix-anoma-stdlib`
-
 module Resource;
 
   npk : Resource -> PublicKey := Resource.npkContents >> fromAtom;
@@ -39,33 +39,6 @@ PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (toAtom k)};
 instance
 PrivateKey-Show : Show PrivateKey := mkShow \ {k := natToString (toAtom k)};
 
-type Bytes32 := mkBytes32 {unBytes32 : Nat};
-
-instance
-Bytes32-Ord : Ord Bytes32 :=
-  mkOrd@{
-    cmp : Bytes32 -> Bytes32 -> Ordering
-      | (mkBytes32 b1) (mkBytes32 b2) := Ord.cmp b1 b2
-  };
-
-instance
-Bytes32-Eq : Eq Bytes32 := Stdlib.Trait.Ord.Eq.fromOrdToEq;
-
-instance
-Bytes32-Show : Show Bytes32 := mkShow \ {b := natToString (Bytes32.unBytes32 b)};
-
-natToBytes32 : Nat -> Bytes32 := mkBytes32;
-
-type Bytes := mkBytes {unBytes : Nat};
-
-instance
-Bytes-Ord : Ord Bytes :=
-  mkOrd@{
-    cmp : Bytes -> Bytes -> Ordering
-      | (mkBytes b1) (mkBytes b2) := Ord.cmp b1 b2
-  };
-
-natToBytes : Nat -> Bytes := mkBytes;
 
 getLogic (r : Resource) : Nat := anomaEncode (Resource.logic r);
 

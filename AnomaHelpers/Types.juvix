@@ -1,0 +1,17 @@
+module AnomaHelpers.Types;
+
+import Stdlib.Prelude open;
+import AnomaHelpers.Types.Base open public;
+import AnomaHelpers.ExtraData open;
+
+instance
+Bytes32ExtraDataKeyI : ExtraDataKey Bytes32 :=
+  mkExtraDataKey@{
+    encode := id
+  };
+
+instance
+BytesExtraDataValueI : ExtraDataValue Bytes := mkExtraDataValue@{
+   encode := id;
+   decode := id;
+};
