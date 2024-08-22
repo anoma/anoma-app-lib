@@ -3,6 +3,7 @@ module Utils.Dummy.Transaction.Initialize;
 import Stdlib.Prelude open;
 import Data.Map as Map open using {Map};
 import Anoma open;
+import Anoma.Rep open;
 import AnomaHelpers open;
 
 import Utils.Dummy.Resource open;
@@ -16,7 +17,7 @@ initialize (self : KeyPair) : Transaction :=
       };
   in mkTransaction@{
     nullifierKey := KeyPair.privKey self;
-    consumed := [dummy@Resource{   eph := true; npk := KeyPair.pubKey self }];
+    consumed := [dummy@Resource{   eph := true; npkContents := toAtom (KeyPair.pubKey self) }];
     created := [dummy];
     extraData := Map.empty
   };
