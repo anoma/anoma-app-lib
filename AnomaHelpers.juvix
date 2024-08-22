@@ -207,6 +207,9 @@ lookupExtraData {Key Value : Type} (key : Key) (tx : Transaction) : Maybe Value 
     keyValueMap : Map Bytes32 Bytes := anomaDecode (Transaction.extra tx);
   in map (Bytes.unBytes >> anomaDecode) (Map.lookup (anomaEncode key |> natToBytes32) keyValueMap);
 
+mkExtraDataEntry {Key Value : Type} : Pair Key Value -> Pair Bytes32 Bytes
+  | (key, value) := natToBytes32 (anomaEncode key) , natToBytes (anomaEncode value);
+
 mkTransaction
   (nullifierKey : PrivateKey)
   (consumed : List Resource)
