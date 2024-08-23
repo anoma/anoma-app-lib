@@ -13,14 +13,101 @@ import Token.Logic open;
 import Token.Error open;
 import Token.Resource open;
 import Token.Supply open;
+import Token.Transaction.Initialize open;
 import Token.Transaction.Transfer open;
+
+import Utils.Dummy.Resource open;
 
 import Tests.Helpers open;
 
+{-
+assertJustSimple {A} (msg : String) : Maybe A -> Assertion := maybe (fail msg) (const pass);
+assertNothingSimple {A} (mkMsg : A -> String) : Maybe A -> Assertion := maybe pass (mkMsg >> fail);
+assertEqualSimple {A} {{Eq A}} (msg : String) (a1 a2 : A) : Assertion := failUnless msg (a1 == a2);
+-}
+
 module ConsumptionSide;
 
-  module UnboundSupplyInitialization;
+  module Initialization;
+    unboundSupplyInitTest : Test :=
+      let
+        supply := Unbound;
+        createdR :=
+          exampleToken@Resource{label := anomaEncode exampleLabel@Label{supply := supply}};
+        consumedR := createdR@Resource{eph := true};
+      in testCase
+        ("Initialization logic should be valid for tokens with "
+          ++str Show.show supply
+          ++str " supply")
+        (expectTrue
+          (tokenLogic
+            supply
+            consumedR
+            mkTxWithExtraData@{
+              nk := KeyPair.privKey self;
+              consumed := [consumedR];
+              created := [createdR]
+            }));
 
+    fixedSupplyInitTest : Test :=
+      let
+        dummy : Resource :=
+          mkDummy@{
+            npk := KeyPair.pubKey self;
+            eph := false
+          };
+        dummyNf :=
+          nullifier@{
+            r := dummy;
+            privateKey := KeyPair.privKey self
+          };
+        supply := Fixed dummyNf;
+        consumedToken :=
+          exampleToken@Resource{
+            eph := true;
+            label := anomaEncode exampleLabel@Label{supply := supply}
+          };
+        createdToken := consumedToken@Resource{eph := false};
+
+        tx :=
+          mkTxWithExtraData@{
+            nk := KeyPair.privKey self;
+            consumed := [consumedToken; dummy];
+            created := [createdToken; dummy]
+          };
+      in testCase
+        ("Initialization logic should be valid for tokens with "
+          ++str Show.show supply
+          ++str " supply")
+        (expectTrue (tokenLogic supply consumedToken tx));
+
+    fixedSupplyInitWrongNfTest : Test :=
+      let
+        dummy : Resource :=
+          mkDummy@{
+            npk := KeyPair.pubKey self;
+            eph := false
+          };
+        wrongNf := Nullifier.mk 1234;
+        supply := Fixed wrongNf;
+        consumedToken :=
+          exampleToken@Resource{
+            eph := true;
+            label := anomaEncode exampleLabel@Label{supply := supply}
+          };
+        createdToken := consumedToken@Resource{eph := false};
+
+        tx :=
+          mkTxWithExtraData@{
+            nk := KeyPair.privKey self;
+            consumed := [consumedToken; dummy];
+            created := [createdToken; dummy]
+          };
+      in testCase
+        "Fixed Initialization logic should be invalid if the specified nullifier is not present."
+        (expectFalse (tokenLogic supply consumedToken tx));
+
+    tests : List Test := [unboundSupplyInitTest; fixedSupplyInitTest; fixedSupplyInitWrongNfTest];
   end;
 
   module TransferLogic;
@@ -43,8 +130,7 @@ module ConsumptionSide;
         ("Transfer logic should return false when transferring a non-transferable token with "
           ++str Show.show supply
           ++str " supply")
-        (assertFalse
-          "Transferring a non-transferable token must result in invalid resource logic."
+        (expectFalse
           (tokenLogic
             supply
             token
@@ -60,18 +146,16 @@ module ConsumptionSide;
               transferable := true;
               supply := supply
             }};
+
+        tx :=
+          transferTx@{
+            token
+          };
       in testCase
         ("Transfer logic should return true when transferring a transferable token with "
           ++str Show.show supply
           ++str " supply")
-        (assertTrue
-          "Transferring a transferable token should be valid but is not."
-          (tokenLogic
-            supply
-            token
-            transferTx@{
-              token
-            }));
+        (expectTrue (tokenLogic supply token tx));
 
     tests : List Test :=
       map nonTransferableTokenTest [Unbound; Fixed nf]
@@ -81,7 +165,7 @@ end;
 
 module CreationSide;
 
-  expectedValTest (ephemeral : Bool) (expected : Bool) (supply : Supply) : Test :=
+  expectedReturnValTest (ephemeral : Bool) (expected : Bool) (supply : Supply) : Test :=
     let
       token :=
         exampleToken@Resource{
@@ -108,31 +192,24 @@ module CreationSide;
         ++str " tokens with "
         ++str Show.show supply
         ++str " supply")
-      (assertEqual
-        ("Creation of a token should be "
-          ++str case expected of {
-                  | true := "valid"
-                  | false := "invalid"
-                }
-          ++str " but is not.")
-        (tokenLogic supply token tx)
-        expected);
+      (expectEqual (tokenLogic supply token tx) expected);
 
   tests : List Test :=
-    [ expectedValTest@{
+    [ expectedReturnValTest@{
       ephemeral := true;
       expected := true;
       supply := Unbound
     }
-    ; expectedValTest@{
+    ; expectedReturnValTest@{
       ephemeral := true;
       expected := false;
       supply := Fixed nf
     }
     ]
-      ++ map (expectedValTest false true) [Unbound; Fixed nf];
+      ++ map (expectedReturnValTest false true) [Unbound; Fixed nf];
 end;
 
-tests : List Test := ConsumptionSide.TransferLogic.tests ++ CreationSide.tests;
+tests : List Test :=
+  ConsumptionSide.Initialization.tests ++ ConsumptionSide.TransferLogic.tests ++ CreationSide.tests;
 
 main : IO := runTestSuite (testSuite "Token Logic Tests" tests);

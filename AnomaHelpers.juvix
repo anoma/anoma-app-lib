@@ -175,6 +175,9 @@ module Kind;
 
   toLabel (kind : Kind) : Nat := snd (toPair kind);
 
+  fromLabelAndLogic (logic : Resource -> Transaction -> Bool) (label : Nat) : Kind :=
+    anomaEncode (logic, label) |> Kind.mk;
+
   open Kind public;
 end;
 
