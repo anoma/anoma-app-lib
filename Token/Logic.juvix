@@ -1,6 +1,7 @@
 module Token.Logic;
 
 import Stdlib.Prelude open;
+import Stdlib.Debug open;
 import Anoma open;
 import AnomaHelpers open;
 
@@ -10,20 +11,21 @@ import Token.Label open;
 
 tokenLogic (supply : Supply) : Resource -> Transaction -> Bool :=
   case supply of
-    | Unbound := unboundSupplyLogic
+    | Unbound := trace "Unbound Logic Branch" >-> unboundSupplyLogic
     | Capped := cappedSupplyLogic
     | Fixed f := fixedSupplyLogic f;
 
 unboundSupplyLogic (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
-    | Consumed, Ephemeral := unboundSupplyInitializationLogic self tx
-    | Consumed, NonEphemeral := transferLogic self tx
+    | Consumed, Ephemeral :=
+      trace "Initialization Logic Branch" >-> unboundSupplyInitializationLogic self tx
+    | Consumed, NonEphemeral := trace "Transfer Logic Branch" >-> transferLogic self tx
     | Created, Ephemeral := true
     | Created, NonEphemeral := true
-    | Unknown, _ := false;
+    | Unknown, _ := trace "Maybe we ended up here" >-> false;
 
 unboundSupplyInitializationLogic (self : Resource) (tx : Transaction) : Bool :=
-  isAuthorizedBy (getOriginator self) self tx;
+  trace "Initialization Logic Call" >-> isAuthorizedBy (getOriginator self) self tx;
 
 fixedSupplyLogic (nf : Nullifier) (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
@@ -39,4 +41,4 @@ fixedSupplyInitializationLogic (nf : Nullifier) (self : Resource) (tx : Transact
 cappedSupplyLogic (self : Resource) (tx : Transaction) : Bool := false;
 
 transferLogic (self : Resource) (tx : Transaction) : Bool :=
-  isTransferable self && isAuthorizedBy (Resource.npk self) self tx;
+  trace "Transfer Logic Call" >-> isTransferable self && isAuthorizedBy (Resource.npk self) self tx;

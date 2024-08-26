@@ -51,10 +51,10 @@ swap
           limit := 1;
           actual := 0
         }
-    | t :: _ :=
-      if
-        | not (isTransferable t) := throw mkNonTransferableError
-        | else :=
+    | _ :: _ :=
+      case find ((/=) (true)) (map isTransferable give) of
+        | just _ := throw mkNonTransferableError
+        | nothing :=
           case find ((/=) (KeyPair.pubKey self)) (map Resource.npk give) of
             | just notMyself :=
               throw

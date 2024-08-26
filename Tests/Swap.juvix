@@ -76,14 +76,21 @@ balancedTx : Transaction :=
         created := Set.fromList [aliceTokenOwnedByAlice@Resource{nonce := 999}]
       };
     solutionTxs := map (Solution.toTransaction Carol.keyPair) [solutionForAlice; solutionForBob];
-  in composeAll solutionTxs;
---composeAll ([aliceIntentTx; bobIntentTx] ++ solutionTxs);
+  in composeAll ([aliceIntentTx; bobIntentTx] ++ solutionTxs);
 
 tests : List Test :=
-  [ testCase "Alice's token" (expectTrue (tokenLogic Unbound aliceTokenOwnedByAlice balancedTx))
-  ; testCase "Alice's intent" (expectTrue (tokenLogic Unbound aliceSwapIntentResource balancedTx))
-  ; testCase "Bob's token" (expectTrue (tokenLogic Unbound aliceTokenOwnedByAlice balancedTx))
-  ; testCase "Bob's intent" (expectTrue (tokenLogic Unbound bobSwapIntentResource balancedTx))
+  [ testCase
+    "Alice's token should be satisfied"
+    (expectTrue (tokenLogic Unbound aliceTokenOwnedByAlice balancedTx))
+  ; testCase
+    "Alice's intent resoure logic should be satisfied"
+    (expectTrue (tokenLogic Unbound aliceSwapIntentResource balancedTx))
+  ; testCase
+    "Bob's token should be satisfied"
+    (expectTrue (tokenLogic Unbound aliceTokenOwnedByAlice balancedTx))
+  ; testCase
+    "Bob's intent should be satisfied"
+    (expectTrue (tokenLogic Unbound bobSwapIntentResource balancedTx))
   ];
 
 main : IO := runTestSuite (testSuite "Swap Tests" tests);
