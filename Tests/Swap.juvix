@@ -3,6 +3,7 @@ module Tests.Swap;
 import Test.JuvixUnit open;
 
 import Stdlib.Prelude open;
+import Stdlib.Debug open;
 import Data.Set as Set open using {Set};
 import Anoma open;
 import Anoma.Rep open;
@@ -12,7 +13,6 @@ import Authorization.Identities open;
 import Authorization.Message open;
 import Token.Label open;
 import Token.Logic open;
-import Token.Error open;
 import Token.Resource open;
 import Token.Supply open;
 import Token.Transaction.Swap open;
@@ -20,6 +20,7 @@ import Token.Transaction.Swap open;
 import Intent.Asset open;
 import Token.Transaction.Swap.Resource open;
 import Token.Transaction.Swap.Solution open;
+import Token.Transaction.Swap.Logic open;
 
 import Utils.Dummy.Resource open;
 
@@ -29,11 +30,11 @@ wantAlice : QuantifiedAssets := mkQuantifiedAssets All [mkAsset 5 bobKudos];
 
 wantBob : QuantifiedAssets := mkQuantifiedAssets All [mkAsset 3 aliceKudos];
 
-aliceTokenOwnedByAlice : Resource := mkToken 3 aliceKudosLabel (Alice.pubKey);
+aliceTokenOwnedByAlice : Resource := mkToken 3 aliceKudosLabel Alice.pubKey;
 
-bobTokenOwnedByBob : Resource := mkToken 5 bobKudosLabel (Bob.pubKey);
+bobsBobKudos : Resource := mkToken 5 bobKudosLabel Bob.pubKey;
 
-aliceIntentTx : Transaction :=
+alicesIntentTx : Transaction :=
   mkSwapTx@{
     self := Alice.keyPair;
     give := [aliceTokenOwnedByAlice];
@@ -48,10 +49,10 @@ aliceSwapIntentResource : Resource :=
     solver := Carol.pubKey
   };
 
-bobIntentTx : Transaction :=
+bobsIntentTx : Transaction :=
   mkSwapTx@{
     self := Bob.keyPair;
-    give := [bobTokenOwnedByBob];
+    give := [bobsBobKudos];
     want := wantBob;
     solver := Carol.pubKey
   };
@@ -63,34 +64,72 @@ bobSwapIntentResource : Resource :=
     solver := Carol.pubKey
   };
 
+carolsSolutionForAliceTx : Transaction :=
+  Solution.toTransaction
+    (Carol.keyPair)
+    Solution.mk@{
+      intent := aliceSwapIntentResource;
+      created :=
+        Set.fromList [bobsBobKudos@Resource{   npkContents := toAtom Alice.pubKey; nonce := rand }]
+    };
+
+carolsSolutionForBobTx : Transaction :=
+  Solution.toTransaction
+    (Carol.keyPair)
+    Solution.mk@{
+      intent := bobSwapIntentResource;
+      created :=
+        Set.fromList
+          [aliceTokenOwnedByAlice@Resource{   npkContents := toAtom Bob.pubKey; nonce := rand }]
+    };
+
 balancedTx : Transaction :=
-  let
-    solutionForAlice : Solution :=
-      Solution.mk@{
-        intent := aliceSwapIntentResource;
-        created := Set.fromList [bobTokenOwnedByBob@Resource{nonce := 998}]
-      };
-    solutionForBob : Solution :=
-      Solution.mk@{
-        intent := bobSwapIntentResource;
-        created := Set.fromList [aliceTokenOwnedByAlice@Resource{nonce := 999}]
-      };
-    solutionTxs := map (Solution.toTransaction Carol.keyPair) [solutionForAlice; solutionForBob];
-  in composeAll ([aliceIntentTx; bobIntentTx] ++ solutionTxs);
+  composeAll [alicesIntentTx; bobsIntentTx; carolsSolutionForAliceTx; carolsSolutionForBobTx];
 
 tests : List Test :=
   [ testCase
     "Alice's token should be satisfied"
-    (expectTrue (tokenLogic Unbound aliceTokenOwnedByAlice balancedTx))
+    (expectTrue
+      tokenLogic@{
+        supply := Unbound;
+        self := aliceTokenOwnedByAlice;
+        tx :=
+          {-balancedTx-}
+          alicesIntentTx
+      })
   ; testCase
-    "Alice's intent resoure logic should be satisfied"
-    (expectTrue (tokenLogic Unbound aliceSwapIntentResource balancedTx))
+    "Alice's intent should be satisfied"
+    (expectTrue
+      swapIntentLogic@{
+        want := wantAlice;
+        receiver := Alice.pubKey;
+        self := aliceSwapIntentResource;
+        tx :=
+          {-balancedTx-}
+          carolsSolutionForAliceTx
+      })
   ; testCase
     "Bob's token should be satisfied"
-    (expectTrue (tokenLogic Unbound aliceTokenOwnedByAlice balancedTx))
+    (expectTrue
+      tokenLogic@{
+        supply := Unbound;
+        self := bobsBobKudos;
+        tx :=
+          {-balancedTx-}
+          bobsIntentTx
+      })
   ; testCase
     "Bob's intent should be satisfied"
-    (expectTrue (tokenLogic Unbound bobSwapIntentResource balancedTx))
+    (expectTrue
+      swapIntentLogic@{
+        want := wantBob;
+        receiver := Bob.pubKey;
+        self := bobSwapIntentResource;
+        tx :=
+          {-balancedTx-}
+          carolsSolutionForBobTx
+      })
+
   ];
 
 main : IO := runTestSuite (testSuite "Swap Tests" tests);
