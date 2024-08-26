@@ -32,9 +32,8 @@ mkResourceRelationshipExtraDataMapEntry
         mustBeConsumed := consumedNfs;
         mustBeCreated := createdCms
       };
-    k : Bytes32 := natToBytes32 (anomaEncode originCm);
-    v : Bytes := natToBytes (anomaEncode (msg, anomaSignDetached msg nullifierKey));
-  in k, v;
+    sig := anomaSignDetached msg nullifierKey;
+  in (originCm, (msg, sig)) |> mkExtraDataEntry;
 
 mkResourceRelationshipExtraData
   (nullifierKey : PrivateKey)
