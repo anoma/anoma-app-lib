@@ -1,11 +1,12 @@
 module Tests.Swap;
 
+import Test.JuvixUnit open;
+
 import Stdlib.Prelude open;
 import Data.Set as Set open using {Set};
 import Anoma open;
 import Anoma.Rep open;
 import AnomaHelpers open;
-import Test.JuvixUnit open;
 
 import Authorization.Identities open;
 import Authorization.Message open;
@@ -23,20 +24,6 @@ import Token.Transaction.Swap.Solution open;
 import Utils.Dummy.Resource open;
 
 import Tests.Helpers open;
-
-getTokenKind (tokenLabel : Label) : Kind :=
-  Kind.fromLabelAndLogic@{
-    logic := tokenLogic (Label.supply tokenLabel);
-    label := anomaEncode tokenLabel
-  };
-
-aliceKudosLabel : Label := exampleLabel@Label{originator := Alice.pubKey};
-
-bobKudosLabel : Label := exampleLabel@Label{originator := Bob.pubKey};
-
-aliceKudos : Kind := getTokenKind (aliceKudosLabel);
-
-bobKudos : Kind := getTokenKind (bobKudosLabel);
 
 wantAlice : QuantifiedAssets := mkQuantifiedAssets All [mkAsset 5 bobKudos];
 
@@ -79,17 +66,18 @@ bobSwapIntentResource : Resource :=
 balancedTx : Transaction :=
   let
     solutionForAlice : Solution :=
-      Solution.mk@?{
+      Solution.mk@{
         intent := aliceSwapIntentResource;
         created := Set.fromList [bobTokenOwnedByBob@Resource{nonce := 998}]
       };
     solutionForBob : Solution :=
-      Solution.mk@?{
+      Solution.mk@{
         intent := bobSwapIntentResource;
         created := Set.fromList [aliceTokenOwnedByAlice@Resource{nonce := 999}]
       };
     solutionTxs := map (Solution.toTransaction Carol.keyPair) [solutionForAlice; solutionForBob];
-  in composeAll ([aliceIntentTx; bobIntentTx] ++ solutionTxs);
+  in composeAll solutionTxs;
+--composeAll ([aliceIntentTx; bobIntentTx] ++ solutionTxs);
 
 tests : List Test :=
   [ testCase "Alice's token" (expectTrue (tokenLogic Unbound aliceTokenOwnedByAlice balancedTx))

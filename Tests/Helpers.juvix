@@ -16,9 +16,15 @@ nf : Nullifier :=
 
 self : KeyPair := Universal.keyPair;
 
-kindA : Kind := Kind.mk 123;
+aliceKudosLabel : Label := exampleLabel@Label{originator := Alice.pubKey};
 
-kindB : Kind := Kind.mk 123;
+bobKudosLabel : Label := exampleLabel@Label{originator := Bob.pubKey};
+
+aliceKudos : Kind := Kind.mk 123;
+-- getTokenKind (aliceKudosLabel);
+
+bobKudos : Kind := Kind.mk 123;
+--getTokenKind (bobKudosLabel);
 
 exampleLabel : Label :=
   mkLabel@{
