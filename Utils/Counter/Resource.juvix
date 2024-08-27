@@ -18,3 +18,9 @@ mkCounter (npk : PublicKey) (eph : Bool) (uniqueLabel : Label) (count : Nat) : R
     nonce := rand;
     rseed := rand
   };
+
+isCounter (resource : Resource) : Bool :=
+  let
+    uniqueKind : Kind := anomaKind resource;
+    logic : Resource -> Transaction -> Bool := Kind.toLogic uniqueKind;
+  in anomaEncode logic == anomaEncode counterLogic;
