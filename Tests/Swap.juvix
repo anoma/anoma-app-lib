@@ -93,9 +93,7 @@ tests : List Test :=
       tokenLogic@{
         supply := Unbound;
         self := aliceTokenOwnedByAlice;
-        tx :=
-          {-balancedTx-}
-          alicesIntentTx
+        tx :=  balancedTx
       })
   ; testCase
     "Alice's intent should be satisfied"
@@ -104,9 +102,7 @@ tests : List Test :=
         want := wantAlice;
         receiver := Alice.pubKey;
         self := aliceSwapIntentResource;
-        tx :=
-          {-balancedTx-}
-          carolsSolutionForAliceTx
+        tx :=  balancedTx
       })
   ; testCase
     "Bob's token should be satisfied"
@@ -114,9 +110,7 @@ tests : List Test :=
       tokenLogic@{
         supply := Unbound;
         self := bobsBobKudos;
-        tx :=
-          {-balancedTx-}
-          bobsIntentTx
+        tx :=  balancedTx
       })
   ; testCase
     "Bob's intent should be satisfied"
@@ -125,9 +119,7 @@ tests : List Test :=
         want := wantBob;
         receiver := Bob.pubKey;
         self := bobSwapIntentResource;
-        tx :=
-          {-balancedTx-}
-          carolsSolutionForBobTx
+        tx := balancedTx
       })
 
   ];
