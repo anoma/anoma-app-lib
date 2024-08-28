@@ -22,7 +22,7 @@ createCounter (self : KeyPair) (consumableDummy : Resource) : Result CounterErro
       };
   in if
     | anomaKind consumableDummy /= anomaKind ephDummy :=
-      throw 
+      throw
         mkError@{
           msg := "The oked consumable resource has the wrong kind."
         }

@@ -10,12 +10,16 @@ import Utils.Counter.Extra open;
 
 counterLogic (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
-    | Consumed, Ephemeral := isNullifierPresent (getNullifierfFromLabel self) tx
-    | Consumed, NonEphemeral :=
-      case findCreatedCounter self tx of {
-        | just found := isIncremented self found
-        | nothing := false
-      }
+    | Consumed, Ephemeral := initializationLogic self tx
+    | Consumed, NonEphemeral := incrementationLogic self tx
     | Created, Ephemeral := false
     | Created, NonEphemeral := true
     | Unknown, _ := false;
+
+initializationLogic (self : Resource) (tx : Transaction) : Bool :=
+  hasQuantity 1 self && isNullifierPresent (getNullifierfFromLabel self) tx;
+
+incrementationLogic (self : Resource) (tx : Transaction) : Bool :=
+  case findCreatedCounter self tx of
+    | just found := isIncremented self found
+    | nothing := false;

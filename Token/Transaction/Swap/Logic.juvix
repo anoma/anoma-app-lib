@@ -6,8 +6,8 @@ import AnomaHelpers open;
 
 import Intent.Asset open;
 
-swapIntentLogic (want : QuantifiedAssets) (receiver : PublicKey) (self : Resource) (tx : Transaction) 
-: Bool :=
+swapIntentLogic
+  (want : QuantifiedAssets) (receiver : PublicKey) (self : Resource) (tx : Transaction) : Bool :=
   case lifecycle self tx, ephemerality self of
     | Created, Ephemeral :=
       let
@@ -15,10 +15,18 @@ swapIntentLogic (want : QuantifiedAssets) (receiver : PublicKey) (self : Resourc
       in case QuantifiedAssets.quantifier want of {
            | Any :=
              any (asset in QuantifiedAssets.assets want)
-               includesAsset@{ asset; receiver; resources := created}
+               includesAsset@{
+                 asset;
+                 receiver;
+                 resources := created
+               }
            | All :=
              all (asset in QuantifiedAssets.assets want)
-               includesAsset@{ asset; receiver; resources := created}
+               includesAsset@{
+                 asset;
+                 receiver;
+                 resources := created
+               }
          }
     | Consumed, Ephemeral := true
     | _, _ := false;
