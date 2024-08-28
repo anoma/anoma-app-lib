@@ -10,6 +10,6 @@ package : Package :=
       [ github "anoma" "juvix-anoma-stdlib" "v0.6.0"
       ; github "anoma" "juvix-stdlib" "v0.6.0"
       ; github "anoma" "juvix-containers" "v0.14.1"
-      ; github "anoma" "juvix-test" "v0.13.0"
+      ; github "anoma" "juvix-test" "v0.14.0"
       ]
   };
