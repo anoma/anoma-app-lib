@@ -1,10 +1,10 @@
-module Tests.TokenLogic;
+module Token.Tests.TokenLogic;
 
 import Stdlib.Prelude open;
+import Test.JuvixUnit open;
 import Anoma open;
 import Anoma.Rep open;
 import AnomaHelpers open;
-import Test.JuvixUnit open;
 
 import Authorization.Identities open;
 import Authorization.Message open;
@@ -13,18 +13,9 @@ import Token.Logic open;
 import Token.Error open;
 import Token.Resource open;
 import Token.Supply open;
-import Token.Transaction.Initialize open;
-import Token.Transaction.Transfer open;
-
+import Token.Transaction open;
+import Token.Tests.Helpers open;
 import Utils.Dummy.Resource open;
-
-import Tests.Helpers open;
-
-{-
-assertJustSimple {A} (msg : String) : Maybe A -> Assertion := maybe (fail msg) (const pass);
-assertNothingSimple {A} (mkMsg : A -> String) : Maybe A -> Assertion := maybe pass (mkMsg >> fail);
-assertEqualSimple {A} {{Eq A}} (msg : String) (a1 a2 : A) : Assertion := failUnless msg (a1 == a2);
--}
 
 module ConsumptionSide;
 

@@ -1,4 +1,4 @@
-module Tests.Swap;
+module Token.Tests.Swap;
 
 import Test.JuvixUnit open;
 
@@ -16,15 +16,12 @@ import Token.Logic open;
 import Token.Resource open;
 import Token.Supply open;
 import Token.Transaction.Swap open;
-
-import Intent.Asset open;
 import Token.Transaction.Swap.Resource open;
 import Token.Transaction.Swap.Solution open;
 import Token.Transaction.Swap.Logic open;
-
+import Token.Tests.Helpers open;
+import Intent.Asset open;
 import Utils.Dummy.Resource open;
-
-import Tests.Helpers open;
 
 wantAlice : QuantifiedAssets := mkQuantifiedAssets All [mkAsset 5 bobKudos];
 
@@ -93,7 +90,7 @@ tests : List Test :=
       tokenLogic@{
         supply := Unbound;
         self := aliceTokenOwnedByAlice;
-        tx :=  balancedTx
+        tx := balancedTx
       })
   ; testCase
     "Alice's intent should be satisfied"
@@ -102,7 +99,7 @@ tests : List Test :=
         want := wantAlice;
         receiver := Alice.pubKey;
         self := aliceSwapIntentResource;
-        tx :=  balancedTx
+        tx := balancedTx
       })
   ; testCase
     "Bob's token should be satisfied"
@@ -110,7 +107,7 @@ tests : List Test :=
       tokenLogic@{
         supply := Unbound;
         self := bobsBobKudos;
-        tx :=  balancedTx
+        tx := balancedTx
       })
   ; testCase
     "Bob's intent should be satisfied"

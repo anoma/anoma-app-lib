@@ -1,4 +1,4 @@
-module Tests.Helpers;
+module Token.Tests.Helpers;
 
 import Stdlib.Prelude open;
 import Anoma open;
