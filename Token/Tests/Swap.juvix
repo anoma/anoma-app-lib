@@ -118,7 +118,6 @@ tests : List Test :=
         self := bobSwapIntentResource;
         tx := balancedTx
       })
-
   ];
 
 main : IO := runTestSuite (testSuite "Swap Tests" tests);
