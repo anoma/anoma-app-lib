@@ -53,6 +53,6 @@ initialize
              tx2 :=
                Dummy.finalize@{
                  self;
-                 dummy := anomaGet (FixingNullifier.nf f)
+                 dummy := anomaGet f
                }
            };

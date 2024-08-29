@@ -18,3 +18,9 @@ mkToken (quantity : Nat) (tokenLabel : Label) (npk : PublicKey) {eph : Bool := f
     nonce := rand;
     rseed := rand
   };
+
+getTokenKind (tokenLabel : Label) : Kind :=
+  Kind.fromLabelAndLogic@{
+    logic := tokenLogic (Label.supply tokenLabel);
+    label := anomaEncode tokenLabel
+  };

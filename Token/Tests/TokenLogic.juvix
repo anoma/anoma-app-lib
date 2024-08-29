@@ -1,0 +1,206 @@
+module Token.Tests.TokenLogic;
+
+import Stdlib.Prelude open;
+import Test.JuvixUnit open;
+import Anoma open;
+import Anoma.Rep open;
+import AnomaHelpers open;
+
+import Authorization.Identities open;
+import Authorization.Message open;
+import Token.Label open;
+import Token.Logic open;
+import Token.Error open;
+import Token.Resource open;
+import Token.Supply open;
+import Token.Transaction open;
+import Token.Tests.Helpers open;
+import Utils.Dummy.Resource open;
+
+module ConsumptionSide;
+
+  module Initialization;
+    unboundSupplyInitTest : Test :=
+      let
+        supply := Unbound;
+        createdR :=
+          exampleToken@Resource{label := anomaEncode exampleLabel@Label{supply := supply}};
+        consumedR := createdR@Resource{eph := true};
+      in testCase
+        ("Initialization logic should be valid for tokens with "
+          ++str Show.show supply
+          ++str " supply")
+        (expectTrue
+          (tokenLogic
+            supply
+            consumedR
+            mkTxWithExtraData@{
+              nk := KeyPair.privKey self;
+              consumed := [consumedR];
+              created := [createdR]
+            }));
+
+    fixedSupplyInitTest : Test :=
+      let
+        dummy : Resource :=
+          mkDummy@{
+            npk := KeyPair.pubKey self;
+            eph := false
+          };
+        dummyNf :=
+          nullifier@{
+            r := dummy;
+            privateKey := KeyPair.privKey self
+          };
+        supply := Fixed dummyNf;
+        consumedToken :=
+          exampleToken@Resource{
+            eph := true;
+            label := anomaEncode exampleLabel@Label{supply := supply}
+          };
+        createdToken := consumedToken@Resource{eph := false};
+
+        tx :=
+          mkTxWithExtraData@{
+            nk := KeyPair.privKey self;
+            consumed := [consumedToken; dummy];
+            created := [createdToken; dummy]
+          };
+      in testCase
+        ("Initialization logic should be valid for tokens with "
+          ++str Show.show supply
+          ++str " supply")
+        (expectTrue (tokenLogic supply consumedToken tx));
+
+    fixedSupplyInitWrongNfTest : Test :=
+      let
+        dummy : Resource :=
+          mkDummy@{
+            npk := KeyPair.pubKey self;
+            eph := false
+          };
+        wrongNf := Nullifier.mk 1234;
+        supply := Fixed wrongNf;
+        consumedToken :=
+          exampleToken@Resource{
+            eph := true;
+            label := anomaEncode exampleLabel@Label{supply := supply}
+          };
+        createdToken := consumedToken@Resource{eph := false};
+
+        tx :=
+          mkTxWithExtraData@{
+            nk := KeyPair.privKey self;
+            consumed := [consumedToken; dummy];
+            created := [createdToken; dummy]
+          };
+      in testCase
+        "Fixed Initialization logic should be invalid if the specified nullifier is not present."
+        (expectFalse (tokenLogic supply consumedToken tx));
+
+    tests : List Test := [unboundSupplyInitTest; fixedSupplyInitTest; fixedSupplyInitWrongNfTest];
+  end;
+
+  module TransferLogic;
+    transferTx (token : Resource) : Transaction :=
+      mkTxWithExtraData@{
+        nk := KeyPair.privKey self;
+        consumed := [token];
+        created := [token@Resource{npkContents := toAtom Zero.pubKey}]
+      };
+
+    nonTransferableTokenTest (supply : Supply) : Test :=
+      let
+        token :=
+          exampleToken@Resource{label := anomaEncode
+            exampleLabel@Label{
+              transferable := false;
+              supply := supply
+            }};
+      in testCase
+        ("Transfer logic should return false when transferring a non-transferable token with "
+          ++str Show.show supply
+          ++str " supply")
+        (expectFalse
+          (tokenLogic
+            supply
+            token
+            transferTx@{
+              token
+            }));
+
+    transferableTokenTest (supply : Supply) : Test :=
+      let
+        token :=
+          exampleToken@Resource{label := anomaEncode
+            exampleLabel@Label{
+              transferable := true;
+              supply := supply
+            }};
+
+        tx :=
+          transferTx@{
+            token
+          };
+      in testCase
+        ("Transfer logic should return true when transferring a transferable token with "
+          ++str Show.show supply
+          ++str " supply")
+        (expectTrue (tokenLogic supply token tx));
+
+    tests : List Test :=
+      map nonTransferableTokenTest [Unbound; Fixed nf]
+        ++ map transferableTokenTest [Unbound; Fixed nf];
+  end;
+end;
+
+module CreationSide;
+
+  expectedReturnValTest (ephemeral : Bool) (expected : Bool) (supply : Supply) : Test :=
+    let
+      token :=
+        exampleToken@Resource{
+          eph := ephemeral;
+          label := anomaEncode exampleLabel@Label{   transferable := true; supply := supply }
+        };
+      tx :=
+        mkTxWithExtraData@{
+          nk := KeyPair.privKey self;
+          consumed := [];
+          created := [token]
+        };
+    in testCase
+      ("It should be "
+        ++str case expected of {
+                | true := "valid"
+                | false := "invalid"
+              }
+        ++str " for created, "
+        ++str case ephemeral of {
+                | true := "ephemeral"
+                | false := "non-ephemeral"
+              }
+        ++str " tokens with "
+        ++str Show.show supply
+        ++str " supply")
+      (expectEqual (tokenLogic supply token tx) expected);
+
+  tests : List Test :=
+    [ expectedReturnValTest@{
+      ephemeral := true;
+      expected := true;
+      supply := Unbound
+    }
+    ; expectedReturnValTest@{
+      ephemeral := true;
+      expected := false;
+      supply := Fixed nf
+    }
+    ]
+      ++ map (expectedReturnValTest false true) [Unbound; Fixed nf];
+end;
+
+tests : List Test :=
+  ConsumptionSide.Initialization.tests ++ ConsumptionSide.TransferLogic.tests ++ CreationSide.tests;
+
+main : IO := runTestSuite (testSuite "Token Logic Tests" tests);

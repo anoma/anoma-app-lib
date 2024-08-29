@@ -15,6 +15,24 @@ import Token.Indexing open;
 import Token.Transaction.Swap.Resource open;
 import Token.Transaction.Swap.Solution open;
 
+mkSwapTx
+  (self : KeyPair)
+  (give : List Resource)
+  (want : QuantifiedAssets)
+  (solver : PublicKey)
+  : Transaction :=
+  mkTxWithExtraData@{
+    nk := KeyPair.privKey self;
+    consumed := give;
+    created :=
+      [ mkSwapIntent@{
+        want;
+        receiver := KeyPair.pubKey self;
+        solver
+      }
+      ]
+  };
+
 --- Swaps a token ;Resource; ;Set; for a list of ;QuantifiedAssets;.
 --- The function returns a ;TokenError; if
 --- - the token is non-transferable
@@ -33,33 +51,24 @@ swap
           limit := 1;
           actual := 0
         }
-    | t :: _ :=
-      let
-        myself : PublicKey := KeyPair.pubKey self;
-        nk : PrivateKey := KeyPair.privKey self;
-        owner : PublicKey := Resource.npk t;
-      in if
-        | not (isTransferable t) := throw mkNonTransferableError
-        | else :=
-          case find ((/=) myself) (map Resource.npk give) of
+    | _ :: _ :=
+      case find ((/=) (true)) (map isTransferable give) of
+        | just _ := throw mkNonTransferableError
+        | nothing :=
+          case find ((/=) (KeyPair.pubKey self)) (map Resource.npk give) of
             | just notMyself :=
               throw
                 mkUnauthorizedError@{
-                  expected := myself;
+                  expected := KeyPair.pubKey self;
                   actual := notMyself
                 }
             | nothing :=
               ok
-                mkTxWithExtraData@{
-                  nk;
-                  consumed := give;
-                  created :=
-                    [ mkSwapIntent@{
-                      want;
-                      receiver := myself;
-                      solver
-                    }
-                    ]
+                mkSwapTx@{
+                  self;
+                  give;
+                  want;
+                  solver
                 };
 
 --- Settles a ;Set; of ;Transaction;s by composing them with
