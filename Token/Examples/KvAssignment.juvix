@@ -1,0 +1,45 @@
+module Token.Examples.KvAssignment;
+
+import Stdlib.Prelude open;
+import Stdlib.Debug.Fail open using {failwith};
+import Data.Set as Set open using {Set};
+
+import Anoma open;
+import Anoma.System open using {anomaGet};
+import Anoma.KeyValue open;
+
+import Authorization.Identities open;
+import Token.Label open;
+import Token.Supply open;
+
+import Token.Transaction.Initialize open;
+import Token.Indexing open;
+
+exampleLabel : Label :=
+  mkLabel@{
+    name := "Kudos";
+    symbol := "KDS";
+    decimals := 18;
+    supply := Unbound;
+    transferable := true;
+    originator := Universal.pubKey
+  };
+
+self : KeyPair := Universal.keyPair;
+
+initTx : Transaction :=
+  case
+    initialize@{
+      self;
+      label := exampleLabel;
+      quantity := 10;
+      receiver := KeyPair.pubKey self
+    }
+  of
+    | ok tx := tx
+    | error err := failwith (Show.show err);
+
+main : List (KeyValue.Assignment (Set Commitment)) :=
+  prepareAssignments@{
+    tx := initTx
+  };
