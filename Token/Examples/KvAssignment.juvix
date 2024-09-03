@@ -14,6 +14,7 @@ import Token.Supply open;
 
 import Token.Transaction.Initialize open;
 import Token.Indexing open;
+import AnomaHelpers open using {module NatKeyValue};
 
 exampleLabel : Label :=
   mkLabel@{
@@ -39,7 +40,7 @@ initTx : Transaction :=
     | ok tx := tx
     | error err := failwith (Show.show err);
 
-main : List (KeyValue.Assignment (Set Commitment)) :=
+main : List (NatKeyValue.Assignment (Set Commitment)) :=
   prepareAssignments@{
     tx := initTx
   };

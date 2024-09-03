@@ -241,3 +241,15 @@ composeAll (txs : List Transaction) : Transaction :=
   for (acc := emptyTx) (tx in txs) {compose acc tx};
 
 rand : Nat := 0;
+
+module NatKeyValue;
+
+type Key := mkKey {path : List Nat};
+
+type Assignment A :=
+  assign {
+    key : Key;
+    value : A
+};
+
+end;
