@@ -243,8 +243,6 @@ module CreationSide;
 end;
 
 tests : List Test := ConsumptionSide.Initialization.tests;
--- TODO uncomment after performance issues have been fixed.
--- ++ ConsumptionSide.TransferLogic.tests;
---  ++ CreationSide.tests;
+-- ++ ConsumptionSide.TransferLogic.tests ++ CreationSide.tests;
 
 main : IO := runTestSuite (testSuite "Token Logic Tests" tests);

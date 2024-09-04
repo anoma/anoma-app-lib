@@ -38,11 +38,6 @@ Bytes-Ord : Ord Bytes :=
 
 natToBytes : Nat -> Bytes := mkBytes;
 
--- Should be added to the `juvix-anoma-stdlib`
-module Resource;
-  npk : Resource -> PublicKey := Resource.npkContents >> fromAtom;
-end;
-
 instance
 PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (toAtom k)};
 
