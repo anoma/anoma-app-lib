@@ -19,7 +19,7 @@ counterLogic (self : Resource) (tx : Transaction) : Bool :=
     | Unknown, _ := false;
 
 initializationLogic (self : Resource) (tx : Transaction) : Bool :=
-  Quantity.get self == 1 && isNullifierPresent (getNullifierfFromLabel self) tx;
+  HasQuantity.get self == 1 && isNullifierPresent (getNullifierfFromLabel self) tx;
 
 incrementationLogic (self : Resource) (tx : Transaction) : Bool :=
   case findCreatedCounter self tx of

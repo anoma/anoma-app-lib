@@ -16,7 +16,7 @@ import Intent.Swap.Solution open;
 swap
   {R I}
   {{Convertable R}}
-  {{Owner R}}
+  {{HasOwner R}}
   {{HasTransferability R}}
   {{TransactionConvertable R I}}
   (self : KeyPair)
@@ -34,7 +34,7 @@ swap
       case find ((/=) (Transferability.Transferable)) (map HasTransferability.get toSwap) of
         | just _ := throw mkNonTransferableError
         | nothing :=
-          case find ((/=) (KeyPair.pubKey self)) (map Owner.get toSwap) of
+          case find ((/=) (KeyPair.pubKey self)) (map HasOwner.get toSwap) of
             | just notMyself :=
               throw
                 mkUnauthorizedError@{
@@ -56,7 +56,7 @@ settle
   let
     myself := KeyPair.pubKey self;
     solutionTxs := map (Solution.toTransaction self) (solutions);
-  in case find ((/=) myself) (map \ {s := Owner.get (Solution.intent s)} solutions) of
+  in case find ((/=) myself) (map \ {s := HasOwner.get (Solution.intent s)} solutions) of
        | just notMyself :=
          throw
            mkUnauthorizedError@{

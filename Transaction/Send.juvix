@@ -10,7 +10,7 @@ import Transaction.Traits open;
 import Transaction.Transfer open;
 import Transaction.Split open;
 
---- Sends a ;Quantity; of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
+--- Sends a ;HasQuantity; of token ;Resource; to a receiver, if the calling ;KeyPair; is the owner.
 --- If the quantity is lower than of the quantity of the consumed ;Resource;, the function creates
 --- a second ;Resource; with the difference being owned by the caller.
 --- The function returns a ;StandardError; if
@@ -19,8 +19,8 @@ import Transaction.Split open;
 send
   {R}
   {{Convertable R}}
-  {{Owner R}}
-  {{Quantity R}}
+  {{HasOwner R}}
+  {{HasQuantity R}}
   {{HasTransferability R}}
   {{TransactionConvertable R R}}
   (self : KeyPair)
@@ -30,11 +30,11 @@ send
   : Result StandardError Transaction :=
   let
     myself : PublicKey := KeyPair.pubKey self;
-    balance : Nat := Quantity.get toSend;
+    balance : Nat := HasQuantity.get toSend;
   in case compare balance quantity of
        | LT :=
          throw
-           mkInsufficientQuantityError@{
+           mkInsufficientHasQuantityError@{
              limit := balance;
              actual := quantity
            }

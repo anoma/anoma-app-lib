@@ -5,15 +5,15 @@ import Anoma open;
 import Anoma.Rep open;
 
 trait
-type Owner ResourceT :=
-  mkOwner {
+type HasOwner ResourceT :=
+  mkHasOwner {
     get : ResourceT -> PublicKey;
     set : PublicKey -> ResourceT -> ResourceT
   };
 
 instance
-Resource-Owner : Owner Resource :=
-  mkOwner@{
+Resource-HasOwner : HasOwner Resource :=
+  mkHasOwner@{
     get (resource : Resource) : PublicKey := resource |> Resource.npkContents |> fromAtom;
     set (owner : PublicKey) (resource : Resource) : Resource :=
       resource@Resource{npkContents := toAtom owner}

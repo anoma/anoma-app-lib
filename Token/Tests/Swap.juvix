@@ -70,7 +70,7 @@ carolsSolutionForAliceTx : Transaction :=
     (Carol.keyPair)
     Solution.mk@{
       intent := aliceSwapIntentResource;
-      created := [Owner.set Alice.pubKey bobsBobKudos]
+      created := [HasOwner.set Alice.pubKey bobsBobKudos]
     };
 
 carolsSolutionForBobTx : Transaction :=
@@ -78,7 +78,7 @@ carolsSolutionForBobTx : Transaction :=
     (Carol.keyPair)
     Solution.mk@{
       intent := bobSwapIntentResource;
-      created := [Owner.set Bob.pubKey aliceTokenOwnedByAlice]
+      created := [HasOwner.set Bob.pubKey aliceTokenOwnedByAlice]
     };
 
 balancedTx : Transaction :=

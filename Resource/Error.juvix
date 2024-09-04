@@ -17,8 +17,8 @@ type InsufficientElementsError :=
     actual : Nat
   };
 
-type InsufficientQuantityError :=
-  mkInsufficientQuantityError {
+type InsufficientHasQuantityError :=
+  mkInsufficientHasQuantityError {
     limit : Nat;
     actual : Nat
   };
@@ -44,7 +44,7 @@ type UnauthorizedError :=
 type StandardError :=
   | ErrDefault DefaultError
   | ErrUnauthorized UnauthorizedError
-  | ErrInsufficientQuantity InsufficientQuantityError
+  | ErrInsufficientHasQuantity InsufficientHasQuantityError
   | ErrInvalidLogic InvalidLogicError
   | ErrInvalidKind InvalidKindError
   | ErrInsufficientElements InsufficientElementsError
@@ -68,10 +68,10 @@ UnauthorizedThrowable {A} : Throwable UnauthorizedError A :=
   };
 
 instance
-InsufficientQuantityThrowable {A} : Throwable InsufficientQuantityError A :=
+InsufficientHasQuantityThrowable {A} : Throwable InsufficientHasQuantityError A :=
   mkThrowable@{
-    throw (e : InsufficientQuantityError) : Result StandardError A :=
-      error {_} {A} (ErrInsufficientQuantity e)
+    throw (e : InsufficientHasQuantityError) : Result StandardError A :=
+      error {_} {A} (ErrInsufficientHasQuantity e)
   };
 
 instance
@@ -119,15 +119,15 @@ InsufficientElementsError-Show : Show InsufficientElementsError :=
         ++str "}"};
 
 instance
-InsufficientQuantityError-Show : Show InsufficientQuantityError :=
+InsufficientHasQuantityError-Show : Show InsufficientHasQuantityError :=
   mkShow
     \ {e :=
-      "InsufficientQuantityError:\n{"
+      "InsufficientHasQuantityError:\n{"
         ++str "limit : "
-        ++str (e |> InsufficientQuantityError.limit |> Show.show)
+        ++str (e |> InsufficientHasQuantityError.limit |> Show.show)
         ++str ", "
         ++str "actual"
-        ++str (e |> InsufficientQuantityError.actual |> Show.show)
+        ++str (e |> InsufficientHasQuantityError.actual |> Show.show)
         ++str "}"};
 
 instance

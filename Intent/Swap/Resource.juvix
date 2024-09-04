@@ -38,10 +38,10 @@ SwapIntent-Convertable : Convertable SwapIntent :=
 
 -- TODO harmonize names
 instance
-SwapIntent-Quantity : Quantity SwapIntent := FromConvertable.quantity {SwapIntent};
+SwapIntent-HasQuantity : HasQuantity SwapIntent := FromConvertable.quantity {SwapIntent};
 
 instance
-SwapIntent-Owner : Owner SwapIntent := FromConvertable.owner {SwapIntent};
+SwapIntent-HasOwner : HasOwner SwapIntent := FromConvertable.owner {SwapIntent};
 
 instance
 SwapIntent-HasEphemerality : HasEphemerality SwapIntent :=

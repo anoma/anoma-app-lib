@@ -15,7 +15,7 @@ transfer
   {R}
   {{Convertable R}}
   {{HasTransferability R}}
-  {{Owner R}}
+  {{HasOwner R}}
   {{TransactionConvertable R R}}
   (self : KeyPair)
   (toTransfer : R)
@@ -24,8 +24,8 @@ transfer
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
-    owner : PublicKey := Owner.get toTransfer;
-    transferred : R := Owner.set receiver toTransfer;
+    owner : PublicKey := HasOwner.get toTransfer;
+    transferred : R := HasOwner.set receiver toTransfer;
   in case HasTransferability.get toTransfer of
        | NonTransferable := throw mkNonTransferableError
        | Transferable :=
