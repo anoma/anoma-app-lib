@@ -5,15 +5,15 @@ import Data.Map as Map open using {Map};
 import Anoma open;
 import AnomaHelpers open;
 
+import Resource.Error open;
 import Authorization.Message open;
 import Authorization.Identities open;
 import Utils.Dummy.Resource open;
 import Utils.Counter.Label open;
-import Utils.Counter.Error open;
 import Utils.Counter.Resource open;
 
 --- Requires a consumable `Utils.Dummy.Resource`.
-createCounter (self : KeyPair) (consumableDummy : Resource) : Result CounterError Transaction :=
+createCounter (self : KeyPair) (consumableDummy : Resource) : Result StandardError Transaction :=
   let
     ephDummy : Resource :=
       mkDummy@{
@@ -23,7 +23,7 @@ createCounter (self : KeyPair) (consumableDummy : Resource) : Result CounterErro
   in if
     | anomaKind consumableDummy /= anomaKind ephDummy :=
       throw
-        mkError@{
+        mkDefaultError@{
           msg := "The oked consumable resource has the wrong kind."
         }
     | else :=
@@ -52,7 +52,7 @@ incrementCounter (currentCounter : Resource) : Transaction :=
       mkCounter@{
         npk := Universal.pubKey;
         eph := false;
-        uniqueLabel := getLabel currentCounter;
+        uniqueLabel := get currentCounter;
         count := Resource.data currentCounter + 1
       };
     extra :=

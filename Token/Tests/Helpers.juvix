@@ -5,8 +5,8 @@ import Anoma open;
 import Test.JuvixUnit open;
 
 import Authorization.Identities open;
+import Resource.Traits open;
 import Token.Label open;
-import Token.Supply open;
 import Token.Resource open;
 
 nf : Nullifier :=
@@ -20,9 +20,9 @@ aliceKudosLabel : Label := exampleLabel@Label{originator := Alice.pubKey};
 
 bobKudosLabel : Label := exampleLabel@Label{originator := Bob.pubKey};
 
-aliceKudos : Kind := getTokenKind (aliceKudosLabel);
+aliceKudos : Kind := kindFromTokenLabel (aliceKudosLabel);
 
-bobKudos : Kind := getTokenKind (bobKudosLabel);
+bobKudos : Kind := kindFromTokenLabel (bobKudosLabel);
 
 exampleLabel : Label :=
   mkLabel@{
@@ -30,12 +30,12 @@ exampleLabel : Label :=
     symbol := "KDS";
     decimals := 18;
     supply := Unbound;
-    transferable := true;
+    transferability := Transferability.Transferable;
     originator := KeyPair.pubKey self
   };
 
-exampleToken : Resource :=
-  mkToken@{
+exampleToken : Token :=
+  Token.create@{
     quantity := 1;
     tokenLabel := exampleLabel;
     npk := KeyPair.pubKey self

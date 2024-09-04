@@ -1,9 +1,19 @@
 module Token.Transaction;
 
-import Token.Transaction.Finalize open public;
-import Token.Transaction.Initialize open public;
-import Token.Transaction.Merge open public;
-import Token.Transaction.Send open public;
-import Token.Transaction.Split open public;
-import Token.Transaction.Swap open public;
-import Token.Transaction.Transfer open public;
+import Resource.Traits open;
+import Transaction.Traits open;
+
+import Token.Resource open;
+import Intent.Swap.Resource open;
+
+instance
+Token-Token-TransactionConvertable : TransactionConvertable Token Token :=
+  FromConvertable.transactionConvertable {Token} {Token};
+
+instance
+Token-SwapIntent-TransactionConvertable : TransactionConvertable Token SwapIntent :=
+  FromConvertable.transactionConvertable {Token} {SwapIntent};
+
+instance
+SwapIntent-Token-TransactionConvertable : TransactionConvertable SwapIntent Token :=
+  FromConvertable.transactionConvertable {SwapIntent} {Token};

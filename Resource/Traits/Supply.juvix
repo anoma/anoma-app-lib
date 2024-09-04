@@ -1,4 +1,4 @@
-module Token.Supply;
+module Resource.Traits.Supply;
 
 import Stdlib.Prelude open;
 import Anoma open;
@@ -27,3 +27,10 @@ Supply-Show : Show Supply :=
       | (Fixed f) := "Fixed"
     --"Fixed (nf: " ++str natToString (anomaEncode f) ++str ")"
     };
+
+trait
+type HasSupply ResourceT :=
+  mkHasSupply {
+    get : ResourceT -> Supply;
+    set : Supply -> ResourceT -> ResourceT
+  };

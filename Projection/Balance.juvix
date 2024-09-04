@@ -1,10 +1,10 @@
-module Token.Projection.Balance;
+module Projection.Balance;
 
 import Stdlib.Prelude open;
 import Data.Set as Set open using {Set};
 import Anoma open;
 
-import Token.Indexing open;
+import KeyValueStorage.Indexing open;
 
 --- Returns the total quantity of a ;Resource; ;Set;.
 balance (resources : Set Resource) : Nat :=

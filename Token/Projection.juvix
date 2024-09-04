@@ -1,3 +1,0 @@
-module Token.Projection;
-
-import Token.Projection.Balance open public;

@@ -1,0 +1,20 @@
+module Resource.Traits.Owner;
+
+import Stdlib.Prelude open;
+import Anoma open;
+import Anoma.Rep open;
+
+trait
+type Owner ResourceT :=
+  mkOwner {
+    get : ResourceT -> PublicKey;
+    set : PublicKey -> ResourceT -> ResourceT
+  };
+
+instance
+Resource-Owner : Owner Resource :=
+  mkOwner@{
+    get (resource : Resource) : PublicKey := resource |> Resource.npkContents |> fromAtom;
+    set (owner : PublicKey) (resource : Resource) : Resource :=
+      resource@Resource{npkContents := toAtom owner}
+  };
