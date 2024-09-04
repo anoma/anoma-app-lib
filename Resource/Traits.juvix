@@ -34,13 +34,12 @@ module FromConvertable;
         HasKind.set kind (Convertable.toResource typed) |> Convertable.fromResource
     };
 
-  -- TODO name
-  quantity {R} {{Convertable R}} : Quantity R :=
+  hasQuantity {R} {{Convertable R}} : HasQuantity R :=
     mkHasQuantity@{
-      get (typed : R) : Nat := Quantity.get (Convertable.toResource typed);
+      get (typed : R) : Nat := HasQuantity.get (Convertable.toResource typed);
 
       set (quantity : Nat) (typed : R) : R :=
-        Quantity.set quantity (Convertable.toResource typed) |> Convertable.fromResource
+        HasQuantity.set quantity (Convertable.toResource typed) |> Convertable.fromResource
     };
 
   hasEphemerality {R} {{Convertable R}} : HasEphemerality R :=
@@ -51,12 +50,12 @@ module FromConvertable;
         HasEphemerality.set ephemerality (Convertable.toResource typed) |> Convertable.fromResource
     };
 
-  owner {R} {{Convertable R}} : Owner R :=
-    mkOwner@{
-      get (typed : R) : PublicKey := Owner.get (Convertable.toResource typed);
+  hasOwner {R} {{Convertable R}} : HasOwner R :=
+    mkHasOwner@{
+      get (typed : R) : PublicKey := HasOwner.get (Convertable.toResource typed);
 
       set (owner : PublicKey) (typed : R) : R :=
-        Owner.set owner (Convertable.toResource typed) |> Convertable.fromResource
+        HasOwner.set owner (Convertable.toResource typed) |> Convertable.fromResource
     };
 
 end;

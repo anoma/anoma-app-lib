@@ -15,9 +15,9 @@ import Transaction.Traits open;
 merge
   {R}
   {{Convertable R}}
-  {{Owner R}}
+  {{HasOwner R}}
   {{HasTransferability R}}
-  {{Quantity R}}
+  {{HasQuantity R}}
   {{HasKind R}}
   {{TransactionConvertable R R}}
   (self : KeyPair)
@@ -36,8 +36,8 @@ merge
         myself : PublicKey := KeyPair.pubKey self;
         nk : PrivateKey := KeyPair.privKey self;
         kind : Kind := HasKind.get t;
-        totalQuantity : Nat := listFor (acc := 0) (ti in toMerge) {Quantity.get ti + acc};
-        merged := Owner.set receiver (Quantity.set totalQuantity t);
+        totalHasQuantity : Nat := listFor (acc := 0) (ti in toMerge) {HasQuantity.get ti + acc};
+        merged := HasOwner.set receiver (HasQuantity.set totalHasQuantity t);
       in case HasTransferability.get t of
            | NonTransferable := throw mkNonTransferableError
            | Transferable :=
@@ -49,7 +49,7 @@ merge
                      actual := otherKind
                    }
                | nothing :=
-                 case find ((/=) myself) (map (Owner.get) toMerge) of
+                 case find ((/=) myself) (map (HasOwner.get) toMerge) of
                    | just notMyself :=
                      throw
                        mkUnauthorizedError@{

@@ -18,7 +18,7 @@ import Utils.Dummy.Transaction as Dummy open using {finalize};
 initialize
   {R}
   {{Convertable R}}
-  {{Owner R}}
+  {{HasOwner R}}
   {{HasSupply R}}
   {{HasEphemerality R}}
   {{TransactionConvertable R R}}
@@ -29,7 +29,7 @@ initialize
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
-    ephResource : R := HasEphemerality.set Ephemerality.Ephemeral (Owner.set myself toInitialize);
+    ephResource : R := HasEphemerality.set Ephemerality.Ephemeral (HasOwner.set myself toInitialize);
     tx : Transaction := TransactionConvertable.toTransaction nk [ephResource] [toInitialize];
   in case HasSupply.get toInitialize of
        | Unbound :=

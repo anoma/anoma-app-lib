@@ -15,8 +15,8 @@ import Transaction.Traits open;
 split
   {R}
   {{Convertable R}}
-  {{Owner R}}
-  {{Quantity R}}
+  {{HasOwner R}}
+  {{HasQuantity R}}
   {{HasTransferability R}}
   {{TransactionConvertable R R}}
   (self : KeyPair)
@@ -26,14 +26,14 @@ split
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
-    owner : PublicKey := Owner.get toSplit;
+    owner : PublicKey := HasOwner.get toSplit;
     toSplitResource := Convertable.toResource toSplit;
     sum : Nat := listFor (acc := 0) (quantity, _ in quantitiesAndReceivers) {quantity + acc};
 
-    balance := Quantity.get toSplit;
+    balance := HasQuantity.get toSplit;
     created : List R :=
       map (quantity, receiver in quantitiesAndReceivers)
-        {toSplit |> Owner.set receiver |> Quantity.set quantity};
+        {toSplit |> HasOwner.set receiver |> HasQuantity.set quantity};
   in case HasTransferability.get toSplit of
        | NonTransferable := throw mkNonTransferableError
        | Transferable :=
@@ -48,7 +48,7 @@ split
              case balance == sum of
                | false :=
                  throw
-                   mkInsufficientQuantityError@{
+                   mkInsufficientHasQuantityError@{
                      limit := balance;
                      actual := sum
                    }

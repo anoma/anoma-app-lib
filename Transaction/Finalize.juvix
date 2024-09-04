@@ -18,7 +18,7 @@ import Transaction.Traits open;
 finalize
   {R}
   {{Convertable R}}
-  {{Owner R}}
+  {{HasOwner R}}
   {{HasSupply R}}
   {{HasEphemerality R}}
   {{TransactionConvertable R R}}
@@ -28,8 +28,8 @@ finalize
   let
     myself : PublicKey := KeyPair.pubKey self;
     nk : PrivateKey := KeyPair.privKey self;
-    owner : PublicKey := Owner.get toFinalize;
-    ephResource := HasEphemerality.set Ephemerality.Ephemeral (Owner.set Zero.pubKey toFinalize);
+    owner : PublicKey := HasOwner.get toFinalize;
+    ephResource := HasEphemerality.set Ephemerality.Ephemeral (HasOwner.set Zero.pubKey toFinalize);
   in if
     | owner /= myself :=
       throw

@@ -44,10 +44,10 @@ kindFromTokenLabel (tokenLabel : Label) : Kind :=
   };
 
 instance
-Token-Quantity : Quantity Token := FromConvertable.quantity {Token};
+Token-HasQuantity : HasQuantity Token := FromConvertable.hasQuantity {Token};
 
 instance
-Token-Owner : Owner Token := FromConvertable.owner {Token};
+Token-HasOwner : HasOwner Token := FromConvertable.hasOwner {Token};
 
 instance
 Token-HasEphemerality : HasEphemerality Token := FromConvertable.hasEphemerality {Token};
