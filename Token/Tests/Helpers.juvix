@@ -9,6 +9,8 @@ import Resource.Traits open;
 import Token.Label open;
 import Token.Resource open;
 
+import Utils.Dummy.Resource open;
+
 nf : Nullifier :=
   Nullifier.mk@{
     unNullifier := 123
@@ -34,9 +36,32 @@ exampleLabel : Label :=
     originator := KeyPair.pubKey self
   };
 
-exampleToken : Token :=
+exampleTokenWithUnboundSupply : Token :=
   Token.create@{
     quantity := 1;
     tokenLabel := exampleLabel;
     npk := KeyPair.pubKey self
   };
+
+dummy : Resource :=
+  mkDummy@{
+    npk := KeyPair.pubKey self;
+    eph := false
+  };
+
+dummyNf : Nullifier :=
+  nullifier@{
+    r := dummy;
+    privateKey := KeyPair.privKey self
+  };
+
+exampleTokenWithFixedSupply1 : Token :=
+  Token.create@{
+    quantity := 1;
+    tokenLabel := exampleLabel@Label{supply := Fixed dummyNf};
+    npk := KeyPair.pubKey self
+  };
+
+exampleTokenWithFixedSupply2 : Token := HasSupply.set (Fixed dummyNf) exampleTokenWithUnboundSupply;
+-- The code below works (and results in a failing test):
+--exampleTokenWithFixedSupply2 : Token := HasSupply.set (Fixed dummyNf) exampleTokenWithFixedSupply1;

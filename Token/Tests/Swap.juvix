@@ -52,7 +52,7 @@ alicesIntentTx : Transaction :=
     }
   of
     | ok tx := tx
-    | error _ := failwith "Error";
+    | error err := failwith (Show.show err);
 
 bobsIntentTx : Transaction :=
   case
@@ -63,7 +63,7 @@ bobsIntentTx : Transaction :=
     }
   of
     | ok tx := tx
-    | error _ := failwith "Error";
+    | error err := failwith (Show.show err);
 
 carolsSolutionForAliceTx : Transaction :=
   Solution.toTransaction

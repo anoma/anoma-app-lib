@@ -1,0 +1,38 @@
+module Token.Tests.AnomaTest;
+
+import Stdlib.Prelude open;
+import Stdlib.Debug open;
+import Anoma open;
+import Test.Anoma open;
+import Test.JuvixUnit open;
+
+import AnomaHelpers open;
+import Token.Tests.Helpers open;
+
+import Transaction open;
+import Resource.Error open;
+import Resource.Traits open;
+
+txUnbound : Transaction :=
+  txFromResult
+    initialize@{
+      self;
+      toInitialize := exampleTokenWithUnboundSupply;
+      maybeDummy := nothing
+    };
+
+txFixed : Transaction :=
+  txFromResult
+    initialize@{
+      self;
+      toInitialize := exampleTokenWithFixedSupply2;
+      maybeDummy := just dummy
+    };
+
+main : IO :=
+  runTestSuite
+    (testSuite
+      "Anoma tests"
+      [ testCase "initialize with unbound supply is valid" (anomaAssertPass (verify txUnbound))
+      ; testCase "initialize with fixed supply is valid" (anomaAssertPass (verify txFixed))
+      ]);
