@@ -8,8 +8,18 @@ import Anoma.Rep open;
 import AnomaHelpers open;
 import Resource.Traits open;
 
-ledgerKey (kind : Kind) (account : PublicKey) : KeyValue.Key :=
-  KeyValue.mkKey (map natToString [Kind.unKind kind; toAtom account]);
+module NatKeyValue;
+  type Key := mkKey {path : List Nat};
+
+  type Assignment A :=
+    assign {
+      key : Key;
+      value : A
+    };
+end;
+
+ledgerKey (kind : Kind) (account : PublicKey) : NatKeyValue.Key :=
+  NatKeyValue.mkKey [Kind.unKind kind; toAtom account];
 
 ledgerEntries (kind : Kind) (account : PublicKey) : Set Commitment :=
   anomaGet (ledgerKey kind account);
@@ -39,10 +49,8 @@ getLedgerMapping (rs : List Resource) : LedgerMapping :=
              innerMap})
          outerMap};
 
--- TODO this must behave differently based on the passed token.
---- Creates a ;List
-  (KeyValue.Assignment (Set Commitment)); to be processed by the Anoma node client.
-prepareAssignments (tx : Transaction) : List (KeyValue.Assignment (Set Commitment)) :=
+-- Creates a ;List TokenAssignment; to be processed by the Anoma node client.
+prepareAssignments (tx : Transaction) : List (NatKeyValue.Assignment (Set Commitment)) :=
   let
     part : ResourcePartition := partitionResources tx;
     nonEphConsumed :=
@@ -87,8 +95,8 @@ prepareAssignments (tx : Transaction) : List (KeyValue.Assignment (Set Commitmen
   in listFor (outerAcc := []) (outerKey, outerVal in Map.toList ledgerWithoutConsumedWithCreated)
        {listFor (innerAcc := []) (innerKey, innerVal in Map.toList outerVal)
          {outerAcc
-           ++ [ KeyValue.assign@{
-                key := KeyValue.mkKey (map natToString [Kind.unKind outerKey; toAtom innerKey]);
+           ++ [ NatKeyValue.assign@{
+                key := NatKeyValue.mkKey [Kind.unKind outerKey; toAtom innerKey];
                 value := innerVal
               }
               ]}};
