@@ -11,6 +11,6 @@ package : Package :=
       ; github "anoma" "juvix-containers" "v0.15.0"
       ; github "anoma" "juvix-test" "v0.15.0"
       ; github "anoma" "juvix-anoma-stdlib" "v0.8.0"
-      ; github "anoma" "juvix-anoma-test" "v0.4.0"
+      ; github "anoma" "juvix-anoma-test" "338017bb5a4281f1b4769bfc1ef7f243ad47963a"
       ]
   };

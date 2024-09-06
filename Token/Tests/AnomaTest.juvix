@@ -12,8 +12,11 @@ import Token.Tests.Helpers open;
 import Transaction open;
 import Resource.Error open;
 import Resource.Traits open;
+import Authorization.Identities open;
 
-txUnbound : Transaction :=
+import Data.Map as Map open using {empty};
+
+txTokenUnboundInit : Transaction :=
   txFromResult
     initialize@{
       self;
@@ -21,18 +24,58 @@ txUnbound : Transaction :=
       maybeDummy := nothing
     };
 
-txFixed : Transaction :=
+txTokenFixedInit : Transaction :=
   txFromResult
     initialize@{
       self;
-      toInitialize := exampleTokenWithFixedSupply2;
+      toInitialize := exampleTokenWithFixedSupply1;
       maybeDummy := just dummy
     };
+
+txTokenUnboundTransfer : Transaction :=
+  txFromResult
+    transfer@{
+      self;
+      toTransfer := exampleTokenWithUnboundSupply;
+      receiver := Zero.pubKey
+    };
+
+import Utils.Dummy.Transaction as Dummy open using {initialize; finalize};
+
+txDummyInitialize : Transaction :=
+  Dummy.initialize@{
+    self
+  };
+
+txDummyFinalize : Transaction :=
+  Dummy.finalize@{
+    self;
+    dummy
+  };
+
+manualTx : Transaction :=
+  mkTransaction@{
+    nullifierKey := KeyPair.privKey self;
+    consumed := replicate 2 dummy;
+    created := replicate 3 (Convertable.toResource exampleTokenWithUnboundSupply);
+    extraData := Map.empty
+  };
 
 main : IO :=
   runTestSuite
     (testSuite
       "Anoma tests"
-      [ testCase "initialize with unbound supply is valid" (anomaAssertPass (verify txUnbound))
-      ; testCase "initialize with fixed supply is valid" (anomaAssertPass (verify txFixed))
+      [ testCase "initialize dummy" (anomaAssertPass (verify txDummyInitialize))
+      ; testCase "finalize dummy" (anomaAssertPass (verify txDummyFinalize))
+      ; testCase
+        "initialize with unbound supply is valid"
+        (anomaAssertPass (verify txTokenUnboundInit))
+      ; testCase "initialize with fixed supply is valid" (anomaAssertPass (verify txTokenFixedInit))
+      --; Hangs with
+      -- --juvix: Stack space overflow: current size 33616 bytes.
+      -- --juvix: Use `+RTS -Ksize -RTS' to increase it.
+      -- testCase
+      -- "transfer with unbound supply is valid"
+      -- (anomaAssertPass (verify txTokenUnboundTransfer))
+
       ]);
