@@ -12,6 +12,6 @@ Label-Eq : Eq Label :=
     eq (l1 l2 : Label) : Bool := Label.nf l1 == Label.nf l2
   };
 
-getLabel (r : Resource) : Label := anomaDecode (Resource.label r);
+get (r : Resource) : Label := anomaDecode (Resource.label r);
 
-getNullifierfFromLabel (r : Resource) : Nullifier := Label.nf (getLabel r);
+getNullifierfFromLabel (r : Resource) : Nullifier := Label.nf (get r);

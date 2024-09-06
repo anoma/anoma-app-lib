@@ -4,70 +4,73 @@ import Test.JuvixUnit open;
 
 import Stdlib.Prelude open;
 import Stdlib.Debug open;
-import Data.Set as Set open using {Set};
 import Anoma open;
-import Anoma.Rep open;
 import AnomaHelpers open;
 
 import Authorization.Identities open;
-import Authorization.Message open;
-import Token.Label open;
+import Resource.Error open;
+import Resource.Traits open;
+import Transaction.Swap open;
+
 import Token.Logic open;
 import Token.Resource open;
-import Token.Supply open;
-import Token.Transaction.Swap open;
-import Token.Transaction.Swap.Resource open;
-import Token.Transaction.Swap.Solution open;
-import Token.Transaction.Swap.Logic open;
 import Token.Tests.Helpers open;
+
 import Intent.Asset open;
-import Utils.Dummy.Resource open;
+import Intent.Swap.Resource open;
+import Intent.Swap.Solution open;
+import Intent.Swap.Logic open;
 
 wantAlice : QuantifiedAssets := mkQuantifiedAssets All [mkAsset 5 bobKudos];
 
 wantBob : QuantifiedAssets := mkQuantifiedAssets All [mkAsset 3 aliceKudos];
 
-aliceTokenOwnedByAlice : Resource := mkToken 3 aliceKudosLabel Alice.pubKey;
+aliceTokenOwnedByAlice : Token := Token.create 3 aliceKudosLabel Alice.pubKey;
 
-bobsBobKudos : Resource := mkToken 5 bobKudosLabel Bob.pubKey;
+bobsBobKudos : Token := Token.create 5 bobKudosLabel Bob.pubKey;
 
-alicesIntentTx : Transaction :=
-  mkSwapTx@{
-    self := Alice.keyPair;
-    give := [aliceTokenOwnedByAlice];
-    want := wantAlice;
-    solver := Carol.pubKey
-  };
-
-aliceSwapIntentResource : Resource :=
-  mkSwapIntent@{
+aliceSwapIntentResource : SwapIntent :=
+  SwapIntent.create@{
     want := wantAlice;
     receiver := Alice.pubKey;
     solver := Carol.pubKey
   };
 
-bobsIntentTx : Transaction :=
-  mkSwapTx@{
-    self := Bob.keyPair;
-    give := [bobsBobKudos];
-    want := wantBob;
-    solver := Carol.pubKey
-  };
-
-bobSwapIntentResource : Resource :=
-  mkSwapIntent@{
+bobSwapIntentResource : SwapIntent :=
+  SwapIntent.create@{
     want := wantBob;
     receiver := Bob.pubKey;
     solver := Carol.pubKey
   };
+
+alicesIntentTx : Transaction :=
+  case
+    Transaction.Swap.swap@{
+      self := Alice.keyPair;
+      toSwap := [aliceTokenOwnedByAlice];
+      intent := aliceSwapIntentResource
+    }
+  of
+    | ok tx := tx
+    | error _ := failwith "Error";
+
+bobsIntentTx : Transaction :=
+  case
+    Transaction.Swap.swap@{
+      self := Bob.keyPair;
+      toSwap := [bobsBobKudos];
+      intent := bobSwapIntentResource
+    }
+  of
+    | ok tx := tx
+    | error _ := failwith "Error";
 
 carolsSolutionForAliceTx : Transaction :=
   Solution.toTransaction
     (Carol.keyPair)
     Solution.mk@{
       intent := aliceSwapIntentResource;
-      created :=
-        Set.fromList [bobsBobKudos@Resource{   npkContents := toAtom Alice.pubKey; nonce := rand }]
+      created := [HasOwner.set Alice.pubKey bobsBobKudos]
     };
 
 carolsSolutionForBobTx : Transaction :=
@@ -75,9 +78,7 @@ carolsSolutionForBobTx : Transaction :=
     (Carol.keyPair)
     Solution.mk@{
       intent := bobSwapIntentResource;
-      created :=
-        Set.fromList
-          [aliceTokenOwnedByAlice@Resource{   npkContents := toAtom Bob.pubKey; nonce := rand }]
+      created := [HasOwner.set Bob.pubKey aliceTokenOwnedByAlice]
     };
 
 balancedTx : Transaction :=
@@ -89,7 +90,8 @@ tests : List Test :=
     (expectTrue
       tokenLogic@{
         supply := Unbound;
-        self := aliceTokenOwnedByAlice;
+        originator := Alice.pubKey;
+        self := Convertable.toResource aliceTokenOwnedByAlice;
         tx := balancedTx
       })
   ; testCase
@@ -98,7 +100,7 @@ tests : List Test :=
       swapIntentLogic@{
         want := wantAlice;
         receiver := Alice.pubKey;
-        self := aliceSwapIntentResource;
+        self := Convertable.toResource aliceSwapIntentResource;
         tx := balancedTx
       })
   ; testCase
@@ -106,7 +108,8 @@ tests : List Test :=
     (expectTrue
       tokenLogic@{
         supply := Unbound;
-        self := bobsBobKudos;
+        originator := Bob.pubKey;
+        self := Convertable.toResource bobsBobKudos;
         tx := balancedTx
       })
   ; testCase
@@ -115,7 +118,7 @@ tests : List Test :=
       swapIntentLogic@{
         want := wantBob;
         receiver := Bob.pubKey;
-        self := bobSwapIntentResource;
+        self := Convertable.toResource bobSwapIntentResource;
         tx := balancedTx
       })
   ];

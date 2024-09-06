@@ -33,7 +33,7 @@ mkResourceRelationshipExtraDataMapEntry
         mustBeCreated := createdCms
       };
     sig := anomaSignDetached msg nullifierKey;
-  in (originCm, (msg, sig)) |> mkExtraDataEntry;
+  in (originCm, msg, sig) |> mkExtraDataEntry;
 
 mkResourceRelationshipExtraData
   (nullifierKey : PrivateKey)
@@ -45,22 +45,3 @@ mkResourceRelationshipExtraData
     (map
       (mkResourceRelationshipExtraDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       origins);
-
-mkTxWithExtraData
-  (nk : PrivateKey) (consumed : List Resource) (created : List Resource) : Transaction :=
-  Transaction.mk@{
-    roots := [];
-    commitments := map commitment created;
-    nullifiers := map (r in consumed) nullifier r nk;
-    proofs := consumed ++ created;
-    delta := [];
-    extra :=
-      anomaEncode
-        mkResourceRelationshipExtraData@{
-          nullifierKey := nk;
-          origins := consumed;
-          mustBeConsumed := [];
-          mustBeCreated := created
-        };
-    preference := 0
-  };

@@ -9,7 +9,7 @@ import Anoma.Rep open;
 import Data.Set as Set open using {Set};
 import Data.Map as Map open using {Map};
 
--- TODO Replafe by ByteArray / List Byte and delete
+-- TODO Replace by ByteArray / List Byte and delete
 type Bytes32 := mkBytes32 {unBytes32 : Nat};
 
 instance
@@ -38,93 +38,11 @@ Bytes-Ord : Ord Bytes :=
 
 natToBytes : Nat -> Bytes := mkBytes;
 
--- Should be added to the `juvix-anoma-stdlib`
-module Resource;
-  npk : Resource -> PublicKey := Resource.npkContents >> fromAtom;
-end;
-
 instance
 PublicKey-Show : Show PublicKey := mkShow \ {k := natToString (toAtom k)};
 
 instance
 PrivateKey-Show : Show PrivateKey := mkShow \ {k := natToString (toAtom k)};
-
-type Error := mkError {msg : String};
-
-type InsufficientElementsError :=
-  mkInsufficientElementsError {
-    limit : Nat;
-    actual : Nat
-  };
-
-instance
-InsufficientElementsError-Show : Show InsufficientElementsError :=
-  mkShow
-    \ {e :=
-      "InsufficientElementsError:\n{"
-        ++str "limit : "
-        ++str (e |> InsufficientElementsError.limit |> Show.show)
-        ++str ", "
-        ++str "actual"
-        ++str (e |> InsufficientElementsError.actual |> Show.show)
-        ++str "}"};
-
-type InsufficientQuantityError :=
-  mkInsufficientQuantityError {
-    limit : Nat;
-    actual : Nat
-  };
-
-instance
-InsufficientQuantityError-Show : Show InsufficientQuantityError :=
-  mkShow
-    \ {e :=
-      "InsufficientQuantityError:\n{"
-        ++str "limit : "
-        ++str (e |> InsufficientQuantityError.limit |> Show.show)
-        ++str ", "
-        ++str "actual"
-        ++str (e |> InsufficientQuantityError.actual |> Show.show)
-        ++str "}"};
-
-type InvalidLogicError :=
-  mkInvalidLogicError {
-    expected : Nat;
-    actual : Nat
-  };
-
-instance
-InvalidLogicError-Show : Show InvalidLogicError :=
-  mkShow
-    \ {e :=
-      "InvalidLogicError:\n{"
-        ++str "expected : "
-        ++str (e |> InvalidLogicError.expected |> Show.show)
-        ++str ", "
-        ++str "actual"
-        ++str (e |> InvalidLogicError.actual |> Show.show)
-        ++str "}"};
-
-instance
-Kind-Show : Show Kind := mkShow \ {k := natToString (Kind.unKind k)};
-
-type InvalidKindError :=
-  mkInvalidKindError {
-    expected : Kind;
-    actual : Kind
-  };
-
-instance
-InvalidKindError-Show : Show InvalidKindError :=
-  mkShow
-    \ {e :=
-      "InvalidLogicError:\n{"
-        ++str "expected : "
-        ++str (e |> InvalidKindError.expected |> Show.show)
-        ++str ", "
-        ++str "actual"
-        ++str (e |> InvalidKindError.actual |> Show.show)
-        ++str "}"};
 
 isCreated (r : Resource) (tx : Transaction) : Bool :=
   elem (==) r (ResourcePartition.created (partitionResources tx));
@@ -147,19 +65,6 @@ lifecycle (r : Resource) (tx : Transaction) : Lifecycle :=
     | elem (==) r created := Created
     | else := Unknown;
 
-isEphemeral (r : Resource) : Bool := Resource.eph r;
-
-type Ephemerality :=
-  | NonEphemeral
-  | Ephemeral;
-
-ephemerality (r : Resource) : Ephemerality :=
-  if
-    | isEphemeral r := Ephemeral
-    | else := NonEphemeral;
-
-hasQuantity (quantity : Nat) (resource : Resource) : Bool := Resource.quantity resource == quantity;
-
 isNullifierPresent (nf : Nullifier) (tx : Transaction) : Bool :=
   elem (==) nf (Transaction.nullifiers tx);
 
@@ -168,20 +73,6 @@ isSubset {A} {{Ord A}} (sub sup : Set A) : Bool := all (x in Set.toList sub) Set
 isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
   all (x in sub)
     Set.member? x (Set.fromList sup);
-
-module Kind;
-  toPair (kind : Kind) : Pair (Resource -> Transaction -> Bool) Nat :=
-    anomaDecode (Kind.unKind kind);
-
-  toLogic (kind : Kind) : Resource -> Transaction -> Bool := fst (toPair kind);
-
-  toLabel (kind : Kind) : Nat := snd (toPair kind);
-
-  fromLabelAndLogic (logic : Resource -> Transaction -> Bool) (label : Nat) : Kind :=
-    anomaEncode (logic, label) |> Kind.mk;
-
-  open Kind public;
-end;
 
 commitmentSet (tx : Transaction) : Set Commitment := Set.fromList (Transaction.commitments tx);
 

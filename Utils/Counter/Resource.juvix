@@ -4,6 +4,7 @@ import Stdlib.Prelude open;
 import Anoma open;
 import AnomaHelpers open;
 
+import Resource.Traits open;
 import Utils.Counter.Logic open;
 import Utils.Counter.Label open;
 

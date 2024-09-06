@@ -1,0 +1,10 @@
+module Resource.Traits.Convertable;
+
+import Anoma open;
+
+trait
+type Convertable ResourceT :=
+  mkConvertable {
+    toResource : ResourceT -> Resource;
+    fromResource : Resource -> ResourceT
+  };
