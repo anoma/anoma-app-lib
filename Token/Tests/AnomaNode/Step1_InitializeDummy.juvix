@@ -1,0 +1,16 @@
+module Token.Tests.AnomaNode.Step1_InitializeDummy;
+
+import Stdlib.Prelude open;
+import Anoma open;
+
+import Token.Tests.AnomaNode.Step0_Setup open;
+import Utils.Dummy.Transaction as Dummy open;
+
+-- Create a dummy resource for the ;Fixed; supply token.
+tx : Transaction :=
+  Dummy.initialize@{
+    self := alice;
+    dummy
+  };
+
+main : Transaction := tx;

@@ -1,0 +1,19 @@
+module Token.Tests.AnomaNode.Step2_InitializeToken;
+
+import Stdlib.Prelude open;
+import Anoma open;
+
+import Token.Tests.AnomaNode.Step0_Setup open;
+import Transaction as General open;
+import Resource.Error open;
+
+-- Create 10 Kudo tokens as Alice (the originator) for Alice (the owner).
+tx : Transaction :=
+  txFromResult
+    General.initialize@{
+      self := alice;
+      toInitialize := token;
+      maybeDummy := just dummy
+    };
+
+main : Transaction := tx;

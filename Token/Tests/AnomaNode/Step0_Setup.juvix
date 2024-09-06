@@ -1,0 +1,39 @@
+module Token.Tests.AnomaNode.Step0_Setup;
+
+import Stdlib.Prelude open;
+
+import Anoma open;
+import Authorization.Identities open;
+
+import Resource.Traits open;
+
+import Token.Label open;
+import Token.Resource open;
+
+import Token.Tests.Helpers open;
+
+alice : KeyPair := Alice.keyPair;
+
+bob : KeyPair := Bob.keyPair;
+
+dummyNfPair : Pair Resource Nullifier :=
+  makeExampleDummy@{
+    self := alice
+  };
+
+dummy : Resource := fst dummyNfPair;
+
+dummyNf : Nullifier := snd dummyNfPair;
+
+label : Label :=
+  makeExampleLabel@{
+    originator := KeyPair.pubKey alice;
+    supply := Fixed dummyNf
+  };
+
+token : Token :=
+  Token.create@{
+    quantity := 10;
+    tokenLabel := label;
+    npk := KeyPair.pubKey alice
+  };
