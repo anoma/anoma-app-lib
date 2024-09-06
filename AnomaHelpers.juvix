@@ -5,7 +5,9 @@ import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
 
 import Anoma open;
 import Anoma.Rep open;
+import Test.Delta open;
 
+import Authorization.Identities open;
 import Data.Set as Set open using {Set};
 import Data.Map as Map open using {Map};
 
@@ -86,6 +88,12 @@ lookupExtraData {Key Value : Type} (key : Key) (tx : Transaction) : Maybe Value 
 mkExtraDataEntry {Key Value : Type} : Pair Key Value -> Pair Bytes32 Bytes
   | (key, value) := natToBytes32 (anomaEncode key), natToBytes (anomaEncode value);
 
+computeDelta (consumed : List Resource) (created : List Resource) : Delta :=
+  let
+    withCreatedDelta : DeltaMap := for (acc := emptyDeltaMap) (r in created) addDelta acc r;
+    withConsumedDelta : DeltaMap := for (acc := withCreatedDelta) (r in consumed) subDelta acc r;
+  in toDelta withConsumedDelta;
+
 mkTransaction
   (nullifierKey : PrivateKey)
   (consumed : List Resource)
@@ -97,29 +105,36 @@ mkTransaction
     commitments := map commitment created;
     nullifiers := map (r in consumed) nullifier r nullifierKey;
     proofs := consumed ++ created;
-    delta := [];
+    delta :=
+      computeDelta@{
+        consumed;
+        created
+      };
     extra := anomaEncode (extraData);
     preference := 0
   };
 
 emptyTx : Transaction :=
-  Transaction.mk@{
-    roots := [];
-    commitments := [];
-    nullifiers := [];
-    proofs := [];
-    delta := [];
-    extra := anomaEncode (Map.empty {Bytes32} {Bytes});
-    preference := 0
+  mkTransaction@{
+    nullifierKey := Universal.privKey;
+    consumed := [];
+    created := [];
+    extraData := Map.empty
   };
 
 compose (tx1 tx2 : Transaction) : Transaction :=
   Transaction.mk@{
-    roots := Transaction.roots tx1 ++ Transaction.roots tx2;
-    commitments := Transaction.commitments tx1 ++ Transaction.commitments tx2;
-    nullifiers := Transaction.nullifiers tx1 ++ Transaction.nullifiers tx2;
-    proofs := Transaction.proofs tx1 ++ Transaction.proofs tx2;
-    delta := Transaction.delta tx1 ++ Transaction.delta tx2;
+    roots := Set.fromList (Transaction.roots tx1 ++ Transaction.roots tx2) |> Set.toList;
+    commitments :=
+      Set.fromList (Transaction.commitments tx1 ++ Transaction.commitments tx2) |> Set.toList;
+    nullifiers :=
+      Set.fromList (Transaction.nullifiers tx1 ++ Transaction.nullifiers tx2) |> Set.toList;
+    proofs := Set.fromList (Transaction.proofs tx1 ++ Transaction.proofs tx2) |> Set.toList;
+    delta :=
+      computeDelta@{
+        consumed := map nullifierResource nullifiers;
+        created := map commitmentResource commitments
+      };
     extra :=
       let
         kvList1 : List (Pair Bytes32 Bytes) := Map.toList (anomaDecode (Transaction.extra tx1));
