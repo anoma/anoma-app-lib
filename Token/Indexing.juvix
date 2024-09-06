@@ -7,6 +7,16 @@ import Anoma open;
 import Anoma.Rep open;
 import AnomaHelpers open;
 
+module NatKeyValue;
+  type Key := mkKey {path : List Nat};
+
+  type Assignment A :=
+    assign {
+      key : Key;
+      value : A
+    };
+end;
+
 ledgerKey (kind : Kind) (account : PublicKey) : NatKeyValue.Key :=
   NatKeyValue.mkKey [Kind.unKind kind; toAtom account];
 

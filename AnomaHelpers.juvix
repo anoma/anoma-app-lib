@@ -158,7 +158,7 @@ ephemerality (r : Resource) : Ephemerality :=
     | isEphemeral r := Ephemeral
     | else := NonEphemeral;
 
-hasQuantity (quantity : Nat) (resource : Resource)  : Bool := Resource.quantity resource == quantity;
+hasQuantity (quantity : Nat) (resource : Resource) : Bool := Resource.quantity resource == quantity;
 
 isNullifierPresent (nf : Nullifier) (tx : Transaction) : Bool :=
   elem (==) nf (Transaction.nullifiers tx);
@@ -193,7 +193,7 @@ lookupExtraData {Key Value : Type} (key : Key) (tx : Transaction) : Maybe Value 
   in map (Bytes.unBytes >> anomaDecode) (Map.lookup (anomaEncode key |> natToBytes32) keyValueMap);
 
 mkExtraDataEntry {Key Value : Type} : Pair Key Value -> Pair Bytes32 Bytes
-  | (key, value) := natToBytes32 (anomaEncode key) , natToBytes (anomaEncode value);
+  | (key, value) := natToBytes32 (anomaEncode key), natToBytes (anomaEncode value);
 
 mkTransaction
   (nullifierKey : PrivateKey)
@@ -241,15 +241,3 @@ composeAll (txs : List Transaction) : Transaction :=
   for (acc := emptyTx) (tx in txs) {compose acc tx};
 
 rand : Nat := 0;
-
-module NatKeyValue;
-
-type Key := mkKey {path : List Nat};
-
-type Assignment A :=
-  assign {
-    key : Key;
-    value : A
-};
-
-end;
