@@ -8,14 +8,8 @@ import AnomaHelpers open;
 
 import Utils.Dummy.Resource open;
 
-initialize (self : KeyPair) : Transaction :=
-  let
-    dummy : Resource :=
-      mkDummy@{
-        npk := KeyPair.pubKey self;
-        eph := false
-      };
-  in mkTransaction@{
+initialize (self : KeyPair) (dummy : Resource) : Transaction :=
+  mkTransaction@{
     nullifierKey := KeyPair.privKey self;
     consumed := [dummy@Resource{   eph := true; npkContents := toAtom (KeyPair.pubKey self) }];
     created := [dummy];

@@ -1,0 +1,95 @@
+module Token.Tests.AnomaSimulator;
+
+import Stdlib.Prelude open;
+import Data.Map as Map open using {empty};
+import Test.Anoma open;
+import Test.JuvixUnit open;
+import Anoma open;
+import AnomaHelpers open;
+
+import Authorization.Identities open;
+import Resource.Error open;
+import Resource.Traits open;
+import Transaction as Tx open;
+import Utils.Dummy.Transaction as Dummy open using {initialize; finalize};
+
+import Token.Label open;
+import Token.Resource open;
+import Token.Tests.Helpers open;
+
+alice : KeyPair := Alice.keyPair;
+
+bob : KeyPair := Bob.keyPair;
+
+tokenUnboundSupply : Token :=
+  Token.create@{
+    quantity := 10;
+    tokenLabel :=
+      makeExampleLabel@{
+        originator := KeyPair.pubKey alice;
+        supply := Unbound
+      };
+    npk := KeyPair.pubKey alice
+  };
+
+dummyNfPair : Pair Resource Nullifier :=
+  makeExampleDummy@{
+    self := alice
+  };
+
+dummy : Resource := fst dummyNfPair;
+
+dummyNf : Nullifier := snd dummyNfPair;
+
+tokenFixedSupply : Token :=
+  Token.create@{
+    quantity := 10;
+    tokenLabel :=
+      makeExampleLabel@{
+        originator := KeyPair.pubKey alice;
+        supply := Fixed dummyNf
+      };
+    npk := KeyPair.pubKey alice
+  };
+
+txTokenUnboundInit : Transaction :=
+  txFromResult
+    Tx.initialize@{
+      self;
+      toInitialize := tokenUnboundSupply;
+      maybeDummy := nothing
+    };
+
+txTokenFixedInit : Transaction :=
+  txFromResult
+    Tx.initialize@{
+      self;
+      toInitialize := tokenFixedSupply;
+      maybeDummy := just dummy
+    };
+
+txTokenUnboundTransfer : Transaction :=
+  txFromResult
+    Tx.transfer@{
+      self;
+      toTransfer := tokenUnboundSupply;
+      receiver := Zero.pubKey
+    };
+
+main : IO :=
+  runTestSuite
+    (testSuite
+      "Anoma tests"
+      [ testCase "initialize dummy" (anomaAssertPass (verify (Dummy.initialize self dummy)))
+      ; testCase "finalize dummy" (anomaAssertPass (verify (Dummy.finalize self dummy)))
+      ; testCase
+        "initialize with unbound supply is valid"
+        (anomaAssertPass (verify txTokenUnboundInit))
+      --; testCase "initialize with fixed supply is valid" (anomaAssertPass (verify txTokenFixedInit))
+      -- -- Hangs with:
+      -- -- juvix: Stack space overflow: current size 33616 bytes.
+      -- -- juvix: Use `+RTS -Ksize -RTS' to increase it.
+      -- ; testCase
+      --   "transfer with unbound supply is valid"
+      --   (anomaAssertPass (verify txTokenUnboundTransfer))
+      ]);
