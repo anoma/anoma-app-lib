@@ -4,7 +4,7 @@ import PackageDescription.V2 open;
 
 package : Package :=
   defaultPackage@{
-    name := "anoma-app-patterns";
+    name := "anoma-app-lib";
     version := mkVersion 0 5 0;
     dependencies :=
       [ github "anoma" "juvix-stdlib" "v0.7.0"
