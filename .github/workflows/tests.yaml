@@ -1,4 +1,4 @@
-name: Test anoma-app-patterns
+name: Test anoma-app-lib
 
 on:
   push:
