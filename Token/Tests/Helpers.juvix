@@ -9,6 +9,8 @@ import Resource.Traits open;
 import Token.Label open;
 import Token.Resource open;
 
+import Utils.Dummy.Resource open;
+
 nf : Nullifier :=
   Nullifier.mk@{
     unNullifier := 123
@@ -16,27 +18,37 @@ nf : Nullifier :=
 
 self : KeyPair := Universal.keyPair;
 
-aliceKudosLabel : Label := exampleLabel@Label{originator := Alice.pubKey};
+makeExampleDummy (self : KeyPair) : Pair Resource Nullifier :=
+  let
+    dummy : Resource :=
+      mkDummy@{
+        npk := KeyPair.pubKey self;
+        eph := false
+      };
+    nf : Nullifier :=
+      nullifier@{
+        r := dummy;
+        privateKey := KeyPair.privKey self
+      };
+  in dummy, nf;
 
-bobKudosLabel : Label := exampleLabel@Label{originator := Bob.pubKey};
-
-aliceKudos : Kind := kindFromTokenLabel (aliceKudosLabel);
-
-bobKudos : Kind := kindFromTokenLabel (bobKudosLabel);
-
-exampleLabel : Label :=
+makeExampleLabel
+  (originator : PublicKey)
+  {supply : Supply := Unbound}
+  {transferability : Transferability := Transferability.Transferable}
+  : Label :=
   mkLabel@{
     name := "Kudos";
     symbol := "KDS";
     decimals := 18;
-    supply := Unbound;
-    transferability := Transferability.Transferable;
-    originator := KeyPair.pubKey self
+    supply;
+    transferability;
+    originator
   };
 
-exampleToken : Token :=
+makeExampleToken (self : KeyPair) (label : Label) : Token :=
   Token.create@{
     quantity := 1;
-    tokenLabel := exampleLabel;
+    tokenLabel := label;
     npk := KeyPair.pubKey self
   };

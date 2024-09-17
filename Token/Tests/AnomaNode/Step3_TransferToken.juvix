@@ -1,0 +1,28 @@
+module Token.Tests.AnomaNode.Step3_TransferToken;
+
+import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
+import Anoma open;
+
+import Token.Tests.AnomaNode.Step0_Setup open;
+import KeyValueStorage.Indexing open;
+import Transaction as General open;
+import Resource.Error open;
+
+-- Send 10 Alice Kudo tokens from Alice (the owner) to Bob (the receiver).
+
+tx : Transaction :=
+  txFromResult
+    General.send@{
+      self := alice;
+      quantity := 10;
+      toSend := token;
+      receiver := KeyPair.pubKey bob
+    };
+
+as : List (NatKeyValue.Assignment (Set Commitment)) :=
+  prepareAssignments@{
+    tx
+  };
+
+main : Transaction := tx;

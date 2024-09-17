@@ -1,0 +1,26 @@
+module Token.Tests.AnomaNode.Step2_InitializeToken;
+
+import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
+import Anoma open;
+
+import Token.Tests.AnomaNode.Step0_Setup open;
+import KeyValueStorage.Indexing open;
+import Transaction as General open;
+import Resource.Error open;
+
+-- Create 10 Kudo tokens as Alice (the originator) for Alice (the owner).
+tx : Transaction :=
+  txFromResult
+    General.initialize@{
+      self := alice;
+      toInitialize := token;
+      maybeDummy := just dummy
+    };
+
+as : List (NatKeyValue.Assignment (Set Commitment)) :=
+  prepareAssignments@{
+    tx
+  };
+
+main : Transaction := tx;

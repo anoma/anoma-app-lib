@@ -14,7 +14,6 @@ type ResourceRelationship :=
     mustBeConsumed : Set Nullifier
   };
 
--- TODO make signing optional
 mkResourceRelationshipExtraDataMapEntry
   (nullifierKey : PrivateKey)
   (mustBeConsumed : List Resource)
@@ -45,3 +44,31 @@ mkResourceRelationshipExtraData
     (map
       (mkResourceRelationshipExtraDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       origins);
+
+module FromConvertable;
+  import Resource.Traits.Convertable open;
+  import Transaction.Traits open;
+
+  --- Creates an extra data map entry for every consumed ;Convertable; ;Resource; of type `R1` with a ;ResourceRelationship; message and signature being stored at the consumed resources commitment  message. This message must be signed by the respective owner of the consumed resources and requires  all created ;Convertable; ;Resource; of type `R2` to be present in the ;Commitment; ;Set; of the transaction.
+  transactionWithAuthorizationExtraData
+    {R1 R2} {{Convertable R1}} {{Convertable R2}} : TransactionConvertable R1 R2 :=
+    mkTransactionConvertable@{
+      toTransaction (nk : PrivateKey) (consumedR1 : List R1) (createdR2 : List R2) : Transaction :=
+        let
+          consumed := map Convertable.toResource consumedR1;
+          created := map Convertable.toResource createdR2;
+        in mkTransaction@{
+          nullifierKey := nk;
+          consumed;
+          created;
+          extraData :=
+            mkResourceRelationshipExtraData@{
+              nullifierKey := nk;
+              origins := consumed;
+              mustBeConsumed := [];
+              mustBeCreated := created
+            }
+        }
+    };
+
+end;
