@@ -1,8 +1,12 @@
 module Transaction.Traits;
 
 import Stdlib.Prelude open;
-import Anoma open;
+import Anoma.Transaction open;
+import Anoma.Identity open;
 
 trait
 type TransactionConvertable R1 R2 :=
-  mkTransactionConvertable {toTransaction : PrivateKey -> List R1 -> List R2 -> Transaction};
+  mkTransactionHelperConvertable {toTransaction : Identity
+    -> List R1
+    -> List R2
+    -> Transaction};
