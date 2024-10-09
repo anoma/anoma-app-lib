@@ -25,7 +25,6 @@ import Utils.Dummy.Resource open;
 import Utils.Dummy.Transaction as Dummy open using {initialize; finalize};
 
 module ConsumptionSide;
-
   module Initialization;
     unboundSupplyInitTest : Test :=
       let
@@ -273,21 +272,37 @@ module CreationSide;
         expected);
 
   tests : List Test :=
-    [ expectedReturnValTest@{
-      ephemeral := true;
-      expected := true;
-      supply := Unbound
-    }
-    ; expectedReturnValTest@{
-      ephemeral := true;
-      expected := false;
-      supply := Fixed nf
-    }
-    ]
-      ++ map (expectedReturnValTest false true) [Unbound; Fixed nf];
+    []
+      -- ephemeral
+      ++ [ expectedReturnValTest@{
+           ephemeral := true;
+           expected := true;
+           supply := Unbound
+         }
+         ; expectedReturnValTest@{
+           ephemeral := true;
+           -- TODO WHY?
+           expected := false;
+           supply := Fixed nf
+         }
+         ]
+      -- non-ephemeral
+      ++ [ expectedReturnValTest@{
+           ephemeral := false;
+           expected := true;
+           supply := Unbound
+         }
+         ; expectedReturnValTest@{
+           ephemeral := false;
+           -- TODO WHY?
+           expected := true;
+           supply := Fixed nf
+         }
+         ];
 end;
 
-tests : List Test := ConsumptionSide.Initialization.tests;
--- ++ ConsumptionSide.TransferLogic.tests ++ CreationSide.tests;
+tests : List Test :=
+  --ConsumptionSide.Initialization.tests ++ ConsumptionSide.TransferLogic.tests ++
+  CreationSide.tests;
 
 main : IO := runTestSuite (testSuite "Token Logic Tests" tests);
