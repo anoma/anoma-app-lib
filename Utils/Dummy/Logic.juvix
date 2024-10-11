@@ -1,8 +1,0 @@
-module Utils.Dummy.Logic;
-
-import Stdlib.Prelude open;
-import Anoma.Resource open;
-import Anoma.Proving.Types open;
-
-alwaysTrueLogic
-  (publicInputs : ResourceLogic.Instance) (privateInputs : ResourceLogic.Witness) : Bool := true;

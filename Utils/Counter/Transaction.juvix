@@ -62,7 +62,7 @@ incrementCounter (currentCounter : Resource) : Transaction :=
       };
     extra :=
       Set.fromList
-        [ mkResourceRelationshipExtraDataMapEntry@{
+        [ mkResourceRelationshipAppDataMapEntry@{
           nullifierKey := Universal.nullifierKey;
           origin := currentCounter;
           mustBeConsumed := [];

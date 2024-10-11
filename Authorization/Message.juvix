@@ -20,7 +20,7 @@ type ResourceRelationship :=
     mustBeConsumed : Set Nullifier
   };
 
-mkResourceRelationshipExtraDataMapEntry
+mkResourceRelationshipAppDataMapEntry
   (nullifierKey : Resource.NullifierKey)
   (mustBeConsumed : List Resource)
   (mustBeCreated : List Resource)
@@ -44,7 +44,7 @@ mkResourceRelationshipExtraDataMapEntry
   };
 
 --- TODO revisit
-mkResourceRelationshipExtraData
+mkResourceRelationshipAppData
   (nullifierKey : Resource.NullifierKey)
   (origins : List Resource)
   (mustBeConsumed : List Resource)
@@ -52,7 +52,7 @@ mkResourceRelationshipExtraData
   : AppData :=
   Set.fromList
     (map
-      (mkResourceRelationshipExtraDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
+      (mkResourceRelationshipAppDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       origins);
 
 module FromConvertable;
@@ -60,25 +60,23 @@ module FromConvertable;
   import Transaction.Traits open;
 
   --- Creates an extra data map entry for every consumed ;Convertable; ;Resource; of type `R1` with a ;ResourceRelationship; message and signature being stored at the consumed resources commitment  message. This message must be signed by the respective owner of the consumed resources and requires  all created ;Convertable; ;Resource; of type `R2` to be present in the ;Commitment; ;Set; of the transaction.
-  transactionWithAuthorizationExtraData
+  transactionWithAuthorizationAppData
     {R1 R2} {{Convertable R1}} {{Convertable R2}} : TransactionConvertable R1 R2 :=
-    mkTransactionHelperConvertable@{
+    mkTransactionConvertable@{
       toTransaction
-        (identity : Identity)
+        (standardInputs : StandardInputs)
         (consumedR1 : List R1)
         (createdR2 : List R2)
         : Transaction.Transaction :=
+        -- TODO: Nullifier Computation. Provide a key for each resources vs. 
         let
           consumed := map Convertable.toResource consumedR1;
           created := map Convertable.toResource createdR2;
-        in mkTransactionHelper@{
-          identity;
-          consumed;
-          created;
-          extraData :=
-            mkResourceRelationshipExtraData@{
+          appData :=
+            mkResourceRelationshipAppData@{
               nullifierKey :=
-                identity
+                 standardInputs 
+                  |> StandardInputs.identity
                   |> Identity.internal
                   |> InternalIdentity.unInternalIdentity
                   |> mkNullifierKey;
@@ -86,6 +84,11 @@ module FromConvertable;
               mustBeConsumed := [];
               mustBeCreated := created
             }
+        in mkTransactionHelper@{
+          roots := StandardInputs.currentRoot standardInputs;
+          actions := Set.node mkActionHelper@{
+            consumed; created; appData; 
+          };
         }
     };
 

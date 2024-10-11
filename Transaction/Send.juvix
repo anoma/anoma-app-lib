@@ -44,7 +44,10 @@ send
        | GT :=
          let
            difference : Quantity :=
-             intSubNat (Quantity.unQuantity balance) (Quantity.unQuantity quantity)
+             -- TODO improve
+                 intSubNat
+                 (Quantity.unQuantity balance)
+                 (Quantity.unQuantity quantity)
                |> toNat
                |> mkQuantity;
          in split self toSend [quantity, receiver; difference, myself];

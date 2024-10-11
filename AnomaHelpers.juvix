@@ -10,55 +10,39 @@ import Data.Map as Map open using {Map};
 import Anoma.Identity open;
 import Anoma.Resource as Resource open;
 import Anoma.Transaction as Transaction open;
---import Anoma.Transaction.Object as Transaction open using {commitmentSet; nullifierSet};
+import Anoma.State.CommitmentTree as CommitmentTree open;
+import Anoma.Proving.DeltaProof as DeltaProof open;
+import Anoma.Proving.ComplianceProof as ComplianceProof open;
+import Anoma.Proving.ResourceLogicProof as ResourceLogicProof open;
+import Anoma.Utils open;
+
+import Anoma.Delta as Delta open;
 import Anoma.Builtin.System open;
+import Anoma.Builtin.ByteArray open;
 import Anoma.Proving.Types open;
 
-{-
--- TODO Replace by ByteArray / List Byte and delete
-type Bytes32 := mkBytes32 {unBytes32 : Nat};
-
-instance
-Bytes32-Ord : Ord Bytes32 :=
-  mkOrd@{
-    cmp : Bytes32 -> Bytes32 -> Ordering
-      | (mkBytes32 b1) (mkBytes32 b2) := Ord.cmp b1 b2
-  };
-
-instance
-Bytes32-Eq : Eq Bytes32 := Stdlib.Trait.Ord.Eq.fromOrdToEq;
-
-instance
-Bytes32-Show : Show Bytes32 := mkShow \ {b := natToString (Bytes32.unBytes32 b)};
-
-natToBytes32 : Nat -> Bytes32 := mkBytes32;
-
-type Bytes := mkBytes {unBytes : Nat};
-
-instance
-Bytes-Ord : Ord Bytes :=
-  mkOrd@{
-    cmp : Bytes -> Bytes -> Ordering
-      | (mkBytes b1) (mkBytes b2) := Ord.cmp b1 b2
-  };
-
-natToBytes : Nat -> Bytes := mkBytes;
--}
-
--- TODO Refactor
 instance
 ExternalIdentity-Show : Show ExternalIdentity :=
-  failwith "`ExternalIdentity-Show : Show ExternalIdentity` NOT IMPLEMENTED";
---mkShow \ {e := natToString (ExternalIdentity.unExternalIdentity e)};
+  mkShow \ {id := id |> ExternalIdentity.unExternalIdentity |> toAnomaContents |> natToString};
 
--- TODO Refactor
 instance
 InternalIdentity-Show : Show InternalIdentity :=
-  failwith "`InternalIdentity-Show : Show InternalIdentity` NOT IMPLEMENTED";
---mkShow \ {e := natToString (InternalIdentity.unInternalIdentity e)};
+  mkShow \ {id := id |> InternalIdentity.unInternalIdentity |> toAnomaContents |> natToString};
+
+instance
+Identity-Show : Show Identity :=
+  mkShow
+    \ {id :=
+      "{"
+        ++str "external : "
+        ++str (id |> Identity.external |> Show.show)
+        ++str ", "
+        ++str "internal : "
+        ++str (id |> Identity.internal |> Show.show)
+        ++str "}"};
 
 findCreatedResource (commitment : Commitment) (resources : Set Resource) : Maybe Resource :=
-  find \ {r := Resource.commitment r == commitment} (Set.toList resources);
+  find \ {resource := Resource.commitment resource == commitment} (Set.toList resources);
 
 -- TODO where to get the nullifierKey from. Probably customInputs
 findConsumedResource
@@ -66,7 +50,7 @@ findConsumedResource
   (nullifierKey : NullifierKey)
   (resources : Set Resource)
   : Maybe Resource :=
-  find \ {r := Resource.nullifier r nullifierKey == nullifier} (Set.toList resources);
+  find \ {resource := Resource.nullifier nullifierKey resource == nullifier} (Set.toList resources);
 
 -- TODO Refactor
 isCreated (commitment : Commitment) (publicInputs : ResourceLogic.Instance) : Bool :=
@@ -77,10 +61,8 @@ isConsumed (nullifier : Nullifier) (publicInputs : ResourceLogic.Instance) : Boo
   Set.member? nullifier (ResourceLogic.Instance.nullifiers publicInputs);
 
 -- TODO Refactor.
---lifecycle (r : Resource) (tx : Transaction) : Lifecycle :=
---  failwith "`lifecycle (r : Resource) (tx : Transaction) : Lifecycle ` NOT IMPLEMENTED";
-
 {-
+lifecycle (r : Resource) (tx : Transaction) : Lifecycle :=
   let
     rs := partitionResources tx;
     consumed := ResourcePartition.consumed rs;
@@ -134,52 +116,116 @@ lookupCustomInputs
     appData := customInputs
   };
 
-{-
-lookupExtraData {Key Value : Type} (key : Key) (tx : Transaction) : Maybe Value :=
+type StandardInputs :=
+  mkStandardInputs {
+    identity : Identity;
+    currentRoot : CommitmentTree.Root
+  };
+
+type CreatedResource := mkCreatedResource {resource : Resource};
+
+type ConsumedResource :=
+  mkConsumedResource {
+    resource : Resource;
+    nullifierKey : NullifierKey
+  };
+
+alwaysTrueLogic
+  (publicInputs : ResourceLogic.Instance) (privateInputs : ResourceLogic.Witness) : Bool := true;
+
+emptyResource : Resource :=
+  mkResource@{
+    logicRef := Ref.toRef alwaysTrueLogic;
+    labelRef := Ref.toRef (mkLabel 0);
+    valueRef := Ref.toRef (mkValue 0);
+    quantity := 0;
+    ephemeral := true;
+    nullifierKeyCommitment := Universal.nullifierKeyCommitment;
+    nonce := mkNonce rand;
+    randSeed := mkRandSeed rand
+  };
+
+emptyDeltaProof : DeltaProof.ProofRecord :=
   let
-    keyValueMap : Map Bytes32 Bytes := anomaDecode (Transaction.extra tx);
-  in map (Bytes.unBytes >> anomaDecode) (Map.lookup (anomaEncode key |> natToBytes32) keyValueMap);
+    verifyingKey := Delta.mkVerifyingKey unit;
+    provingKey := Delta.mkProvingKey unit;
+    instance' := Delta.mkInstance unit;
+    witness := Delta.mkWitness unit;
+    proof := DeltaProof.prove provingKey instance' witness;
+  in verifyingKey, proof, witness;
 
-mkExtraDataEntry {Key Value : Type} : Pair Key Value -> Pair Bytes32 Bytes
-  | (key, value) := natToBytes32 (anomaEncode key), natToBytes (anomaEncode value);
-
-computeDelta (consumed : List Resource) (created : List Resource) : Delta :=
+emptyResourceLogicProof : ResourceLogicProof.ProofRecord :=
   let
-    withCreatedDelta : DeltaMap := for (acc := emptyDeltaMap) (r in created) addDelta acc r;
-    withConsumedDelta : DeltaMap := for (acc := withCreatedDelta) (r in consumed) subDelta acc r;
-  in toDelta withConsumedDelta;
--}
+    verifyingKey := ResourceLogic.mkVerifyingKey unit;
+    provingKey := ResourceLogic.mkProvingKey emptyResource;
+    instance' :=
+      ResourceLogic.mkInstance@{
+        tag := ResourceLogic.Created (commitment emptyResource);
+        commitments := Set.empty;
+        nullifiers := Set.empty;
+        appData := Set.empty
+      };
+    witness :=
+      ResourceLogic.mkWitness@{
+        created := Set.empty;
+        consumed := Set.empty;
+        custom := Set.empty
+      };
+    proof := ResourceLogicProof.prove provingKey instance' witness;
+  in verifyingKey, proof, witness;
 
---- TODO Refactor to use actions
-mkTransactionHelper
-  (identity : Identity)
+emptyComplianceProof : ComplianceProof.ProofRecord :=
+  let
+    verifyingKey := Compliance.mkVerifyingKey unit;
+    provingKey := Compliance.mkProvingKey unit;
+    instance' := Compliance.mkInstance unit;
+    witness := Compliance.mkWitness unit;
+    proof := ComplianceProof.prove provingKey instance' witness;
+  in verifyingKey, proof, witness;
+
+--- A function computing a ;Nullifier; from a ;Resource; and ;ResourceLogic.CustomInputs;.
+--- This expects ;NullifierKey; to be present in the ;ResourceLogic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
+--- If the entry is not present, the ;Universal.nullifierKey; is used instead.
+nullifierFromCustomInputs (customInputs : ResourceLogic.CustomInputs) : Resource -> Nullifier :=
+  \ {resource :=
+    nullifier@{
+      resource;
+      nullifierKey :=
+        fromMaybe
+          (Universal.nullifierKey)
+          lookupCustomInputs@{
+            key := resource;
+            customInputs
+          }
+    }};
+
+--- This expects ;NullifierKey; to be present in the ;ResourceLogic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
+--- If the resource is not present, ;Universal.nullifierKey; is used instead.
+mkActionHelper
   (consumed : List Resource)
   (created : List Resource)
-  (extraData : AppData)
-  --Map Bytes32 Bytes)
-  : Transaction := failwith "`mkTransactionHelper` NOT IMPLEMENTED";
-
-{-
-  Transaction.mk@{
-    roots := [];
-    commitments := map commitment created;
-    nullifiers := map (r in consumed) nullifier r nullifierKey;
-    proofs := consumed ++ created;
-    delta :=
-      computeDelta@{
-        consumed;
-        created
-      };
-    extra := anomaEncode (extraData);
-    preference := 0
+  (appData : AppData)
+  (customInputs : ResourceLogic.CustomInputs)
+  : Action :=
+  mkAction@{
+    commitments := Set.fromList (map commitment (created));
+    nullifiers := Set.fromList (map (nullifierFromCustomInputs customInputs) (consumed));
+    proofs := Set.empty;
+    appData
   };
-  -}
+
+mkTransactionHelper (roots : Set CommitmentTree.Root) (actions : Set Action) : Transaction :=
+  mkTransaction@{
+    roots;
+    actions;
+    delta := Delta.zero;
+    deltaProof := emptyDeltaProof
+  };
+
 emptyTx : Transaction :=
   mkTransactionHelper@{
-    identity := Universal.identity;
-    consumed := [];
-    created := [];
-    extraData := Set.empty
+    roots := Set.empty;
+    actions := Set.empty
   };
 
 composeAll (txs : List Transaction) : Transaction :=

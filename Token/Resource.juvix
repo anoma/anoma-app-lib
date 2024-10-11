@@ -25,7 +25,7 @@ module Token;
       mkResource@{
         logicRef :=
           Ref.toRef (tokenLogic (TokenLabel.supply tokenLabel) (TokenLabel.originator tokenLabel));
-        labelRef := toLabelRef tokenLabel;
+        labelRef := Ref.toRef (tokenLabel |> anomaEncode |> mkLabel);
         valueRef := Ref.toRef (mkValue 0);
         quantity;
         ephemeral;
@@ -59,7 +59,6 @@ kindFromTokenLabel (tokenLabel : TokenLabel) : Kind :=
 
 instance
 Token-HasQuantity : HasQuantity Token := FromConvertable.hasQuantity {Token};
-
 
 instance
 Token-HasOwner : HasOwner Token := FromConvertable.hasOwner {Token};

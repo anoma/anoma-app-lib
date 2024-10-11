@@ -5,8 +5,6 @@ import Anoma.Resource open;
 import Anoma.Utils open;
 import AnomaHelpers open;
 
-import Utils.Dummy.Logic open;
-
 mkDummy (nullifierKeyCommitment : NullifierKeyCommitment) (ephemeral : Bool) : Resource :=
   mkResource@{
     logicRef := Ref.toRef alwaysTrueLogic;

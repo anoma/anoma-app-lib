@@ -6,7 +6,6 @@ import Anoma.Utils open;
 import Anoma.Builtin.System open;
 import AnomaHelpers open;
 
---import Resource.Traits open;
 import Utils.Counter.Logic open;
 import Utils.Counter.Label open;
 
@@ -18,6 +17,7 @@ mkCounter
   : Resource :=
   mkResource@{
     logicRef := Ref.toRef counterLogic;
+    -- TODO refactor
     labelRef := uniqueLabel |> anomaEncode |> mkLabel |> Ref.toRef;
     valueRef := count |> mkValue |> Ref.toRef;
     quantity := 1;

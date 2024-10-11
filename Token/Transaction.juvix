@@ -9,12 +9,12 @@ import Authorization.Message open;
 
 instance
 Token-Token-TransactionConvertable : TransactionConvertable Token Token :=
-  FromConvertable.transactionWithAuthorizationExtraData {Token} {Token};
+  FromConvertable.transactionWithAuthorizationAppData {Token} {Token};
 
 instance
 Token-SwapIntent-TransactionConvertable : TransactionConvertable Token SwapIntent :=
-  FromConvertable.transactionWithAuthorizationExtraData {Token} {SwapIntent};
+  FromConvertable.transactionWithAuthorizationAppData {Token} {SwapIntent};
 
 instance
 SwapIntent-Token-TransactionConvertable : TransactionConvertable SwapIntent Token :=
-  FromConvertable.transactionWithAuthorizationExtraData {SwapIntent} {Token};
+  FromConvertable.transactionWithAuthorizationAppData {SwapIntent} {Token};
