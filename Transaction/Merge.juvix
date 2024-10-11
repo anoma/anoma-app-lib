@@ -8,6 +8,7 @@ import Anoma.Transaction open;
 import Resource.Error open;
 import Resource.Traits open;
 import Transaction.Traits open;
+import AnomaHelpers open;
 
 --- Merges ;Convertable; typed ;Resource;s of the same ;Kind;.
 --- The function returns a ;StandardError; if the ;Convertable; ;Resource;s
@@ -22,7 +23,7 @@ merge
   {{HasQuantity R}}
   {{HasKind R}}
   {{TransactionConvertable R R}}
-  (self : Identity)
+  (standardInputs : StandardInputs)
   (toMerge : List R)
   (receiver : ExternalIdentity)
   : Result StandardError Transaction :=
@@ -35,7 +36,7 @@ merge
         }
     | t :: _ :=
       let
-        myself : ExternalIdentity := Identity.external self;
+        self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
         expectedKind : Kind := HasKind.get t;
         totalQuantity : Quantity := listFor (acc := 0) (ti in toMerge) {HasQuantity.get ti + acc};
         merged := HasOwner.set receiver (HasQuantity.set totalQuantity t);
@@ -50,11 +51,12 @@ merge
                      actual := otherKind
                    }
                | nothing :=
-                 case find ((/=) myself) (map (HasOwner.get) toMerge) of
+                 case find ((/=) self) (map (HasOwner.get) toMerge) of
                    | just notMyself :=
                      throw
                        mkUnauthorizedError@{
-                         expected := myself;
+                         expected := self;
                          actual := notMyself
                        }
-                   | nothing := ok (TransactionConvertable.toTransaction self toMerge [merged]);
+                   | nothing :=
+                     ok (TransactionConvertable.toTransaction standardInputs toMerge [merged]);

@@ -10,6 +10,7 @@ import Resource.Error open;
 import Resource.Traits open;
 import Transaction.Traits open;
 import Utils.Dummy.Transaction as Dummy open using {finalize};
+import Authorization.Identities open;
 
 --- Initializes a ;Convertable; typed ;Resource;.
 --- For tokens with fixed supply, a dummy is required.
@@ -24,19 +25,15 @@ initialize
   {{HasSupply R}}
   {{HasEphemerality R}}
   {{TransactionConvertable R R}}
-  (self : Identity)
+  (standardInputs : StandardInputs)
   (toInitialize : R)
   (maybeDummy : Maybe Resource)
   : Result StandardError Transaction :=
   let
-    -- TODO Refactor
-    nk : NullifierKey :=
-      self |> Identity.internal |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
-    ephResource : R :=
-      HasEphemerality.set
-        Ephemerality.Ephemeral
-        (HasOwner.set (Identity.external self) toInitialize);
-    tx : Transaction := TransactionConvertable.toTransaction self [ephResource] [toInitialize];
+    self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
+    ephResource : R := HasEphemerality.set Ephemerality.Ephemeral (HasOwner.set self toInitialize);
+    tx : Transaction :=
+      TransactionConvertable.toTransaction standardInputs [ephResource] [toInitialize];
   in case HasSupply.get toInitialize of
        | Unbound :=
          case maybeDummy of {
@@ -52,7 +49,7 @@ initialize
            mkDefaultError@{
              msg := "Tokens with capped supply are not supported yet."
            }
-       | Fixed nf :=
+       | Fixed expectedNullifier :=
          case maybeDummy of
            | nothing :=
              throw
@@ -61,20 +58,26 @@ initialize
                    "A resource to consume must be provided whose nullifier is referenced in the fixed supply type."
                }
            | just dummy :=
-             case nullifier dummy nk == nf of
-               | false :=
-                 throw
-                   mkDefaultError@{
-                     msg :=
-                       "The provided resource's nullifier does not match the one referenced in the fixed supply type."
-                   }
-               | true :=
-                 ok
-                   composeTransactions@{
-                     tx1 := tx;
-                     tx2 :=
-                       Dummy.finalize@{
-                         self;
-                         dummy
-                       }
-                   };
+             let
+               actualNullifier :=
+                 nullifier@{
+                   resource := dummy;
+                   nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey
+                 };
+             in case actualNullifier == expectedNullifier of
+                  | false :=
+                    throw
+                      mkDefaultError@{
+                        msg :=
+                          "The provided resource's nullifier does not match the one referenced in the fixed supply type."
+                      }
+                  | true :=
+                    ok
+                      composeTransactions@{
+                        tx1 := tx;
+                        tx2 :=
+                          Dummy.finalize@{
+                            standardInputs;
+                            dummy
+                          }
+                      };

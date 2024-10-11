@@ -8,20 +8,26 @@ import Anoma.Transaction open;
 import Anoma.Identity open;
 import AnomaHelpers open;
 
+import Authorization.Identities open;
 import Utils.Dummy.Resource open;
 
-initialize (self : Identity) (dummy : Resource) : Transaction :=
+initialize (standardInputs : StandardInputs) (dummy : Resource) : Transaction :=
   mkTransactionHelper@{
-    identity := self;
-    consumed :=
-      [ dummy@Resource{
-        ephemeral := true;
-        nullifierKeyCommitment := self
-          |> Identity.external
-          |> ExternalIdentity.unExternalIdentity
-          |> mkNullifierKeyCommitment
-      }
-      ];
-    created := [dummy];
-    extraData := Set.empty
+    roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+    actions :=
+      Set.fromList
+        [ mkActionHelper@{
+          nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey;
+          consumed :=
+            [ dummy@Resource{
+              ephemeral := true;
+              nullifierKeyCommitment := standardInputs
+                |> StandardInputs.identity
+                |> toNullifierKeyCommitment
+            }
+            ];
+          created := [dummy];
+          appData := Set.empty
+        }
+        ]
   };

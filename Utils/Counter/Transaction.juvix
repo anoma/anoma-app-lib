@@ -17,9 +17,13 @@ import Utils.Counter.Label open;
 import Utils.Counter.Resource open;
 
 --- Requires a consumable `Utils.Dummy.Resource`.
-createCounter (self : Identity) (consumableDummy : Resource) : Result StandardError Transaction :=
+createCounter
+  (standardInputs : StandardInputs)
+  (consumableDummy : Resource)
+  : Result StandardError Transaction :=
   let
-    nullifierKeyCommitment := toNullifierKeyCommitment self;
+    nullifierKeyCommitment := standardInputs |> StandardInputs.identity |> toNullifierKeyCommitment;
+    nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey;
     ephDummy : Resource :=
       mkDummy@{
         nullifierKeyCommitment;
@@ -37,20 +41,31 @@ createCounter (self : Identity) (consumableDummy : Resource) : Result StandardEr
           mkCounter@{
             nullifierKeyCommitment;
             ephemeral := true;
-            uniqueLabel := mkCounterLabel (nullifier consumableDummy (toNullifierKey self));
+            uniqueLabel := mkCounterLabel (nullifier nullifierKey consumableDummy);
             count := 0
           };
         newCounter :=
           mkCounter@{
             nullifierKeyCommitment := Universal.nullifierKeyCommitment;
             ephemeral := false;
-            uniqueLabel := mkCounterLabel (nullifier consumableDummy (Universal.nullifierKey));
+            uniqueLabel := mkCounterLabel (nullifier (Universal.nullifierKey) consumableDummy);
             count := 0
           };
       in ok
-        (mkTransactionHelper self [consumableDummy; ephCounter] [ephDummy; newCounter] Set.empty);
+        mkTransactionHelper@{
+          roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+          actions :=
+            Set.fromList
+              [ mkActionHelper@{
+                nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey;
+                consumed := [consumableDummy; ephCounter];
+                created := [ephDummy; newCounter];
+                appData := Set.empty
+              }
+              ]
+        };
 
-incrementCounter (currentCounter : Resource) : Transaction :=
+incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) : Transaction :=
   let
     updatedCounter : Resource :=
       mkCounter@{
@@ -60,7 +75,7 @@ incrementCounter (currentCounter : Resource) : Transaction :=
         count :=
           (currentCounter |> Resource.valueRef |> Ref.fromRef |> Value.unValue |> anomaDecode) + 1
       };
-    extra :=
+    appData :=
       Set.fromList
         [ mkResourceRelationshipAppDataMapEntry@{
           nullifierKey := Universal.nullifierKey;
@@ -69,4 +84,15 @@ incrementCounter (currentCounter : Resource) : Transaction :=
           mustBeCreated := [updatedCounter]
         }
         ];
-  in mkTransactionHelper Universal.identity [currentCounter] [updatedCounter] extra;
+  in mkTransactionHelper@{
+    roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+    actions :=
+      Set.fromList
+        [ mkActionHelper@{
+          nullifierKey := Universal.nullifierKey;
+          consumed := [currentCounter];
+          created := [updatedCounter];
+          appData
+        }
+        ]
+  };

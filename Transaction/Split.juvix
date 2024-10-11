@@ -9,6 +9,8 @@ import Resource.Error open;
 import Resource.Traits open;
 import Transaction.Traits open;
 
+import AnomaHelpers open;
+
 --- Splits a ;Convertable; typed ;Resource;.
 --- The function returns a ;StandardError; if the ;Convertable; ;Resource;
 --- - is ;Transferability.NonTransferable;
@@ -21,12 +23,12 @@ split
   {{HasQuantity R}}
   {{HasTransferability R}}
   {{TransactionConvertable R R}}
-  (self : Identity)
+  (standardInputs : StandardInputs)
   (toSplit : R)
   (quantitiesAndReceivers : List (Pair Quantity ExternalIdentity))
   : Result StandardError Transaction :=
   let
-    myself : ExternalIdentity := Identity.external self;
+    self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
     owner : ExternalIdentity := HasOwner.get toSplit;
     toSplitResource := Convertable.toResource toSplit;
     sum : Quantity := listFor (acc := 0) (quantity, _ in quantitiesAndReceivers) {quantity + acc};
@@ -38,11 +40,11 @@ split
   in case HasTransferability.get toSplit of
        | NonTransferable := throw mkNonTransferableError
        | Transferable :=
-         case owner == myself of
+         case owner == self of
            | false :=
              throw
                mkUnauthorizedError@{
-                 expected := myself;
+                 expected := self;
                  actual := owner
                }
            | true :=
@@ -53,4 +55,4 @@ split
                      limit := balance;
                      actual := sum
                    }
-               | true := ok (TransactionConvertable.toTransaction self [toSplit] created);
+               | true := ok (TransactionConvertable.toTransaction standardInputs [toSplit] created);

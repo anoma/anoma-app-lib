@@ -9,6 +9,8 @@ import Resource.Error open;
 import Resource.Traits open;
 import Transaction.Traits open;
 
+import AnomaHelpers open;
+
 --- Transfers a ;Convertable; resource type to a receiver, if the calling ;Identity; is the owner.
 --- The function returns a ;StandardError; if the ;Convertable; ;Resource;
 --- - is non-transferable
@@ -19,22 +21,23 @@ transfer
   {{HasTransferability R}}
   {{HasOwner R}}
   {{TransactionConvertable R R}}
-  (self : Identity)
+  (standardInputs : StandardInputs)
   (toTransfer : R)
   (receiver : ExternalIdentity)
   : Result StandardError Transaction :=
   let
-    myself : ExternalIdentity := Identity.external self;
+    self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
     owner : ExternalIdentity := HasOwner.get toTransfer;
     transferred : R := HasOwner.set receiver toTransfer;
   in case HasTransferability.get toTransfer of
        | NonTransferable := throw mkNonTransferableError
        | Transferable :=
-         case owner == myself of
+         case owner == self of
            | false :=
              throw
                mkUnauthorizedError@{
-                 expected := myself;
+                 expected := self;
                  actual := owner
                }
-           | true := ok (TransactionConvertable.toTransaction self [toTransfer] [transferred]);
+           | true :=
+             ok (TransactionConvertable.toTransaction standardInputs [toTransfer] [transferred]);

@@ -12,6 +12,8 @@ import Transaction.Traits open;
 import Transaction.Transfer open;
 import Transaction.Split open;
 
+import AnomaHelpers open;
+
 --- Sends a ;HasQuantity; of token ;Resource; to a receiver, if the calling ;Identity; is the owner.
 --- If the quantity is lower than of the quantity of the consumed ;Resource;, the function creates
 --- a second ;Resource; with the difference being owned by the caller.
@@ -25,13 +27,13 @@ send
   {{HasQuantity R}}
   {{HasTransferability R}}
   {{TransactionConvertable R R}}
-  (self : Identity)
+  (standardInputs : StandardInputs)
   (toSend : R)
   (quantity : Quantity)
   (receiver : ExternalIdentity)
   : Result StandardError Transaction :=
   let
-    myself : ExternalIdentity := Identity.external self;
+    self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
     balance : Quantity := HasQuantity.get toSend;
   in case QuantityInternal.compare balance quantity of
        | LT :=
@@ -40,7 +42,7 @@ send
              limit := balance;
              actual := quantity
            }
-       | EQ := transfer self toSend receiver
+       | EQ := transfer standardInputs toSend receiver
        | GT :=
          let
            difference : Quantity :=
@@ -50,4 +52,4 @@ send
                  (Quantity.unQuantity quantity)
                |> toNat
                |> mkQuantity;
-         in split self toSend [quantity, receiver; difference, myself];
+         in split standardInputs toSend [quantity, receiver; difference, self];

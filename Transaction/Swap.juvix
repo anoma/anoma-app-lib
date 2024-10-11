@@ -21,10 +21,11 @@ swap
   {{HasOwner R}}
   {{HasTransferability R}}
   {{TransactionConvertable R I}}
-  (self : Identity)
+  (standardInputs : StandardInputs)
   (toSwap : List R)
   (intent : I)
   : Result StandardError Transaction :=
+
   case toSwap of
     | nil :=
       throw
@@ -36,32 +37,36 @@ swap
       case find ((/=) (Transferability.Transferable)) (map HasTransferability.get toSwap) of
         | just _ := throw mkNonTransferableError
         | nothing :=
-          case find ((/=) (Identity.external self)) (map HasOwner.get toSwap) of
-            | just notMyself :=
-              throw
-                mkUnauthorizedError@{
-                  expected := Identity.external self;
-                  actual := notMyself
-                }
-            | nothing := ok (TransactionConvertable.toTransaction self toSwap [intent]);
+          let
+            self : ExternalIdentity :=
+              standardInputs |> StandardInputs.identity |> Identity.external;
+          in case find ((/=) (self)) (map HasOwner.get toSwap) of
+               | just notMyself :=
+                 throw
+                   mkUnauthorizedError@{
+                     expected := self;
+                     actual := notMyself
+                   }
+               | nothing :=
+                 ok (TransactionConvertable.toTransaction standardInputs toSwap [intent]);
 
 --- Settles a ;List; of swap ;Transaction;s by composing them with
 --- ;Transaction;s obtained from a ;List; of ;Solution;s.
 --- The function returns a ;StandardError; if
 --- - the calling ;Identity; is not designated intent solver.
 settle
-  (self : Identity)
+  (standardInputs : StandardInputs)
   (txs : List Transaction)
   (solutions : List Solution)
   : Result StandardError Transaction :=
   let
-    myself := Identity.external self;
-    solutionTxs := map (Solution.toTransaction self) (solutions);
-  in case find ((/=) myself) (map \ {s := HasOwner.get (Solution.intent s)} solutions) of
+    self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
+    solutionTxs := map (Solution.toTransaction standardInputs) (solutions);
+  in case find ((/=) self) (map \ {s := HasOwner.get (Solution.intent s)} solutions) of
        | just notMyself :=
          throw
            mkUnauthorizedError@{
-             expected := myself;
+             expected := self;
              actual := notMyself
            }
        | nothing := ok (composeAll (txs ++ solutionTxs));

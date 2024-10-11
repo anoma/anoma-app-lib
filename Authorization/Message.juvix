@@ -29,7 +29,7 @@ mkResourceRelationshipAppDataMapEntry
   let
     originCm : Resource.Commitment := commitment origin;
     consumedNfs : Set Resource.Nullifier :=
-      Set.fromList (map \ {r := nullifier r nullifierKey} mustBeConsumed);
+      Set.fromList (map \ {r := nullifier nullifierKey r} mustBeConsumed);
     createdCms : Set Resource.Commitment := Set.fromList (map commitment mustBeCreated);
     msg : ResourceRelationship :=
       mkResourceRelationship@{
@@ -51,9 +51,7 @@ mkResourceRelationshipAppData
   (mustBeCreated : List Resource)
   : AppData :=
   Set.fromList
-    (map
-      (mkResourceRelationshipAppDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
-      origins);
+    (map (mkResourceRelationshipAppDataMapEntry nullifierKey mustBeConsumed mustBeCreated) origins);
 
 module FromConvertable;
   import Resource.Traits.Convertable open;
@@ -61,34 +59,44 @@ module FromConvertable;
 
   --- Creates an extra data map entry for every consumed ;Convertable; ;Resource; of type `R1` with a ;ResourceRelationship; message and signature being stored at the consumed resources commitment  message. This message must be signed by the respective owner of the consumed resources and requires  all created ;Convertable; ;Resource; of type `R2` to be present in the ;Commitment; ;Set; of the transaction.
   transactionWithAuthorizationAppData
-    {R1 R2} {{Convertable R1}} {{Convertable R2}} : TransactionConvertable R1 R2 :=
+    {ConsumedResource CreatedResource}
+    {{Convertable ConsumedResource}}
+    {{Convertable CreatedResource}}
+    : TransactionConvertable ConsumedResource CreatedResource :=
     mkTransactionConvertable@{
       toTransaction
         (standardInputs : StandardInputs)
-        (consumedR1 : List R1)
-        (createdR2 : List R2)
+        (consumedResources : List ConsumedResource)
+        (createdResources : List CreatedResource)
         : Transaction.Transaction :=
-        -- TODO: Nullifier Computation. Provide a key for each resources vs. 
+        -- TODO: Nullifier Computation. Provide a key for each resources vs.
         let
-          consumed := map Convertable.toResource consumedR1;
-          created := map Convertable.toResource createdR2;
+          consumed := map Convertable.toResource consumedResources;
+          created := map Convertable.toResource createdResources;
+          nullifierKey :=
+            standardInputs
+              |> StandardInputs.identity
+              |> Identity.internal
+              |> InternalIdentity.unInternalIdentity
+              |> mkNullifierKey;
           appData :=
             mkResourceRelationshipAppData@{
-              nullifierKey :=
-                 standardInputs 
-                  |> StandardInputs.identity
-                  |> Identity.internal
-                  |> InternalIdentity.unInternalIdentity
-                  |> mkNullifierKey;
+              nullifierKey;
               origins := consumed;
               mustBeConsumed := [];
               mustBeCreated := created
-            }
+            };
         in mkTransactionHelper@{
-          roots := StandardInputs.currentRoot standardInputs;
-          actions := Set.node mkActionHelper@{
-            consumed; created; appData; 
-          };
+          roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+          actions :=
+            Set.fromList
+              [ mkActionHelper@{
+                nullifierKey;
+                consumed;
+                created;
+                appData
+              }
+              ]
         }
     };
 

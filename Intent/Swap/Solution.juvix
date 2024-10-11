@@ -9,18 +9,19 @@ import Token.Transaction open;
 import Token.Resource open;
 import Intent.Swap.Resource open;
 
+import AnomaHelpers open;
+
 module Solution;
   -- TODO generalize
   type Solution :=
     mk {
       intent : SwapIntent;
       created : List Token
-
     };
 
-  toTransaction (self : Identity) (solution : Solution) : Transaction :=
+  toTransaction (standardInputs : StandardInputs) (solution : Solution) : Transaction :=
     TransactionConvertable.toTransaction
-      self
+      standardInputs
       [Solution.intent solution]
       (Solution.created solution);
 

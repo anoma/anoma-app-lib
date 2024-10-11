@@ -21,6 +21,8 @@ import Anoma.Builtin.System open;
 import Anoma.Builtin.ByteArray open;
 import Anoma.Proving.Types open;
 
+import Resource.Traits.Convertable open;
+
 instance
 ExternalIdentity-Show : Show ExternalIdentity :=
   mkShow \ {id := id |> ExternalIdentity.unExternalIdentity |> toAnomaContents |> natToString};
@@ -122,14 +124,6 @@ type StandardInputs :=
     currentRoot : CommitmentTree.Root
   };
 
-type CreatedResource := mkCreatedResource {resource : Resource};
-
-type ConsumedResource :=
-  mkConsumedResource {
-    resource : Resource;
-    nullifierKey : NullifierKey
-  };
-
 alwaysTrueLogic
   (publicInputs : ResourceLogic.Instance) (privateInputs : ResourceLogic.Witness) : Bool := true;
 
@@ -202,14 +196,22 @@ nullifierFromCustomInputs (customInputs : ResourceLogic.CustomInputs) : Resource
 --- This expects ;NullifierKey; to be present in the ;ResourceLogic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
 --- If the resource is not present, ;Universal.nullifierKey; is used instead.
 mkActionHelper
+  (nullifierKey : NullifierKey)
   (consumed : List Resource)
   (created : List Resource)
   (appData : AppData)
-  (customInputs : ResourceLogic.CustomInputs)
   : Action :=
   mkAction@{
-    commitments := Set.fromList (map commitment (created));
-    nullifiers := Set.fromList (map (nullifierFromCustomInputs customInputs) (consumed));
+    commitments := Set.fromList (map commitment created);
+    nullifiers := Set.fromList (map (nullifier nullifierKey) consumed);
+    {-
+            commitments := Set.fromList (map \ {r := commitment (CreatedResource.resource r)} (created));
+            nullifiers :=
+              Set.fromList
+                (map
+                  \ {rnk := nullifier (ConsumedResource.nullifierKey rnk) (ConsumedResource.resource rnk)}
+                  (consumed));
+            -}
     proofs := Set.empty;
     appData
   };
