@@ -15,11 +15,12 @@ import Anoma.Builtin.ByteArray open using {ByteArray};
 import Anoma.Transaction.AppData open;
 import Anoma.Identity open;
 
+-- TODO improve proving imports
 import Anoma.Proving.Types open;
 import Anoma.Proving.DeltaProof as DeltaProof open;
 import Anoma.Proving.ComplianceProof as ComplianceProof open;
 import Anoma.Proving.LogicProof as LogicProof open;
-import Anoma.Proving.ProofRecord as Generic open;
+import Anoma.Proving.ProofRecord as GenericProofRecord open;
 
 import Anoma.Utils open;
 
@@ -191,8 +192,8 @@ mkActionHelper
     nullifiers;
     proofs :=
       Set.fromList
-        (map Generic.proofRecordLogic logicProofs
-          ++ map Generic.proofRecordCompliance complianceProofs);
+        (map GenericProofRecord.Logic logicProofs
+          ++ map GenericProofRecord.Compliance complianceProofs);
     appData
   };
 
