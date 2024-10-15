@@ -11,6 +11,7 @@ import Anoma.Identity open;
 import Anoma.Resource as Resource open;
 import Anoma.Transaction as Transaction open;
 import Anoma.State.CommitmentTree as CommitmentTree open;
+import Anoma.Proving.Types open;
 import Anoma.Proving.DeltaProof as DeltaProof open;
 import Anoma.Proving.ComplianceProof as ComplianceProof open;
 import Anoma.Proving.LogicProof as LogicProof open;
@@ -162,7 +163,7 @@ emptyLogicProof : LogicProof.ProofRecord :=
       Logic.mkWitness@{
         created := Set.empty;
         consumed := Set.empty;
-        custom := Set.empty
+        customInputs := Set.empty
       };
     proof := LogicProof.prove provingKey instance' witness;
   in verifyingKey, proof, instance';
@@ -191,29 +192,6 @@ nullifierFromCustomInputs (customInputs : Logic.CustomInputs) : Resource -> Null
             customInputs
           }
     }};
-
---- This expects ;NullifierKey; to be present in the ;Logic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
---- If the resource is not present, ;Universal.nullifierKey; is used instead.
-mkActionHelper
-  (nullifierKey : NullifierKey)
-  (consumed : List Resource)
-  (created : List Resource)
-  (appData : AppData)
-  : Action :=
-  mkAction@{
-    commitments := Set.fromList (map commitment created);
-    nullifiers := Set.fromList (map (nullifier nullifierKey) consumed);
-    {-
-                commitments := Set.fromList (map \ {r := commitment (CreatedResource.resource r)} (created));
-                nullifiers :=
-                  Set.fromList
-                    (map
-                      \ {rnk := nullifier (ConsumedResource.nullifierKey rnk) (ConsumedResource.resource rnk)}
-                      (consumed));
-                -}
-    proofs := Set.empty;
-    appData
-  };
 
 mkTransactionHelper (roots : Set CommitmentTree.Root) (actions : Set Action) : Transaction :=
   mkTransaction@{
