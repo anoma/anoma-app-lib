@@ -15,7 +15,7 @@ import AnomaHelpers open;
 isAuthorizedBy
   (signer : ExternalIdentity)
   (resource : Resource)
-  (publicInputs : ResourceLogic.Instance)
+  (publicInputs : Logic.Instance)
   : Bool :=
   let
     cm := commitment resource;
@@ -24,7 +24,7 @@ isAuthorizedBy
          -- TODO use a different lookup key
          key := cm;
          Value := Pair ResourceRelationship Signature;
-         appData := ResourceLogic.Instance.appData publicInputs
+         appData := Logic.Instance.appData publicInputs
        }
      of
        | nothing := false
@@ -33,7 +33,7 @@ isAuthorizedBy
            && verify sig msg signer
            && isSubset
              (ResourceRelationship.mustBeConsumed msg)
-             (ResourceLogic.Instance.nullifiers publicInputs)
+             (Logic.Instance.nullifiers publicInputs)
            && isSubset
              (ResourceRelationship.mustBeCreated msg)
-             (ResourceLogic.Instance.commitments publicInputs);
+             (Logic.Instance.commitments publicInputs);

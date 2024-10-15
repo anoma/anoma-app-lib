@@ -14,16 +14,16 @@ import Resource.Traits open;
 import Authorization.Identities open;
 
 counterLogic
-  (publicInputs : ResourceLogic.Instance) (privateInputs : ResourceLogic.Witness) : Bool :=
+  (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
   let
-    tag := ResourceLogic.Instance.tag publicInputs;
+    tag := Logic.Instance.tag publicInputs;
   in case tag of
-       | ResourceLogic.Consumed nullifier :=
+       | Logic.Consumed nullifier :=
          let
            -- TODO HOW TO FIX THIS?
            nullifierKey :=
              Universal.internalIdentity |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
-           resources := ResourceLogic.Witness.created privateInputs;
+           resources := Logic.Witness.created privateInputs;
            maybeSelf :=
              findConsumedResource@{
                nullifier;
@@ -38,9 +38,9 @@ counterLogic
                   | NonEphemeral := incrementationLogic self publicInputs privateInputs
                 }
             }
-       | ResourceLogic.Created commitment :=
+       | Logic.Created commitment :=
          let
-           resources := ResourceLogic.Witness.created privateInputs;
+           resources := Logic.Witness.created privateInputs;
            maybeSelf :=
              findCreatedResource@{
                commitment;
@@ -54,18 +54,18 @@ counterLogic
                   | NonEphemeral := true;
 
 initializationLogic
-  (nullifier : Nullifier) (self : Resource) (publicInputs : ResourceLogic.Instance) : Bool :=
+  (nullifier : Nullifier) (self : Resource) (publicInputs : Logic.Instance) : Bool :=
   HasQuantity.get self == 1
     && isNullifierPresent@{
       nullifier;
-      nullifierSet := ResourceLogic.Instance.nullifiers publicInputs
+      nullifierSet := Logic.Instance.nullifiers publicInputs
     };
 
 -- TODO use pattern matching
 incrementationLogic
   (self : Resource)
-  (publicInputs : ResourceLogic.Instance)
-  (privateInputs : ResourceLogic.Witness)
+  (publicInputs : Logic.Instance)
+  (privateInputs : Logic.Witness)
   : Bool :=
   case
     findCreatedCounter@{

@@ -13,7 +13,7 @@ import Anoma.Transaction as Transaction open;
 import Anoma.State.CommitmentTree as CommitmentTree open;
 import Anoma.Proving.DeltaProof as DeltaProof open;
 import Anoma.Proving.ComplianceProof as ComplianceProof open;
-import Anoma.Proving.ResourceLogicProof as ResourceLogicProof open;
+import Anoma.Proving.LogicProof as LogicProof open;
 import Anoma.Utils open;
 
 import Anoma.Delta as Delta open;
@@ -55,12 +55,12 @@ findConsumedResource
   find \ {resource := Resource.nullifier nullifierKey resource == nullifier} (Set.toList resources);
 
 -- TODO Refactor
-isCreated (commitment : Commitment) (publicInputs : ResourceLogic.Instance) : Bool :=
-  Set.member? commitment (ResourceLogic.Instance.commitments publicInputs);
+isCreated (commitment : Commitment) (publicInputs : Logic.Instance) : Bool :=
+  Set.member? commitment (Logic.Instance.commitments publicInputs);
 
 -- TODO Refactor
-isConsumed (nullifier : Nullifier) (publicInputs : ResourceLogic.Instance) : Bool :=
-  Set.member? nullifier (ResourceLogic.Instance.nullifiers publicInputs);
+isConsumed (nullifier : Nullifier) (publicInputs : Logic.Instance) : Bool :=
+  Set.member? nullifier (Logic.Instance.nullifiers publicInputs);
 
 -- TODO Refactor.
 {-
@@ -112,7 +112,7 @@ lookupAppData {Key Value : Type} (key : Key) (appData : AppData) : Maybe Value :
 
 -- TODO refactor
 lookupCustomInputs
-  {Key Value : Type} (key : Key) (customInputs : ResourceLogic.CustomInputs) : Maybe Value :=
+  {Key Value : Type} (key : Key) (customInputs : Logic.CustomInputs) : Maybe Value :=
   lookupAppData@{
     key;
     appData := customInputs
@@ -124,8 +124,7 @@ type StandardInputs :=
     currentRoot : CommitmentTree.Root
   };
 
-alwaysTrueLogic
-  (publicInputs : ResourceLogic.Instance) (privateInputs : ResourceLogic.Witness) : Bool := true;
+alwaysTrueLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool := true;
 
 emptyResource : Resource :=
   mkResource@{
@@ -146,27 +145,27 @@ emptyDeltaProof : DeltaProof.ProofRecord :=
     instance' := Delta.mkInstance unit;
     witness := Delta.mkWitness unit;
     proof := DeltaProof.prove provingKey instance' witness;
-  in verifyingKey, proof, witness;
+  in verifyingKey, proof, instance';
 
-emptyResourceLogicProof : ResourceLogicProof.ProofRecord :=
+emptyLogicProof : LogicProof.ProofRecord :=
   let
-    verifyingKey := ResourceLogic.mkVerifyingKey unit;
-    provingKey := ResourceLogic.mkProvingKey emptyResource;
+    verifyingKey := Logic.mkVerifyingKey unit;
+    provingKey := Logic.mkProvingKey emptyResource;
     instance' :=
-      ResourceLogic.mkInstance@{
-        tag := ResourceLogic.Created (commitment emptyResource);
+      Logic.mkInstance@{
+        tag := Logic.Created (commitment emptyResource);
         commitments := Set.empty;
         nullifiers := Set.empty;
         appData := Set.empty
       };
     witness :=
-      ResourceLogic.mkWitness@{
+      Logic.mkWitness@{
         created := Set.empty;
         consumed := Set.empty;
         custom := Set.empty
       };
-    proof := ResourceLogicProof.prove provingKey instance' witness;
-  in verifyingKey, proof, witness;
+    proof := LogicProof.prove provingKey instance' witness;
+  in verifyingKey, proof, instance';
 
 emptyComplianceProof : ComplianceProof.ProofRecord :=
   let
@@ -175,12 +174,12 @@ emptyComplianceProof : ComplianceProof.ProofRecord :=
     instance' := Compliance.mkInstance unit;
     witness := Compliance.mkWitness unit;
     proof := ComplianceProof.prove provingKey instance' witness;
-  in verifyingKey, proof, witness;
+  in verifyingKey, proof, instance';
 
---- A function computing a ;Nullifier; from a ;Resource; and ;ResourceLogic.CustomInputs;.
---- This expects ;NullifierKey; to be present in the ;ResourceLogic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
+--- A function computing a ;Nullifier; from a ;Resource; and ;Logic.CustomInputs;.
+--- This expects ;NullifierKey; to be present in the ;Logic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
 --- If the entry is not present, the ;Universal.nullifierKey; is used instead.
-nullifierFromCustomInputs (customInputs : ResourceLogic.CustomInputs) : Resource -> Nullifier :=
+nullifierFromCustomInputs (customInputs : Logic.CustomInputs) : Resource -> Nullifier :=
   \ {resource :=
     nullifier@{
       resource;
@@ -193,7 +192,7 @@ nullifierFromCustomInputs (customInputs : ResourceLogic.CustomInputs) : Resource
           }
     }};
 
---- This expects ;NullifierKey; to be present in the ;ResourceLogic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
+--- This expects ;NullifierKey; to be present in the ;Logic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
 --- If the resource is not present, ;Universal.nullifierKey; is used instead.
 mkActionHelper
   (nullifierKey : NullifierKey)
@@ -205,13 +204,13 @@ mkActionHelper
     commitments := Set.fromList (map commitment created);
     nullifiers := Set.fromList (map (nullifier nullifierKey) consumed);
     {-
-            commitments := Set.fromList (map \ {r := commitment (CreatedResource.resource r)} (created));
-            nullifiers :=
-              Set.fromList
-                (map
-                  \ {rnk := nullifier (ConsumedResource.nullifierKey rnk) (ConsumedResource.resource rnk)}
-                  (consumed));
-            -}
+                commitments := Set.fromList (map \ {r := commitment (CreatedResource.resource r)} (created));
+                nullifiers :=
+                  Set.fromList
+                    (map
+                      \ {rnk := nullifier (ConsumedResource.nullifierKey rnk) (ConsumedResource.resource rnk)}
+                      (consumed));
+                -}
     proofs := Set.empty;
     appData
   };

@@ -15,8 +15,8 @@ import Utils.Counter.Count open;
 -- TODO Refactor by using actions.
 findCreatedCounter
   (consumedCounter : Resource)
-  (publicInputs : ResourceLogic.Instance)
-  (privateInputs : ResourceLogic.Witness)
+  (publicInputs : Logic.Instance)
+  (privateInputs : Logic.Witness)
   : Maybe Resource :=
   let
     cm := commitment consumedCounter;
@@ -25,7 +25,7 @@ findCreatedCounter
          -- TODO use a different lookup key
          key := cm;
          Value := ResourceRelationship;
-         appData := ResourceLogic.Instance.appData publicInputs
+         appData := Logic.Instance.appData publicInputs
        }
      of
        | nothing := nothing
@@ -36,7 +36,7 @@ findCreatedCounter
          of
            | nil, [foundCm] :=
              let
-               created := ResourceLogic.Witness.created privateInputs;
+               created := Logic.Witness.created privateInputs;
                maybeCounter : Maybe Resource :=
                  findCreatedResource@{
                    commitment := foundCm;

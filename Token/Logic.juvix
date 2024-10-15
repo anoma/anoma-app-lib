@@ -16,8 +16,8 @@ import Token.Label open;
 tokenLogic
   (supply : Supply)
   (originator : ExternalIdentity)
-  (publicInputs : ResourceLogic.Instance)
-  (privateInputs : ResourceLogic.Witness)
+  (publicInputs : Logic.Instance)
+  (privateInputs : Logic.Witness)
   : Bool :=
   case supply of
     | Unbound := unboundSupplyLogic originator publicInputs privateInputs
@@ -27,18 +27,18 @@ tokenLogic
 --TODO CONTINUE HERE
 unboundSupplyLogic
   (originator : ExternalIdentity)
-  (publicInputs : ResourceLogic.Instance)
-  (privateInputs : ResourceLogic.Witness)
+  (publicInputs : Logic.Instance)
+  (privateInputs : Logic.Witness)
   : Bool :=
   let
-    tag := ResourceLogic.Instance.tag publicInputs;
+    tag := Logic.Instance.tag publicInputs;
   in case tag of
-       | ResourceLogic.Consumed nullifier :=
+       | Logic.Consumed nullifier :=
          let
            -- TODO HOW TO FIX THIS?
            nullifierKey :=
              Universal.internalIdentity |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
-           resources := ResourceLogic.Witness.created privateInputs;
+           resources := Logic.Witness.created privateInputs;
            maybeSelf :=
              findConsumedResource@{
                nullifier;
@@ -53,12 +53,12 @@ unboundSupplyLogic
                   | NonEphemeral := transferLogic self publicInputs
                 }
             }
-       | ResourceLogic.Created commitment := true;
+       | Logic.Created commitment := true;
 
 unboundSupplyInitializationLogic
   (originator : ExternalIdentity)
   (self : Resource)
-  (publicInputs : ResourceLogic.Instance)
+  (publicInputs : Logic.Instance)
   : Bool :=
   isAuthorizedBy@{
     signer := originator;
@@ -69,18 +69,18 @@ unboundSupplyInitializationLogic
 fixedSupplyLogic
   (nf : Nullifier)
   (originator : ExternalIdentity)
-  (publicInputs : ResourceLogic.Instance)
-  (privateInputs : ResourceLogic.Witness)
+  (publicInputs : Logic.Instance)
+  (privateInputs : Logic.Witness)
   : Bool :=
   let
-    tag := ResourceLogic.Instance.tag publicInputs;
+    tag := Logic.Instance.tag publicInputs;
   in case tag of
-       | ResourceLogic.Consumed nullifier :=
+       | Logic.Consumed nullifier :=
          let
            -- TODO HOW TO FIX THIS?
            nullifierKey :=
              Universal.internalIdentity |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
-           resources := ResourceLogic.Witness.created privateInputs;
+           resources := Logic.Witness.created privateInputs;
            maybeSelf :=
              findConsumedResource@{
                nullifier;
@@ -96,9 +96,9 @@ fixedSupplyLogic
                   | NonEphemeral := transferLogic self publicInputs
                 }
             }
-       | ResourceLogic.Created commitment :=
+       | Logic.Created commitment :=
          let
-           resources := ResourceLogic.Witness.created privateInputs;
+           resources := Logic.Witness.created privateInputs;
            maybeSelf :=
              findCreatedResource@{
                commitment;
@@ -115,11 +115,11 @@ fixedSupplyInitializationLogic
   (originator : ExternalIdentity)
   (nullifier : Nullifier)
   (self : Resource)
-  (publicInputs : ResourceLogic.Instance)
+  (publicInputs : Logic.Instance)
   : Bool :=
   isNullifierPresent@{
       nullifier;
-      nullifierSet := ResourceLogic.Instance.nullifiers publicInputs
+      nullifierSet := Logic.Instance.nullifiers publicInputs
     }
     && isAuthorizedBy@{
       signer := originator;
@@ -129,11 +129,11 @@ fixedSupplyInitializationLogic
 
 cappedSupplyLogic
   (originator : ExternalIdentity)
-  (publicInputs : ResourceLogic.Instance)
-  (privateInputs : ResourceLogic.Witness)
+  (publicInputs : Logic.Instance)
+  (privateInputs : Logic.Witness)
   : Bool := failwith "NOT IMPLEMENTED";
 
-transferLogic (self : Resource) (publicInputs : ResourceLogic.Instance) : Bool :=
+transferLogic (self : Resource) (publicInputs : Logic.Instance) : Bool :=
   let
     signer :=
       -- TODO add conversion helper
