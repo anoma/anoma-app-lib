@@ -11,7 +11,7 @@ import Authorization.Identities open;
 import Anoma.Resource as Resource open;
 import Anoma.Transaction as Transaction open;
 import Anoma.Builtin.System open;
-import Anoma.Builtin.ByteArray open;
+import Anoma.Builtin.ByteArray open using {ByteArray};
 import Anoma.Transaction.AppData open;
 import Anoma.Identity open;
 
@@ -167,34 +167,32 @@ mkActionHelper
         customInputs
       };
 
-    logicProofs : Set LogicProof.ProofRecord :=
-      for (acc := Set.empty) (tag in tags)
-        {let
-          publicInputs :=
-            Logic.mkInstance@{
-              tag;
-              commitments;
-              nullifiers;
-              appData
-            };
-        in Set.insert
+    logicProofs : List LogicProof.ProofRecord :=
+      map
+        \ {tag :=
           createLogicProofRecord@{
             tag;
-            publicInputs;
+            publicInputs :=
+              Logic.mkInstance@{
+                tag;
+                commitments;
+                nullifiers;
+                appData
+              };
             privateInputs
-          }
-          acc};
+          }}
+        tags;
 
-    complianceProofs : Set ComplianceProof.ProofRecord :=
-      listFor (acc := Set.empty) (tag in tags) {Set.insert createComplianceProofRecord acc};
+    complianceProofs : List ComplianceProof.ProofRecord :=
+      replicate (length tags) createComplianceProofRecord;
 
   in mkAction@{
     commitments;
     nullifiers;
     proofs :=
       Set.fromList
-        (map Generic.proofRecordLogic (Set.toList logicProofs)
-          ++ map Generic.proofRecordLogic (Set.toList logicProofs));
+        (map Generic.proofRecordLogic logicProofs
+          ++ map Generic.proofRecordCompliance complianceProofs);
     appData
   };
 
@@ -214,7 +212,7 @@ module FromConvertable;
         (consumedResources : List ConsumedResource)
         (createdResources : List CreatedResource)
         : Transaction.Transaction :=
-        -- TODO: Nullifier Computation. Provide a key for each resources vs.
+        -- TODO: Nullifier Computation. Provide a key for each resource
         let
           consumed := Set.fromList (map Convertable.toResource consumedResources);
           created := Set.fromList (map Convertable.toResource createdResources);
