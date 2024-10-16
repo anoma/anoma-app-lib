@@ -5,5 +5,5 @@ import Anoma.Transaction open;
 import AnomaHelpers open;
 
 trait
-type TransactionConvertable R1 R2 :=
-  mkTransactionConvertable {toTransaction : StandardInputs -> List R1 -> List R2 -> Transaction};
+type ActionConvertable R1 R2 :=
+  mkActionConvertable {toAction : StandardInputs -> List R1 -> List R2 -> Action};

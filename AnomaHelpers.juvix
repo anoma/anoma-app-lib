@@ -193,6 +193,22 @@ nullifierFromCustomInputs (customInputs : Logic.CustomInputs) : Resource -> Null
           }
     }};
 
+createDeltaProofRecord : DeltaProof.ProofRecord :=
+  let
+    verifyingKey := Delta.mkVerifyingKey unit;
+    -- TODO Should ;Delta.ProvingKey; be ;Delta;?
+    provingKey := Delta.mkProvingKey unit;
+
+    publicInputs := Delta.mkInstance unit;
+    privateInputs := Delta.mkWitness unit;
+    proof :=
+      DeltaProof.prove@{
+        provingKey;
+        publicInputs;
+        privateInputs
+      };
+  in verifyingKey, proof, publicInputs;
+
 mkTransactionHelper (roots : Set CommitmentTree.Root) (actions : Set Action) : Transaction :=
   mkTransaction@{
     roots;

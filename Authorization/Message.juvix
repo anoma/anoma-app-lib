@@ -3,7 +3,7 @@ module Authorization.Message;
 import Stdlib.Prelude open;
 import Stdlib.Debug.Fail open using {failwith};
 import Data.Map as Map open using {Map; empty};
-import Data.Set as Set open using {Set; empty; insert};
+import Data.Set as Set open using {Set; empty; insert; union};
 import AnomaHelpers open;
 import Authorization.Identities open;
 
@@ -69,36 +69,28 @@ mkResourceRelationshipAppData
       (mkResourceRelationshipAppDataMapEntry nullifierKey mustBeConsumed mustBeCreated)
       (Set.toList origins));
 
+findProvingKey {T} (key : T) (customInputs : Logic.CustomInputs) : Logic.ProvingKey :=
+  case
+    lookupCustomInputs@{
+      key;
+      Value := Resource;
+      customInputs
+    }
+  of
+    | just resource := Logic.mkProvingKey resource
+    | nothing := failwith "this should never happen";
+
 createLogicProofRecord
   (tag : Logic.Tag)
   (publicInputs : Logic.Instance)
   (privateInputs : Logic.Witness)
-  : LogicProof.ProofRecord :=
+  : GenericProofRecord.ProofRecord :=
   let
+    customInputs := Logic.Witness.customInputs privateInputs;
     provingKey :=
       case tag of
-        | Logic.Consumed nf :=
-          case
-            lookupCustomInputs@{
-              key := nf;
-              Value := Resource;
-              customInputs := Logic.Witness.customInputs privateInputs
-            }
-          of {
-            | just resource := Logic.mkProvingKey resource
-            | nothing := failwith "this should never happen"
-          }
-
-        | Logic.Created cm :=
-          case
-            lookupCustomInputs@{
-              key := cm;
-              Value := Resource;
-              customInputs := Logic.Witness.customInputs privateInputs
-            }
-          of
-            | just resource := Logic.mkProvingKey resource
-            | nothing := failwith "this should never happen";
+        | Logic.Consumed nf := findProvingKey nf customInputs
+        | Logic.Created cm := findProvingKey cm customInputs;
     proof : Logic.Proof :=
       LogicProof.prove@{
         provingKey;
@@ -106,9 +98,9 @@ createLogicProofRecord
         privateInputs
       };
     verifyingKey := Logic.mkVerifyingKey unit;
-  in verifyingKey, proof, publicInputs;
+  in GenericProofRecord.Logic (verifyingKey, proof, publicInputs);
 
-createComplianceProofRecord : ComplianceProof.ProofRecord :=
+createComplianceProofRecord : GenericProofRecord.ProofRecord :=
   let
     verifyingKey := Compliance.mkVerifyingKey unit;
     provingKey := Compliance.mkProvingKey unit;
@@ -120,109 +112,47 @@ createComplianceProofRecord : ComplianceProof.ProofRecord :=
         publicInputs;
         privateInputs
       };
-  in verifyingKey, proof, publicInputs;
+  in GenericProofRecord.Compliance (verifyingKey, proof, publicInputs);
 
---- This expects ;NullifierKey; to be present in the ;Logic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
---- If the resource is not present, ;Universal.nullifierKey; is used instead.
-mkActionHelper
-  (nullifierKey : NullifierKey)
-  (consumed : Set Resource)
-  (created : Set Resource)
-  (appData : AppData)
-  : Action :=
-  let
-    nullifiers := Set.fromList (map (nullifier nullifierKey) (Set.toList consumed));
-    commitments := Set.fromList (map commitment (Set.toList created));
-    tags : List Logic.Tag :=
-      map Logic.Consumed (Set.toList nullifiers) ++ map Logic.Created (Set.toList commitments);
-    appData :=
-      mkResourceRelationshipAppData@{
-        nullifierKey;
-        origins := consumed;
-        mustBeConsumed := Set.empty;
-        mustBeCreated := created
-      };
-
-    -- `Map Nullifier ConsumedResource` ++ `Map Commitment CreatedResource`
-    customInputs :=
-      Set.fromList
-        (map
-            \ {r :=
-              mkAppDataEntry@{
-                key := r |> nullifier nullifierKey |> anomaEncode |> mkAppDataKey;
-                value := r |> anomaEncode |> mkAppDataValue
-              }}
-            (Set.toList consumed)
-          ++ map
-            \ {r :=
-              mkAppDataEntry@{
-                key := r |> commitment |> anomaEncode |> mkAppDataKey;
-                value := r |> anomaEncode |> mkAppDataValue
-              }}
-            (Set.toList created));
-
-    privateInputs :=
-      Logic.mkWitness@{
-        created;
-        consumed;
-        customInputs
-      };
-
-    logicProofs : List LogicProof.ProofRecord :=
-      map
-        \ {tag :=
-          createLogicProofRecord@{
-            tag;
-            publicInputs :=
-              Logic.mkInstance@{
-                tag;
-                commitments;
-                nullifiers;
-                appData
-              };
-            privateInputs
-          }}
-        tags;
-
-    complianceProofs : List ComplianceProof.ProofRecord :=
-      replicate (length tags) createComplianceProofRecord;
-
-  in mkAction@{
-    commitments;
-    nullifiers;
-    proofs :=
-      Set.fromList
-        (map GenericProofRecord.Logic logicProofs
-          ++ map GenericProofRecord.Compliance complianceProofs);
-    appData
-  };
+computableComponentToResourceMap
+  {A} (f : Resource -> A) (resources : Set Resource) : Logic.CustomInputs :=
+  Set.fromList
+    (map
+      \ {r :=
+        mkAppDataEntry@{
+          key := r |> f |> anomaEncode |> mkAppDataKey;
+          value := r |> anomaEncode |> mkAppDataValue
+        }}
+      (Set.toList resources));
 
 module FromConvertable;
   import Resource.Traits.Convertable open;
   import Transaction.Traits open;
 
-  --- Creates an extra data map entry for every consumed ;Convertable; ;Resource; of type `R1` with a ;ResourceRelationship; message and signature being stored at the consumed resources commitment  message. This message must be signed by the respective owner of the consumed resources and requires  all created ;Convertable; ;Resource; of type `R2` to be present in the ;Commitment; ;Set; of the transaction.
-  transactionWithAuthorizationAppData
-    {ConsumedResource CreatedResource}
-    {{Convertable ConsumedResource}}
-    {{Convertable CreatedResource}}
-    : TransactionConvertable ConsumedResource CreatedResource :=
-    mkTransactionConvertable@{
-      toTransaction
+  --- Creates an app data map entry for every consumed ;Convertable; ;Resource; of type `R1` with a ;ResourceRelationship; message and signature being stored at the consumed resources commitment  message. This message must be signed by the respective owner of the consumed resources and requires  all created ;Convertable; ;Resource; of type `R2` to be present in the ;Commitment; ;Set; of the transaction.
+  actionWithAuthorizationAppData
+    {R1 R2} {{Convertable R1}} {{Convertable R2}} : ActionConvertable R1 R2 :=
+    mkActionConvertable@{
+      toAction
         (standardInputs : StandardInputs)
-        (consumedResources : List ConsumedResource)
-        (createdResources : List CreatedResource)
-        : Transaction.Transaction :=
-        -- TODO: Nullifier Computation. Provide a key for each resource
+        (consumedResources : List R1)
+        (createdResources : List R2)
+        : Action :=
         let
-          consumed := Set.fromList (map Convertable.toResource consumedResources);
-          created := Set.fromList (map Convertable.toResource createdResources);
           nullifierKey :=
             standardInputs
               |> StandardInputs.identity
               |> Identity.internal
               |> InternalIdentity.unInternalIdentity
               |> mkNullifierKey;
+          consumed := Set.fromList (map Convertable.toResource consumedResources);
+          created := Set.fromList (map Convertable.toResource createdResources);
+
+          nullifiers := Set.fromList (map (nullifier nullifierKey) (Set.toList consumed));
+          commitments := Set.fromList (map commitment (Set.toList created));
+          tags : List Logic.Tag :=
+            map Logic.Consumed (Set.toList nullifiers)
+              ++ map Logic.Created (Set.toList commitments);
           appData :=
             mkResourceRelationshipAppData@{
               nullifierKey;
@@ -230,76 +160,43 @@ module FromConvertable;
               mustBeConsumed := Set.empty;
               mustBeCreated := created
             };
-        in mkTransactionHelper@{
-          roots := Set.fromList [StandardInputs.currentRoot standardInputs];
-          actions :=
+
+          customInputs :=
+            Set.union
+              (computableComponentToResourceMap commitment created)
+              (computableComponentToResourceMap (nullifier nullifierKey) consumed);
+
+          privateInputs :=
+            Logic.mkWitness@{
+              created;
+              consumed;
+              customInputs
+            };
+
+          logicProofs : Set GenericProofRecord.ProofRecord :=
             Set.fromList
-              [ mkActionHelper@{
-                nullifierKey;
-                consumed;
-                created;
-                appData
-              }
-              ]
+              (map
+                \ {tag :=
+                  createLogicProofRecord@{
+                    tag;
+                    publicInputs :=
+                      Logic.mkInstance@{
+                        tag;
+                        commitments;
+                        nullifiers;
+                        appData
+                      };
+                    privateInputs
+                  }}
+                tags);
+
+          complianceProofs : Set GenericProofRecord.ProofRecord :=
+            Set.fromList (replicate (length tags) (createComplianceProofRecord));
+        in mkAction@{
+          commitments;
+          nullifiers;
+          proofs := Set.union logicProofs complianceProofs;
+          appData
         }
     };
 end;
-
-{-
-proofs : Set Generic.ProofRecord :=
-      listFor (acc := Set.empty) (tag in tags)
-        {case tag of
-          | Logic.Consumed nf :=
-            let
-              publicInputs : Logic.Instance :=
-                Logic.mkInstance@{
-                  tag;
-                  commitments;
-                  nullifiers;
-                  appData
-                };
-              proof : Logic.Proof :=
-                LogicProof.prove@{
-                  provingKey :=
-                    case
-                      lookupCustomInputs@{
-                        key := nf;
-                        Value := Resource;
-                        customInputs
-                      }
-                    of
-                      | just resource := Logic.mkProvingKey resource
-                      | nothing := failwith "this should never happen";
-                  publicInputs;
-                  privateInputs
-                };
-              verifyingKey := Logic.mkVerifyingKey unit;
-            in Set.insert (Generic.proofRecordLogic (verifyingKey, proof, publicInputs)) acc
-          | Logic.Created cm :=
-            let
-              publicInputs : Logic.Instance :=
-                Logic.mkInstance@{
-                  tag;
-                  commitments;
-                  nullifiers;
-                  appData
-                };
-              proof : Logic.Proof :=
-                LogicProof.prove@{
-                  provingKey :=
-                    case
-                      lookupCustomInputs@{
-                        key := cm;
-                        Value := Resource;
-                        customInputs
-                      }
-                    of
-                      | just resource := Logic.mkProvingKey resource
-                      | nothing := failwith "this should never happen";
-                  publicInputs;
-                  privateInputs
-                };
-              verifyingKey := Logic.mkVerifyingKey unit;
-            in Set.insert (Generic.proofRecordLogic (verifyingKey, proof, publicInputs)) acc};
-
--}

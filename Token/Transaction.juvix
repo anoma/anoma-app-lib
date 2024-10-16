@@ -8,13 +8,13 @@ import Intent.Swap.Resource open;
 import Authorization.Message open;
 
 instance
-Token-Token-TransactionConvertable : TransactionConvertable Token Token :=
-  FromConvertable.transactionWithAuthorizationAppData {Token} {Token};
+Token-Token-ActionConvertable : ActionConvertable Token Token :=
+  FromConvertable.actionWithAuthorizationAppData {Token} {Token};
 
 instance
-Token-SwapIntent-TransactionConvertable : TransactionConvertable Token SwapIntent :=
-  FromConvertable.transactionWithAuthorizationAppData {Token} {SwapIntent};
+Token-SwapIntent-ActionConvertable : ActionConvertable Token SwapIntent :=
+  FromConvertable.actionWithAuthorizationAppData {Token} {SwapIntent};
 
 instance
-SwapIntent-Token-TransactionConvertable : TransactionConvertable SwapIntent Token :=
-  FromConvertable.transactionWithAuthorizationAppData {SwapIntent} {Token};
+SwapIntent-Token-ActionConvertable : ActionConvertable SwapIntent Token :=
+  FromConvertable.actionWithAuthorizationAppData {SwapIntent} {Token};
