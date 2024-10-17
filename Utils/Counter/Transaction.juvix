@@ -32,28 +32,33 @@ createCounter
         identity;
         ephemeral := true
       };
+
   in if
     | kind consumableDummy /= kind ephDummy :=
       throw
         mkDefaultError@{
-          msg := "The oked consumable resource has the wrong kind."
+          msg := "The provided consumable resource has the wrong kind."
         }
     | else :=
       let
+        -- TODO how to deal with randomness here?
         ephCounter : Resource :=
           mkCounter@{
             identity;
             ephemeral := true;
-            uniqueLabel := mkCounterLabel (nullifier nullifierKey consumableDummy);
+            uniqueLabel := mkCounterLabel (nullifier (toNullifierKey identity) consumableDummy);
             count := 0
           };
         newCounter :=
           mkCounter@{
             identity := Universal.identity;
             ephemeral := false;
-            uniqueLabel := mkCounterLabel (nullifier (Universal.nullifierKey) consumableDummy);
+            uniqueLabel :=
+              mkCounterLabel (nullifier (toNullifierKey Universal.identity) consumableDummy);
             count := 0
           };
+        consumed := Set.fromList [consumableDummy; ephCounter];
+        created := Set.fromList [ephDummy; newCounter];
       in ok
         mkTransactionHelper@{
           roots := Set.fromList [StandardInputs.currentRoot standardInputs];
@@ -61,10 +66,15 @@ createCounter
             Set.singleton
               mkActionHelper@{
                 identity := StandardInputs.identity standardInputs;
-                consumed := Set.fromList [consumableDummy; ephCounter];
-                created := Set.fromList [ephDummy; newCounter];
+                consumed;
+                created;
                 appData := Set.empty;
-                customInputs := Set.empty
+                customInputs :=
+                  resourceMapping@{
+                    identity;
+                    consumed;
+                    created
+                  }
               }
         };
 
@@ -78,13 +88,8 @@ incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) :
         count :=
           (currentCounter |> Resource.valueRef |> Ref.fromRef |> Value.unValue |> anomaDecode) + 1
       };
-    appData :=
-      mkResourceRelationshipAppData@{
-        identity := Universal.identity;
-        origins := Set.singleton currentCounter;
-        mustBeConsumed := Set.empty;
-        mustBeCreated := Set.singleton updatedCounter
-      };
+    consumed := Set.singleton currentCounter;
+    created := Set.singleton updatedCounter;
   in mkTransactionHelper@{
     roots := Set.fromList [StandardInputs.currentRoot standardInputs];
     actions :=
@@ -93,7 +98,18 @@ incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) :
           identity := Universal.identity;
           consumed := Set.singleton currentCounter;
           created := Set.singleton updatedCounter;
-          appData;
-          customInputs := Set.empty
+          appData :=
+            mkResourceRelationshipAppData@{
+              identity := Universal.identity;
+              origins := Set.singleton currentCounter;
+              mustBeConsumed := Set.empty;
+              mustBeCreated := Set.singleton updatedCounter
+            };
+          customInputs :=
+            resourceMapping@{
+              identity;
+              consumed;
+              created
+            }
         }
   };

@@ -141,6 +141,11 @@ computableComponentToResourceMap
         }}
       (Set.toList resources));
 
+resourceMapping (identity : Identity) (consumed created : Set Resource) : Logic.CustomInputs :=
+  Set.union
+    (computableComponentToResourceMap commitment created)
+    (computableComponentToResourceMap (nullifier (toNullifierKey identity)) consumed);
+
 module ProvingHelpers;
   findProvingKey {T} (key : T) (customInputs : Logic.CustomInputs) : Logic.ProvingKey :=
     case

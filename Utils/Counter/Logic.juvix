@@ -16,41 +16,28 @@ import Authorization.Identities open;
 counterLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
   let
     tag := Logic.Instance.tag publicInputs;
+    lookupResource {A} (key : A) : Maybe Resource :=
+      lookupCustomInputs@{
+        key;
+        customInputs := Logic.Witness.customInputs privateInputs
+      };
   in case tag of
        | Logic.Consumed nullifier :=
-         let
-           -- TODO HOW TO FIX THIS? Lookup in customInputs
-           nullifierKey :=
-             Universal.internalIdentity |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
-           resources := Logic.Witness.created privateInputs;
-           maybeSelf :=
-             findConsumedResource@{
-               nullifier;
-               nullifierKey;
-               resources
-             };
-         in case maybeSelf of {
-              | nothing := false
-              | just self :=
-                case HasEphemerality.get self of {
-                  | Ephemeral := initializationLogic nullifier self publicInputs
-                  | NonEphemeral := incrementationLogic self publicInputs privateInputs
-                }
-            }
+         case lookupResource nullifier of {
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of {
+               | Ephemeral := initializationLogic nullifier self publicInputs
+               | NonEphemeral := incrementationLogic self publicInputs privateInputs
+             }
+         }
        | Logic.Created commitment :=
-         let
-           resources := Logic.Witness.created privateInputs;
-           maybeSelf :=
-             findCreatedResource@{
-               commitment;
-               resources
-             };
-         in case maybeSelf of
-              | nothing := false
-              | just self :=
-                case HasEphemerality.get self of
-                  | Ephemeral := false
-                  | NonEphemeral := true;
+         case lookupResource commitment of
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of
+               | Ephemeral := false
+               | NonEphemeral := true;
 
 initializationLogic
   (nullifier : Nullifier) (self : Resource) (publicInputs : Logic.Instance) : Bool :=

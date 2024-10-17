@@ -13,23 +13,21 @@ import Utils.Dummy.Resource open;
 
 initialize (standardInputs : StandardInputs) (dummy : Resource) : Transaction :=
   mkTransactionHelper@{
-    roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+    roots := Set.singleton (StandardInputs.currentRoot standardInputs);
     actions :=
-      Set.fromList
-        [ mkActionHelper@{
+      Set.singleton
+        mkActionHelper@{
           identity := StandardInputs.identity standardInputs;
           consumed :=
-            Set.fromList
-              [ dummy@Resource{
+            Set.singleton
+              dummy@Resource{
                 ephemeral := true;
                 nullifierKeyCommitment := standardInputs
                   |> StandardInputs.identity
                   |> toNullifierKeyCommitment
-              }
-              ];
-          created := Set.fromList [dummy];
+              };
+          created := Set.singleton dummy;
           appData := Set.empty;
           customInputs := Set.empty
         }
-        ]
   };

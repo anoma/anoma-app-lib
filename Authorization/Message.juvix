@@ -102,9 +102,11 @@ module FromConvertable;
               mustBeCreated := created
             };
           customInputs :=
-            Set.union
-              (computableComponentToResourceMap commitment created)
-              (computableComponentToResourceMap (nullifier (toNullifierKey identity)) consumed);
+            resourceMapping@{
+              identity;
+              consumed;
+              created
+            };
         in mkActionHelper@{
           identity;
           consumed;
