@@ -7,6 +7,7 @@ import Anoma.Identity open;
 import Anoma.Transaction open;
 import Anoma.Utils open;
 import Anoma.Builtin.System open;
+import Anoma.Proving.Types open;
 
 import AnomaHelpers open;
 import Resource.Error open;
@@ -18,6 +19,7 @@ import Utils.Counter.Resource open;
 
 import AnomaHelpers open;
 
+-- TODO use general initialize/traits
 --- Requires a consumable `Utils.Dummy.Resource`.
 createCounter
   (standardInputs : StandardInputs)
@@ -41,20 +43,18 @@ createCounter
         }
     | else :=
       let
+        uniqueLabel := createUniqueCounterLabel consumableDummy;
         -- TODO how to deal with randomness here?
         ephCounter : Resource :=
           mkCounter@{
-            identity;
             ephemeral := true;
-            uniqueLabel := mkCounterLabel (nullifier (toNullifierKey identity) consumableDummy);
+            uniqueLabel;
             count := 0
           };
         newCounter :=
           mkCounter@{
-            identity := Universal.identity;
             ephemeral := false;
-            uniqueLabel :=
-              mkCounterLabel (nullifier (toNullifierKey Universal.identity) consumableDummy);
+            uniqueLabel;
             count := 0
           };
         consumed := Set.fromList [consumableDummy; ephCounter];
@@ -82,34 +82,22 @@ incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) :
   let
     updatedCounter : Resource :=
       mkCounter@{
-        identity := Universal.identity;
         ephemeral := false;
-        uniqueLabel := get currentCounter;
+        uniqueLabel := getCounterLabel currentCounter;
         count :=
           (currentCounter |> Resource.valueRef |> Ref.fromRef |> Value.unValue |> anomaDecode) + 1
       };
     consumed := Set.singleton currentCounter;
     created := Set.singleton updatedCounter;
   in mkTransactionHelper@{
-    roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+    roots := Set.singleton (StandardInputs.currentRoot standardInputs);
     actions :=
       Set.singleton
         mkActionHelper@{
           identity := Universal.identity;
           consumed := Set.singleton currentCounter;
           created := Set.singleton updatedCounter;
-          appData :=
-            mkResourceRelationshipAppData@{
-              identity := Universal.identity;
-              origins := Set.singleton currentCounter;
-              mustBeConsumed := Set.empty;
-              mustBeCreated := Set.singleton updatedCounter
-            };
-          customInputs :=
-            resourceMapping@{
-              identity;
-              consumed;
-              created
-            }
+          appData := Set.empty;
+          customInputs := Set.empty
         }
   };

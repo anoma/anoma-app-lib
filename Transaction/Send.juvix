@@ -47,10 +47,7 @@ send
        | GreaterThan :=
          let
            difference : Quantity :=
-             -- TODO improve
-                 intSubNat
-                 (Quantity.unQuantity balance)
-                 (Quantity.unQuantity quantity)
+             intSubNat (Quantity.unQuantity balance) (Quantity.unQuantity quantity)
                |> toNat
                |> mkQuantity;
          in split standardInputs toSend [quantity, receiver; difference, self];

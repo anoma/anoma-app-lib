@@ -31,6 +31,12 @@ module Set;
   singleton {A} {{Ord A}} (a : A) : Set A := Set.insert a Set.empty;
 end;
 
+module Map;
+  keys {A} {B} {{Ord A}} (m : Map A B) : Set A := Set.fromList (map fst (Map.toList m));
+
+  values {A} {B} {{Ord B}} (m : Map A B) : Set B := Set.fromList (map snd (Map.toList m));
+end;
+
 instance
 ExternalIdentity-Show : Show ExternalIdentity :=
   mkShow \ {id := id |> ExternalIdentity.unExternalIdentity |> toAnomaContents |> natToString};
@@ -108,6 +114,12 @@ lookupCustomInputs
     appData := customInputs
   };
 
+lookupResource {A} (key : A) (customInputs : Logic.CustomInputs) : Maybe Resource :=
+  lookupCustomInputs@{
+    key;
+    customInputs
+  };
+
 type StandardInputs :=
   mkStandardInputs@{
     identity : Identity;
@@ -130,7 +142,7 @@ nullifierFromCustomInputs (customInputs : Logic.CustomInputs) : Resource -> Null
           }
     }};
 
-computableComponentToResourceMap
+computableComponentToCustomInputs
   {A} (f : Resource -> A) (resources : Set Resource) : Logic.CustomInputs :=
   Set.fromList
     (map
@@ -143,8 +155,8 @@ computableComponentToResourceMap
 
 resourceMapping (identity : Identity) (consumed created : Set Resource) : Logic.CustomInputs :=
   Set.union
-    (computableComponentToResourceMap commitment created)
-    (computableComponentToResourceMap (nullifier (toNullifierKey identity)) consumed);
+    (computableComponentToCustomInputs commitment created)
+    (computableComponentToCustomInputs (nullifier (toNullifierKey identity)) consumed);
 
 module ProvingHelpers;
   findProvingKey {T} (key : T) (customInputs : Logic.CustomInputs) : Logic.ProvingKey :=
@@ -249,10 +261,18 @@ mkActionHelper
   (consumed created : Set Resource)
   (appData : AppData)
   (customInputs : Logic.CustomInputs)
+  {maybeNullifiers : Maybe (Set Nullifier) := nothing}
+  {maybeCommitments : Maybe (Set Commitment) := nothing}
   : Action :=
   let
-    nullifiers := Set.fromList (map (nullifier (toNullifierKey identity)) (Set.toList consumed));
-    commitments := Set.fromList (map commitment (Set.toList created));
+    nullifiers :=
+      case maybeNullifiers of
+        | nothing := Set.fromList (map (nullifier (toNullifierKey identity)) (Set.toList consumed))
+        | just nullifiers := nullifiers;
+    commitments :=
+      case maybeCommitments of
+        | nothing := Set.fromList (map commitment (Set.toList created))
+        | just nullifiers := nullifiers;
 
     tags : Set Logic.Tag :=
       Set.fromList

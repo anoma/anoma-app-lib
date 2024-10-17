@@ -3,17 +3,23 @@ module Utils.Counter.Label;
 import Stdlib.Prelude open;
 import Anoma.Resource open;
 import Anoma.Builtin.System open;
+import Authorization.Identities open;
 
-type CounterLabel := mkCounterLabel@{nf : Nullifier};
+
+-- TODO Make an unique trait that requires the label to contain an nullifier.
+type CounterLabel := mkCounterLabel@{nullifier : Nullifier};
+
+createUniqueCounterLabel (consumable : Resource) : CounterLabel :=
+  mkCounterLabel (nullifier (toNullifierKey Universal.identity) consumable);
 
 instance
 CounterLabel-Eq : Eq CounterLabel :=
   mkEq@{
-    eq (lhs rhs : CounterLabel) : Bool := CounterLabel.nf lhs == CounterLabel.nf rhs
+    eq (lhs rhs : CounterLabel) : Bool := CounterLabel.nullifier lhs == CounterLabel.nullifier rhs
   };
 
--- TODO -- |> anomaEncode |> anomaDecode is WRONG. ASK PAUL HOW TO DECODE DATA REF  IF IT IS SUPPOSED TO BE OPAQUE
-get (resource : Resource) : CounterLabel :=
+getCounterLabel (resource : Resource) : CounterLabel :=
   resource |> Resource.labelRef |> LabelRef.unLabelRef |> anomaEncode |> anomaDecode;
 
-getNullifierfFromLabel (resource : Resource) : Nullifier := resource |> get |> CounterLabel.nf;
+getNullifierfFromLabel (resource : Resource) : Nullifier :=
+  resource |> getCounterLabel |> CounterLabel.nullifier;

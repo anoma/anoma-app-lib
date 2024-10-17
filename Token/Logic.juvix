@@ -22,7 +22,7 @@ tokenLogic
   case supply of
     | Unbound := unboundSupplyLogic originator publicInputs privateInputs
     | Capped := cappedSupplyLogic originator publicInputs privateInputs
-    | Fixed nf := fixedSupplyLogic nf originator publicInputs privateInputs;
+    | Fixed nullifier := fixedSupplyLogic nullifier originator publicInputs privateInputs;
 
 unboundSupplyLogic
   (originator : ExternalIdentity)
@@ -31,86 +31,59 @@ unboundSupplyLogic
   : Bool :=
   let
     tag := Logic.Instance.tag publicInputs;
+    customInputs := Logic.Witness.customInputs privateInputs;
   in case tag of
        | Logic.Consumed nullifier :=
-         let
-           -- TODO HOW TO FIX THIS?
-           nullifierKey :=
-             Universal.internalIdentity |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
-           resources := Logic.Witness.created privateInputs;
-           maybeSelf :=
-             findConsumedResource@{
-               nullifier;
-               nullifierKey;
-               resources
-             };
-         in case maybeSelf of {
-              | nothing := false
-              | just self :=
-                case HasEphemerality.get self of {
-                  | Ephemeral := unboundSupplyInitializationLogic originator self publicInputs
-                  | NonEphemeral := transferLogic self publicInputs
-                }
-            }
+         case lookupResource nullifier customInputs of {
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of {
+               | Ephemeral := unboundSupplyInitializationLogic originator tag publicInputs
+               | NonEphemeral := transferLogic self tag publicInputs
+             }
+         }
        | Logic.Created commitment := true;
 
 unboundSupplyInitializationLogic
-  (originator : ExternalIdentity) (self : Resource) (publicInputs : Logic.Instance) : Bool :=
+  (originator : ExternalIdentity) (tag : Logic.Tag) (publicInputs : Logic.Instance) : Bool :=
   isAuthorizedBy@{
     signer := originator;
-    resource := self;
+    origin := tag;
     publicInputs
   };
 
 fixedSupplyLogic
-  (nf : Nullifier)
+  (passedNullifier : Nullifier)
   (originator : ExternalIdentity)
   (publicInputs : Logic.Instance)
   (privateInputs : Logic.Witness)
   : Bool :=
   let
     tag := Logic.Instance.tag publicInputs;
+    customInputs := Logic.Witness.customInputs privateInputs;
   in case tag of
        | Logic.Consumed nullifier :=
-         let
-           -- TODO FIX BY PATTERN MATCHING
-           nullifierKey :=
-             Universal.internalIdentity |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
-           resources := Logic.Witness.created privateInputs;
-           maybeSelf :=
-             findConsumedResource@{
-               nullifier;
-               nullifierKey;
-               resources
-             };
-         in case maybeSelf of {
-              | nothing := false
-              | just self :=
-                case HasEphemerality.get self of {
-                  | Ephemeral :=
-                    fixedSupplyInitializationLogic originator nullifier self publicInputs
-                  | NonEphemeral := transferLogic self publicInputs
-                }
-            }
+         case lookupResource nullifier customInputs of {
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of {
+               | Ephemeral :=
+                 fixedSupplyInitializationLogic originator passedNullifier tag publicInputs
+               | NonEphemeral := transferLogic self tag publicInputs
+             }
+         }
        | Logic.Created commitment :=
-         let
-           resources := Logic.Witness.created privateInputs;
-           maybeSelf :=
-             findCreatedResource@{
-               commitment;
-               resources
-             };
-         in case maybeSelf of
-              | nothing := false
-              | just self :=
-                case HasEphemerality.get self of
-                  | Ephemeral := false
-                  | NonEphemeral := true;
+         case lookupResource commitment customInputs of
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of
+               | Ephemeral := false
+               | NonEphemeral := true;
 
 fixedSupplyInitializationLogic
   (originator : ExternalIdentity)
   (nullifier : Nullifier)
-  (self : Resource)
+  (tag : Logic.Tag)
   (publicInputs : Logic.Instance)
   : Bool :=
   isNullifierPresent@{
@@ -119,7 +92,7 @@ fixedSupplyInitializationLogic
     }
     && isAuthorizedBy@{
       signer := originator;
-      resource := self;
+      origin := tag;
       publicInputs
     };
 
@@ -129,7 +102,7 @@ cappedSupplyLogic
   (privateInputs : Logic.Witness)
   : Bool := failwith "NOT IMPLEMENTED";
 
-transferLogic (self : Resource) (publicInputs : Logic.Instance) : Bool :=
+transferLogic (self : Resource) (tag : Logic.Tag) (publicInputs : Logic.Instance) : Bool :=
   let
     signer :=
       -- TODO Use ownership standard here.
@@ -140,6 +113,6 @@ transferLogic (self : Resource) (publicInputs : Logic.Instance) : Bool :=
   in isTransferable self
     && isAuthorizedBy@{
       signer;
-      resource := self;
+      origin := tag;
       publicInputs
     };

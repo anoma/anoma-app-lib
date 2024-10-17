@@ -1,6 +1,8 @@
 module Utils.Counter.Logic;
 
 import Stdlib.Prelude open;
+import Stdlib.Data.Set as Set open using {Set};
+
 import Anoma.Identity open;
 import Anoma.Resource open;
 import Anoma.Proving.Types open;
@@ -8,7 +10,6 @@ import AnomaHelpers open;
 
 import Utils.Counter.Count open;
 import Utils.Counter.Label open;
-import Utils.Counter.Extra open;
 
 import Resource.Traits open;
 import Authorization.Identities open;
@@ -16,14 +17,10 @@ import Authorization.Identities open;
 counterLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
   let
     tag := Logic.Instance.tag publicInputs;
-    lookupResource {A} (key : A) : Maybe Resource :=
-      lookupCustomInputs@{
-        key;
-        customInputs := Logic.Witness.customInputs privateInputs
-      };
+    customInputs := Logic.Witness.customInputs privateInputs;
   in case tag of
        | Logic.Consumed nullifier :=
-         case lookupResource nullifier of {
+         case lookupResource nullifier customInputs of {
            | nothing := false
            | just self :=
              case HasEphemerality.get self of {
@@ -32,7 +29,7 @@ counterLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : B
              }
          }
        | Logic.Created commitment :=
-         case lookupResource commitment of
+         case lookupResource commitment customInputs of
            | nothing := false
            | just self :=
              case HasEphemerality.get self of
@@ -47,15 +44,13 @@ initializationLogic
       nullifierSet := Logic.Instance.nullifiers publicInputs
     };
 
--- TODO use pattern matching
 incrementationLogic
   (self : Resource) (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
-  case
-    findCreatedCounter@{
-      consumedCounter := self;
-      publicInputs;
-      privateInputs
-    }
-  of
-    | just foundCounter := isIncremented self foundCounter
-    | nothing := false;
+  case privateInputs |> Logic.Witness.created |> Set.toList of
+    | [foundCounter] :=
+      kind self == kind foundCounter
+        && isIncremented@{
+          old := self;
+          new := foundCounter
+        }
+    | _ := false;

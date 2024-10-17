@@ -11,26 +11,22 @@ import Anoma.Proving.Types open;
 
 import AnomaHelpers open;
 
--- TODO use nullifier instead of commitment
 isAuthorizedBy
-  (signer : ExternalIdentity) (resource : Resource) (publicInputs : Logic.Instance) : Bool :=
-  let
-    cm := commitment resource;
-  in case
-       lookupAppData@{
-         -- TODO use a different lookup key
-         key := cm;
-         Value := Pair ResourceRelationship Signature;
-         appData := Logic.Instance.appData publicInputs
-       }
-     of
-       | nothing := false
-       | just (msg, sig) :=
-         ResourceRelationship.origin msg == cm
-           && verify sig msg signer
-           && isSubset
-             (ResourceRelationship.mustBeConsumed msg)
-             (Logic.Instance.nullifiers publicInputs)
-           && isSubset
-             (ResourceRelationship.mustBeCreated msg)
-             (Logic.Instance.commitments publicInputs);
+  (signer : ExternalIdentity) (origin : Logic.Tag) (publicInputs : Logic.Instance) : Bool :=
+  case
+    lookupAppData@{
+      key := origin;
+      Value := Pair ResourceRelationship Signature;
+      appData := Logic.Instance.appData publicInputs
+    }
+  of
+    | nothing := false
+    | just (msg, sig) :=
+      ResourceRelationship.origin msg == origin
+        && verify sig msg signer
+        && isSubset
+          (ResourceRelationship.mustBeConsumed msg)
+          (Logic.Instance.nullifiers publicInputs)
+        && isSubset
+          (ResourceRelationship.mustBeCreated msg)
+          (Logic.Instance.commitments publicInputs);

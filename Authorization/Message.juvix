@@ -26,52 +26,37 @@ import Anoma.Utils open;
 --- @mustBeConsumed origin The resource performing the check.
 type ResourceRelationship :=
   mkResourceRelationship@{
-    -- TODO use tag
-    origin : Commitment;
-    mustBeCreated : Set Commitment;
-    mustBeConsumed : Set Nullifier
+    origin : Logic.Tag;
+    mustBeConsumed : Set Nullifier;
+    mustBeCreated : Set Commitment
   };
 
-mkResourceRelationshipAppDataMapEntry
+mkResourceRelationshipAppDataEntry
   -- TODO use Witness here
   (identity : Identity)
-  (origin : Resource)
-  (mustBeConsumed : Set Resource)
-  (mustBeCreated : Set Resource)
+  (origin : Logic.Tag)
+  (mustBeConsumed : Set Nullifier)
+  (mustBeCreated : Set Commitment)
   : AppDataEntry :=
   let
-    originCm : Resource.Commitment := commitment origin;
-    consumedNfs : Set Resource.Nullifier :=
-      Set.fromList (map \ {r := nullifier (toNullifierKey identity) r} (Set.toList mustBeConsumed));
-    createdCms : Set Resource.Commitment :=
-      Set.fromList (map commitment (Set.toList mustBeCreated));
     msg : ResourceRelationship :=
       mkResourceRelationship@{
-        origin := originCm;
-        mustBeConsumed := consumedNfs;
-        mustBeCreated := createdCms
-      };
-    sig : Signature := sign msg (Identity.internal identity);
-  in mkAppDataEntry@{
-    key := anomaEncode originCm |> mkAppDataKey;
-    value := anomaEncode (msg, sig) |> mkAppDataValue
-  };
-
-mkResourceRelationshipAppData
-  (identity : Identity)
-  (origins : Set Resource)
-  (mustBeConsumed : Set Resource)
-  (mustBeCreated : Set Resource)
-  : AppData :=
-  for (acc := Set.empty) (origin in origins)
-    {Set.insert
-      mkResourceRelationshipAppDataMapEntry@{
-        identity;
         origin;
         mustBeConsumed;
         mustBeCreated
-      }
-      acc};
+      };
+    sig : Signature := sign msg (Identity.internal identity);
+  in case origin of
+       | Logic.Created commitment :=
+         mkAppDataEntry@{
+           key := commitment |> anomaEncode |> mkAppDataKey;
+           value := (msg, sig) |> anomaEncode |> mkAppDataValue
+         }
+       | Logic.Consumed nullifier :=
+         mkAppDataEntry@{
+           key := nullifier |> anomaEncode |> mkAppDataKey;
+           value := (msg, sig) |> anomaEncode |> mkAppDataValue
+         };
 
 module FromConvertable;
   import Resource.Traits.Convertable open;
@@ -89,30 +74,47 @@ module FromConvertable;
         let
           identity := StandardInputs.identity standardInputs;
           consumed := Set.fromList (map Convertable.toResource (Set.toList consumedResources));
-          -- consumed := listFor (acc := Set.empty) (r in consumedResources) {Set.insert (Convertable.toResource r acc};
           created := Set.fromList (map Convertable.toResource (Set.toList createdResources));
-          -- created := listfor (acc := Set.empty) (r in createdResources) {Set.insert (Convertable.toResource r) acc};
-          -- TODO Make this callable from the TX function per resource.
+
+          commitmentCustomInputs := computableComponentToCustomInputs commitment created;
+          nullifierCustomInputs :=
+            computableComponentToCustomInputs (nullifier (toNullifierKey identity)) consumed;
+
+          commitments :=
+            Set.fromList
+              (map
+                (AppDataKey.unAppDataKey >> anomaDecode)
+                (commitmentCustomInputs |> AppDataMap.fromSet |> Map.keys |> Set.toList));
+          nullifiers :=
+            Set.fromList
+              (map
+                (AppDataKey.unAppDataKey >> anomaDecode)
+                (nullifierCustomInputs |> AppDataMap.fromSet |> Map.keys |> Set.toList));
+
+          customInputs := Set.union commitmentCustomInputs commitmentCustomInputs;
+          -- consumed := map (r in consumedResources) {Convertable.toResource r};
+          -- created := map (r in createdResources) {Convertable.toResource r};
+          -- TODO Raise juvix issue that `map (origin in consumed)` doesn't work. ("No trait instance found for Functor Set")
           appData :=
-            mkResourceRelationshipAppData@{
-              identity;
-              origins := consumed;
-              mustBeConsumed := Set.empty;
-              -- TODO Add `consumed` here too?
-              mustBeCreated := created
-            };
-          customInputs :=
-            resourceMapping@{
-              identity;
-              consumed;
-              created
-            };
+            for (acc := Set.empty) (nullifier in nullifiers)
+              {Set.insert
+                mkResourceRelationshipAppDataEntry@{
+                  identity;
+                  origin := Logic.Consumed nullifier;
+                  mustBeConsumed := Set.empty;
+                  mustBeCreated := commitments
+                }
+                acc};
+
         in mkActionHelper@{
           identity;
           consumed;
           created;
           appData;
-          customInputs
+          customInputs;
+          maybeNullifiers := just nullifiers;
+          maybeCommitments := just commitments
         }
     };
+
 end;
