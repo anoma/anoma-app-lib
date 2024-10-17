@@ -14,14 +14,14 @@ import Authorization.Identities open;
 import Randomness open;
 
 mkCounter
-  (ephemeral : Bool) (uniqueLabel : CounterLabel) (count : Nat) : Resource :=
+  (identity : Identity) (ephemeral : Bool) (uniqueLabel : CounterLabel) (count : Nat) : Resource :=
   mkResource@{
     logicRef := Ref.toRef counterLogic;
     labelRef := Ref.toRef (uniqueLabel |> anomaEncode |> mkLabel);
     valueRef := Ref.toRef (count |> mkValue);
     quantity := 1;
     ephemeral;
-    nullifierKeyCommitment := Universal.identity |> toNullifierKeyCommitment;
+    nullifierKeyCommitment := toNullifierKeyCommitment identity;
     nonce := mkNonce rand;
     randSeed := mkRandSeed rand
   };

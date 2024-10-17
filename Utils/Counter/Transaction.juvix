@@ -20,68 +20,54 @@ import Utils.Counter.Resource open;
 import AnomaHelpers open;
 
 -- TODO use general initialize/traits
---- Requires a consumable `Utils.Dummy.Resource`.
+--- Requires a consumable resource, e.g., `Utils.Dummy.Resource`.
 createCounter
-  (standardInputs : StandardInputs)
-  (consumableDummy : Resource)
-  : Result StandardError Transaction :=
+  (standardInputs : StandardInputs) (consumable : Resource) : Result StandardError Transaction :=
   let
     identity := StandardInputs.identity standardInputs;
-    nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey;
-    ephDummy : Resource :=
-      alwaysValidResource@{
-        quantity := 1;
+    ephConsumable : Resource := consumable@Resource{ephemeral := true};
+    uniqueLabel := createUniqueCounterLabel consumable;
+    ephCounter : Resource :=
+      mkCounter@{
         identity;
-        ephemeral := true
+        ephemeral := true;
+        uniqueLabel;
+        count := 0
       };
-
-  in if
-    | kind consumableDummy /= kind ephDummy :=
-      throw
-        mkDefaultError@{
-          msg := "The provided consumable resource has the wrong kind."
-        }
-    | else :=
-      let
-        uniqueLabel := createUniqueCounterLabel consumableDummy;
-        -- TODO how to deal with randomness here?
-        ephCounter : Resource :=
-          mkCounter@{
-            ephemeral := true;
-            uniqueLabel;
-            count := 0
-          };
-        newCounter :=
-          mkCounter@{
-            ephemeral := false;
-            uniqueLabel;
-            count := 0
-          };
-        consumed := Set.fromList [consumableDummy; ephCounter];
-        created := Set.fromList [ephDummy; newCounter];
-      in ok
-        mkTransactionHelper@{
-          roots := Set.fromList [StandardInputs.currentRoot standardInputs];
-          actions :=
-            Set.singleton
-              mkActionHelper@{
-                identity := StandardInputs.identity standardInputs;
+    newCounter :=
+      mkCounter@{
+        identity;
+        ephemeral := false;
+        uniqueLabel;
+        count := 0
+      };
+    consumed := Set.fromList [consumable; ephCounter];
+    created := Set.fromList [ephConsumable; newCounter];
+  in ok
+    mkTransactionHelper@{
+      roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+      actions :=
+        Set.singleton
+          mkActionHelper@{
+            identity := StandardInputs.identity standardInputs;
+            consumed;
+            created;
+            appData := Set.empty;
+            customInputs :=
+              resourceMapping@{
+                identity;
                 consumed;
-                created;
-                appData := Set.empty;
-                customInputs :=
-                  resourceMapping@{
-                    identity;
-                    consumed;
-                    created
-                  }
+                created
               }
-        };
+          }
+    };
 
 incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) : Transaction :=
   let
+    identity := StandardInputs.identity standardInputs;
     updatedCounter : Resource :=
       mkCounter@{
+        identity;
         ephemeral := false;
         uniqueLabel := getCounterLabel currentCounter;
         count :=
@@ -94,7 +80,7 @@ incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) :
     actions :=
       Set.singleton
         mkActionHelper@{
-          identity := Universal.identity;
+          identity;
           consumed := Set.singleton currentCounter;
           created := Set.singleton updatedCounter;
           appData := Set.empty;
