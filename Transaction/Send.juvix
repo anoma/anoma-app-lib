@@ -37,14 +37,14 @@ send
     self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
     balance : Quantity := HasQuantity.get toSend;
   in case QuantityInternal.compare balance quantity of
-       | LT :=
+       | LessThan :=
          throw
            mkInsufficientHasQuantityError@{
              limit := balance;
              actual := quantity
            }
-       | EQ := transfer standardInputs toSend receiver
-       | GT :=
+       | Equal := transfer standardInputs toSend receiver
+       | GreaterThan :=
          let
            difference : Quantity :=
              -- TODO improve
