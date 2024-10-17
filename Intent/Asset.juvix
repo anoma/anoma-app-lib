@@ -5,6 +5,7 @@ import Stdlib.Data.Set as Set open using {Set};
 import Anoma.Resource open;
 import Anoma.Identity.External open;
 import AnomaHelpers open;
+import Authorization.Identities open;
 
 type Asset :=
   mkAsset@{
@@ -29,9 +30,4 @@ includesAsset (asset : Asset) (receiver : ExternalIdentity) (resources : Set Res
   any (r in Set.toList resources)
     Asset.quantity asset <= Resource.quantity r
       && Asset.kind asset == kind r
-      -- TODO Refactor conversion
-      && receiver
-        == (r
-          |> Resource.nullifierKeyCommitment
-          |> NullifierKeyCommitment.unNullifierKeyCommitment
-          |> mkExternalIdentity);
+      && ExternalIdentity.toNullifierKeyCommitment receiver == Resource.nullifierKeyCommitment r;

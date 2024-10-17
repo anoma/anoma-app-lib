@@ -32,7 +32,6 @@ type ResourceRelationship :=
   };
 
 mkResourceRelationshipAppDataEntry
-  -- TODO use Witness here
   (identity : Identity)
   (origin : Logic.Tag)
   (mustBeConsumed : Set Nullifier)
