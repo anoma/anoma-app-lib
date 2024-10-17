@@ -1,7 +1,7 @@
 module Intent.Swap.Solution;
 
 import Stdlib.Prelude open;
-import Data.Set as Set open using {Set};
+import Stdlib.Data.Set as Set open using {Set};
 import Anoma.Identity open;
 import Anoma.Transaction open;
 
@@ -15,7 +15,7 @@ import AnomaHelpers open;
 module Solution;
   -- TODO generalize
   type Solution :=
-    mk {
+    mk@{
       intent : SwapIntent;
       created : Set Token
     };
@@ -27,12 +27,12 @@ module Solution;
     in ActionConvertable.toAction standardInputs consumed created;
   -- TODO use named argument syntax once supported.
   {-
-      ActionConvertable.toAction@{
-      standardInputs;
-      consumed := Set.singleton (Solution.intent solution);
-      created := (Solution.created solution)
-      };
-    -}
+          ActionConvertable.toAction@{
+          standardInputs;
+          consumed := Set.singleton (Solution.intent solution);
+          created := (Solution.created solution)
+          };
+        -}
 
   open Solution public;
 end;

@@ -12,36 +12,36 @@ import Authorization.Check open;
 import Token.Resource open;
 import Token.Logic open;
 
-type DefaultError := mkDefaultError {msg : String};
+type DefaultError := mkDefaultError@{msg : String};
 
 type NonTransferableError := mkNonTransferableError;
 
 type InsufficientElementsError :=
-  mkInsufficientElementsError {
+  mkInsufficientElementsError@{
     limit : Nat;
     actual : Nat
   };
 
 type InsufficientHasQuantityError :=
-  mkInsufficientHasQuantityError {
+  mkInsufficientHasQuantityError@{
     limit : Quantity;
     actual : Quantity
   };
 
 type InvalidLogicError :=
-  mkInvalidLogicError {
+  mkInvalidLogicError@{
     expected : Nat;
     actual : Nat
   };
 
 type InvalidKindError :=
-  mkInvalidKindError {
+  mkInvalidKindError@{
     expected : Kind;
     actual : Kind
   };
 
 type UnauthorizedError :=
-  mkUnauthorizedError {
+  mkUnauthorizedError@{
     expected : ExternalIdentity;
     actual : ExternalIdentity
   };
@@ -56,7 +56,7 @@ type StandardError :=
   | ErrNonTransferable NonTransferableError;
 
 trait
-type Throwable E A := mkThrowable {throw : E -> Result StandardError A};
+type Throwable E A := mkThrowable@{throw : E -> Result StandardError A};
 
 open Throwable public;
 

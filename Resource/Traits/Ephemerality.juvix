@@ -31,7 +31,7 @@ Ephemerality-Show : Show Ephemerality :=
 
 trait
 type HasEphemerality ResourceT :=
-  mkHasEphemerality {
+  mkHasEphemerality@{
     get : ResourceT -> Ephemerality;
     set : Ephemerality -> ResourceT -> ResourceT
   };

@@ -11,7 +11,7 @@ type Intention :=
   | Give;
 
 type Clause :=
-  mkClause {
+  mkClause@{
     lhs : Pair Intention QuantifiedAssets;
     rhs : QuantifiedAssets
   };

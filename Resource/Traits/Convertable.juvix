@@ -6,7 +6,7 @@ import Resource.Traits.NullifierKey open;
 
 trait
 type Convertable TypedResource :=
-  mkConvertable {
+  mkConvertable@{
     toResource : (typedResource : TypedResource) -> Resource;
     fromResource : (resource : Resource) -> TypedResource
   };

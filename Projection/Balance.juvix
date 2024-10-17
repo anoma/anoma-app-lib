@@ -1,7 +1,7 @@
 module Projection.Balance;
 
 import Stdlib.Prelude open;
-import Data.Set as Set open using {Set};
+import Stdlib.Data.Set as Set open using {Set};
 
 import Anoma.Resource open;
 import Anoma.Identity open;

@@ -4,7 +4,7 @@ import Stdlib.Prelude open;
 import Anoma.Resource open;
 import Anoma.Builtin.System open;
 
-type CounterLabel := mkCounterLabel {nf : Nullifier};
+type CounterLabel := mkCounterLabel@{nf : Nullifier};
 
 instance
 CounterLabel-Eq : Eq CounterLabel :=

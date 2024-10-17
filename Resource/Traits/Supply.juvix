@@ -30,7 +30,7 @@ Supply-Show : Show Supply :=
 
 trait
 type HasSupply ResourceT :=
-  mkHasSupply {
+  mkHasSupply@{
     get : ResourceT -> Supply;
     set : Supply -> ResourceT -> ResourceT
   };

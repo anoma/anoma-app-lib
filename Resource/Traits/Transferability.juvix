@@ -37,7 +37,7 @@ Transferability-Show : Show Transferability :=
 
 trait
 type HasTransferability ResourceT :=
-  mkHasTransferability {
+  mkHasTransferability@{
     get : ResourceT -> Transferability;
     set : Transferability -> ResourceT -> ResourceT
   };

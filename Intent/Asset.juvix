@@ -1,13 +1,13 @@
 module Intent.Asset;
 
 import Stdlib.Prelude open;
-import Data.Set as Set open using {Set};
+import Stdlib.Data.Set as Set open using {Set};
 import Anoma.Resource open;
 import Anoma.Identity.External open;
 import AnomaHelpers open;
 
 type Asset :=
-  mkAsset {
+  mkAsset@{
     quantity : Quantity;
     kind : Kind
   };
@@ -17,7 +17,7 @@ type Quantifier :=
   | All;
 
 type QuantifiedAssets :=
-  mkQuantifiedAssets {
+  mkQuantifiedAssets@{
     quantifier : Quantifier;
     assets : List Asset
   };

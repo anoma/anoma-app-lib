@@ -5,7 +5,7 @@ import Anoma.Utils open;
 
 trait
 type HasLabel ResourceT LabelT :=
-  mkHasLabel {
+  mkHasLabel@{
     get : ResourceT -> LabelT;
     set : LabelT -> ResourceT -> ResourceT
   };

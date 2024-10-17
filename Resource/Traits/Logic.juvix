@@ -6,7 +6,7 @@ import Anoma.Utils open;
 
 trait
 type HasLogic ResourceT :=
-  mkHasLogic {
+  mkHasLogic@{
     get : ResourceT -> Logic;
     set : Logic -> ResourceT -> ResourceT
   };
