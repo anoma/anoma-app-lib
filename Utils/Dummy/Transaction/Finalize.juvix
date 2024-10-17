@@ -17,7 +17,7 @@ finalize (standardInputs : StandardInputs) (dummy : Resource) : Transaction :=
     actions :=
       Set.fromList
         [ mkActionHelper@{
-          identity :=  StandardInputs.identity standardInputs;
+          identity := StandardInputs.identity standardInputs;
           consumed := Set.fromList [dummy];
           created := Set.fromList [dummy@Resource{ephemeral := true}];
           appData := Set.empty;

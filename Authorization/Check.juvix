@@ -13,10 +13,7 @@ import AnomaHelpers open;
 
 -- TODO use nullifier instead of commitment
 isAuthorizedBy
-  (signer : ExternalIdentity)
-  (resource : Resource)
-  (publicInputs : Logic.Instance)
-  : Bool :=
+  (signer : ExternalIdentity) (resource : Resource) (publicInputs : Logic.Instance) : Bool :=
   let
     cm := commitment resource;
   in case

@@ -85,5 +85,5 @@ settle
          ok
            mkTransactionHelper@{
              roots := Set.singleton (StandardInputs.currentRoot standardInputs);
-             actions;
+             actions
            };

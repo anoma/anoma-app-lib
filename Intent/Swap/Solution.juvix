@@ -27,12 +27,12 @@ module Solution;
     in ActionConvertable.toAction standardInputs consumed created;
   -- TODO use named argument syntax once supported.
   {-
-    ActionConvertable.toAction@{
-    standardInputs;
-    consumed := Set.singleton (Solution.intent solution);
-    created := (Solution.created solution)
-    };
-  -}
+      ActionConvertable.toAction@{
+      standardInputs;
+      consumed := Set.singleton (Solution.intent solution);
+      created := (Solution.created solution)
+      };
+    -}
 
   open Solution public;
 end;

@@ -10,7 +10,6 @@ type HasNullifierKey ResourceT :=
     set : NullifierKey -> ResourceT -> ResourceT
   };
 
-
 {-
 Requirement:
 - specify different nullifierkeys for different resources.
