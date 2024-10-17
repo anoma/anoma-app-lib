@@ -5,7 +5,7 @@ import Anoma.Resource open;
 
 trait
 type HasQuantity ResourceT :=
-  mkHasQuantity {
+  mkHasQuantity@{
     get : ResourceT -> Quantity;
     set : Quantity -> ResourceT -> ResourceT
   };

@@ -14,7 +14,7 @@ import Intent.Swap.Logic open;
 import Randomness open;
 
 module SwapIntent;
-  type SwapIntent := mk {resource : Resource};
+  type SwapIntent := mk@{resource : Resource};
 
   create (want : QuantifiedAssets) (receiver solver : ExternalIdentity) : SwapIntent :=
     mk

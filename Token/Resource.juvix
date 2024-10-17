@@ -17,7 +17,7 @@ import Anoma.Utils open;
 import Randomness open;
 
 module Token;
-  type Token := mk {resource : Resource};
+  type Token := mk@{resource : Resource};
 
   create
     (quantity : Quantity)

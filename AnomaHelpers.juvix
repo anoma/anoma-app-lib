@@ -5,8 +5,8 @@ import Stdlib.Debug.Fail open using {failwith};
 import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
 
 import Authorization.Identities open;
-import Data.Set as Set open using {Set; empty; size; insert; union; member?};
-import Data.Map as Map open using {Map};
+import Stdlib.Data.Set as Set open using {Set; empty; size; insert; union; isMember};
+import Stdlib.Data.Map as Map open using {Map};
 import Anoma.Identity open;
 import Anoma.Resource as Resource open;
 import Anoma.Transaction as Transaction open;
@@ -52,10 +52,10 @@ Identity-Show : Show Identity :=
         ++str "}"};
 
 isCreated (commitment : Commitment) (publicInputs : Logic.Instance) : Bool :=
-  Set.member? commitment (Logic.Instance.commitments publicInputs);
+  Set.isMember commitment (Logic.Instance.commitments publicInputs);
 
 isConsumed (nullifier : Nullifier) (publicInputs : Logic.Instance) : Bool :=
-  Set.member? nullifier (Logic.Instance.nullifiers publicInputs);
+  Set.isMember nullifier (Logic.Instance.nullifiers publicInputs);
 
 findCreatedResource (commitment : Commitment) (resources : Set Resource) : Maybe Resource :=
   find \ {resource := Resource.commitment resource == commitment} (Set.toList resources);
@@ -70,15 +70,15 @@ findConsumedResource
 
 isNullifierPresent
   (nullifier : Resource.Nullifier) (nullifierSet : Set Resource.Nullifier) : Bool :=
-  Set.member? nullifier nullifierSet;
+  Set.isMember nullifier nullifierSet;
 
-isSubset {A} {{Ord A}} (sub sup : Set A) : Bool := all (x in Set.toList sub) Set.member? x sup;
+isSubset {A} {{Ord A}} (sub sup : Set A) : Bool := all (x in Set.toList sub) Set.isMember x sup;
 
 isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
   let
     sup' := Set.fromList sup;
   in all (x in sub)
-       Set.member? x sup';
+       Set.isMember x sup';
 
 module AppDataMap;
   fromSet (appDataSet : Set AppDataEntry) : Map AppDataKey AppDataValue :=
@@ -109,7 +109,7 @@ lookupCustomInputs
   };
 
 type StandardInputs :=
-  mkStandardInputs {
+  mkStandardInputs@{
     identity : Identity;
     currentRoot : CommitmentTree.Root
   };
@@ -160,25 +160,25 @@ module ProvingHelpers;
       ephemeral := true
     };
 
-  emptyLogicProof : LogicProof.ProofRecord :=
+  emptyLogicProofRecord : LogicProof.ProofRecord :=
     let
       verifyingKey := Logic.mkVerifyingKey unit;
       provingKey := Logic.mkProvingKey emptyResource;
-      instance' :=
+      publicInputs :=
         Logic.mkInstance@{
           tag := Logic.Created (commitment emptyResource);
           commitments := Set.empty;
           nullifiers := Set.empty;
           appData := Set.empty
         };
-      witness :=
+      privateInputs :=
         Logic.mkWitness@{
           created := Set.empty;
           consumed := Set.empty;
           customInputs := Set.empty
         };
-      proof := LogicProof.prove provingKey instance' witness;
-    in verifyingKey, proof, instance';
+      proof := LogicProof.prove provingKey publicInputs privateInputs;
+    in LogicProof.mkProofRecord proof verifyingKey publicInputs;
 
   createLogicProofRecord
     (tag : Logic.Tag)
@@ -198,9 +198,10 @@ module ProvingHelpers;
           privateInputs
         };
       verifyingKey := Logic.mkVerifyingKey unit;
-    in GenericProofRecord.Logic (verifyingKey, proof, publicInputs);
+      proofRecord := LogicProof.mkProofRecord proof verifyingKey publicInputs;
+    in GenericProofRecord.Logic proofRecord;
 
-  emptyComplianceProof : ComplianceProof.ProofRecord :=
+  emptyComplianceProofRecord : ComplianceProof.ProofRecord :=
     let
       verifyingKey := Compliance.mkVerifyingKey unit;
       provingKey := Compliance.mkProvingKey unit;
@@ -212,12 +213,12 @@ module ProvingHelpers;
           publicInputs;
           privateInputs
         };
-    in verifyingKey, proof, publicInputs;
+    in ComplianceProof.mkProofRecord proof verifyingKey publicInputs;
 
   createComplianceProofRecord : GenericProofRecord.ProofRecord :=
-    GenericProofRecord.Compliance emptyComplianceProof;
+    GenericProofRecord.Compliance emptyComplianceProofRecord;
 
-  emptyDeltaProof : DeltaProof.ProofRecord :=
+  emptyDeltaProofRecord : DeltaProof.ProofRecord :=
     let
       verifyingKey := Delta.mkVerifyingKey unit;
       provingKey := Delta.mkProvingKey unit;
@@ -229,10 +230,11 @@ module ProvingHelpers;
           publicInputs;
           privateInputs
         };
-    in verifyingKey, proof, publicInputs;
+    in DeltaProof.mkProofRecord proof verifyingKey publicInputs;
 
   -- TODO should this be the generic ProofRecord?
-  createDeltaProofRecord : DeltaProof.ProofRecord := emptyDeltaProof;
+  createDeltaProofRecord : GenericProofRecord.ProofRecord :=
+    GenericProofRecord.Delta emptyDeltaProofRecord;
 end;
 
 open ProvingHelpers;
@@ -285,7 +287,7 @@ mkTransactionHelper (roots : Set CommitmentTree.Root) (actions : Set Action) : T
     roots;
     actions;
     delta := Delta.zero;
-    deltaProofRecord := emptyDeltaProof
+    deltaProofRecord := createDeltaProofRecord
   };
 
 emptyTx : Transaction :=

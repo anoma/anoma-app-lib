@@ -2,7 +2,7 @@ module Authorization.Message;
 
 import Stdlib.Prelude open;
 import Stdlib.Debug.Fail open using {failwith};
-import Data.Set as Set open using {Set; empty; size; insert; union};
+import Stdlib.Data.Set as Set open using {Set; empty; size; insert; union};
 import AnomaHelpers open;
 import Authorization.Identities open;
 
@@ -25,7 +25,7 @@ import Anoma.Utils open;
 --- @mustBeCreated origin The resource performing the check.
 --- @mustBeConsumed origin The resource performing the check.
 type ResourceRelationship :=
-  mkResourceRelationship {
+  mkResourceRelationship@{
     -- TODO use tag
     origin : Commitment;
     mustBeCreated : Set Commitment;

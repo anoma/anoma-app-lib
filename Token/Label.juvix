@@ -10,7 +10,7 @@ import AnomaHelpers open;
 import Resource.Traits open;
 
 type TokenLabel :=
-  mkTokenLabel {
+  mkTokenLabel@{
     name : String;
     symbol : String;
     decimals : Nat;
@@ -76,7 +76,7 @@ fromLabelRef (labelRef : LabelRef) : TokenLabel :=
   labelRef |> Ref.fromRef |> Label.unLabel |> anomaDecode;
 
 type InvalidLabelError :=
-  mkInvalidLabelError {
+  mkInvalidLabelError@{
     expected : TokenLabel;
     actual : TokenLabel
   };

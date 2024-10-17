@@ -11,7 +11,7 @@ import Utils.Counter.Label open;
 --- A unique identifier (UID) characterized by a ;Nat; counter value
 --- and an unique counter ;Kind;.
 type UID :=
-  mkUID {
+  mkUID@{
     id : Nat;
     uniqueKind : Kind
   };

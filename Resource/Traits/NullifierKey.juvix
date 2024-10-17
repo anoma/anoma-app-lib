@@ -5,7 +5,7 @@ import Anoma.Utils open;
 
 trait
 type HasNullifierKey ResourceT :=
-  mkHasNullifierKey {
+  mkHasNullifierKey@{
     get : ResourceT -> NullifierKey;
     set : NullifierKey -> ResourceT -> ResourceT
   };
