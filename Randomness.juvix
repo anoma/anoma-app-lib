@@ -1,0 +1,6 @@
+module Randomness;
+
+import Stdlib.Prelude open;
+
+--- TODO Replace by builtin.
+rand : Nat := 0;

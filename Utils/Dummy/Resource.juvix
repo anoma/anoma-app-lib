@@ -1,19 +1,24 @@
 module Utils.Dummy.Resource;
 
 import Stdlib.Prelude open;
-import Anoma open;
-import AnomaHelpers open;
+import Anoma.Resource open;
+import Anoma.Identity open;
+import Anoma.Utils open;
+import Anoma.Proving.Types open;
 
-import Utils.Dummy.Logic open;
+import Randomness open;
+import Authorization.Identities open;
 
-mkDummy (npk : PublicKey) (eph : Bool) : Resource :=
-  Resource.mk@{
-    logic := alwaysTrueLogic;
-    label := 0;
-    quantity := 1;
-    data := 0;
-    eph;
-    npk;
-    nonce := rand;
-    rseed := rand
+alwaysValidLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool := true;
+
+alwaysValidResource (quantity : Quantity) (identity : Identity) (ephemeral : Bool) : Resource :=
+  mkResource@{
+    logicRef := Ref.toRef alwaysValidLogic;
+    labelRef := Ref.toRef (mkLabel 0);
+    valueRef := Ref.toRef (mkValue 0);
+    quantity;
+    ephemeral;
+    nullifierKeyCommitment := toNullifierKeyCommitment identity;
+    nonce := mkNonce rand;
+    randSeed := mkRandSeed rand
   };

@@ -1,7 +1,10 @@
 module Transaction.Finalize;
 
 import Stdlib.Prelude open;
-import Anoma open;
+import Data.Set as Set open using {Set};
+import Anoma.Resource open;
+import Anoma.Transaction open;
+import Anoma.Identity open;
 import AnomaHelpers open;
 
 import Authorization.Identities open;
@@ -9,37 +12,48 @@ import Resource.Error open;
 import Resource.Traits open;
 import Transaction.Traits open;
 
---- Finalizes a ;Convertable; typed ;Resource;, if the calling ;KeyPair; is the owner.
+--- Finalizes a ;Convertable; typed ;Resource;, if the calling ;Identity; is the owner.
 --- This requires an ephemeral resource to be created.
 --- The function returns a ;StandardError; if
---- - the calling ;KeyPair; is not the owner
+--- - the calling ;Identity; is not the owner
 --- - the supply type is ;Fixed; in which case finalization is not supported.
 --- - the supply type is ;Capped; which is not supported.
 finalize
   {R}
+  {{Ord R}}
   {{Convertable R}}
   {{HasOwner R}}
   {{HasSupply R}}
   {{HasEphemerality R}}
-  {{TransactionConvertable R R}}
-  (self : KeyPair)
+  {{ActionConvertable R R}}
+  (standardInputs : StandardInputs)
   (toFinalize : R)
   : Result StandardError Transaction :=
   let
-    myself : PublicKey := KeyPair.pubKey self;
-    nk : PrivateKey := KeyPair.privKey self;
-    owner : PublicKey := HasOwner.get toFinalize;
-    ephResource := HasEphemerality.set Ephemerality.Ephemeral (HasOwner.set Zero.pubKey toFinalize);
+    self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
+    owner : ExternalIdentity := HasOwner.get toFinalize;
+    ephResource :=
+      HasEphemerality.set Ephemerality.Ephemeral (HasOwner.set Zero.externalIdentity toFinalize);
   in if
-    | owner /= myself :=
+    | owner /= self :=
       throw
         mkUnauthorizedError@{
-          expected := myself;
+          expected := self;
           actual := owner
         }
     | else :=
       case HasSupply.get toFinalize of
-        | Unbound := ok (TransactionConvertable.toTransaction nk [toFinalize] [ephResource])
+        | Unbound :=
+          ok
+            mkTransactionHelper@{
+              roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+              actions :=
+                Set.singleton
+                  (ActionConvertable.toAction
+                    standardInputs
+                    (Set.singleton toFinalize)
+                    (Set.singleton ephResource))
+            }
         | Capped :=
           throw
             mkDefaultError@{

@@ -1,23 +1,35 @@
 module Utils.Dummy.Transaction.Initialize;
 
 import Stdlib.Prelude open;
-import Data.Map as Map open using {Map};
-import Anoma open;
-import Anoma.Rep open;
+import Data.Set as Set open using {Set};
+
+import Anoma.Resource open;
+import Anoma.Transaction open;
+import Anoma.Identity open;
 import AnomaHelpers open;
 
+import Authorization.Identities open;
 import Utils.Dummy.Resource open;
 
-initialize (self : KeyPair) : Transaction :=
-  let
-    dummy : Resource :=
-      mkDummy@{
-        npk := KeyPair.pubKey self;
-        eph := false
-      };
-  in mkTransaction@{
-    nullifierKey := KeyPair.privKey self;
-    consumed := [dummy@Resource{   eph := true; npkContents := toAtom (KeyPair.pubKey self) }];
-    created := [dummy];
-    extraData := Map.empty
+initialize (standardInputs : StandardInputs) (dummy : Resource) : Transaction :=
+  mkTransactionHelper@{
+    roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+    actions :=
+      Set.fromList
+        [ mkActionHelper@{
+          identity := StandardInputs.identity standardInputs;
+          consumed :=
+            Set.fromList
+              [ dummy@Resource{
+                ephemeral := true;
+                nullifierKeyCommitment := standardInputs
+                  |> StandardInputs.identity
+                  |> toNullifierKeyCommitment
+              }
+              ];
+          created := Set.fromList [dummy];
+          appData := Set.empty;
+          customInputs := Set.empty
+        }
+        ]
   };

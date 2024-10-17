@@ -1,27 +1,29 @@
 module Utils.Counter.Resource;
 
 import Stdlib.Prelude open;
-import Anoma open;
+import Anoma.Resource open;
+import Anoma.Utils open;
+import Anoma.Builtin.System open;
+import Anoma.Identity open;
 import AnomaHelpers open;
 
-import Resource.Traits open;
 import Utils.Counter.Logic open;
 import Utils.Counter.Label open;
 
-mkCounter (npk : PublicKey) (eph : Bool) (uniqueLabel : Label) (count : Nat) : Resource :=
-  Resource.mk@{
-    logic := counterLogic;
-    label := anomaEncode (uniqueLabel);
+import Authorization.Identities open;
+import Randomness open;
+
+mkCounter
+  (identity : Identity) (ephemeral : Bool) (uniqueLabel : CounterLabel) (count : Nat) : Resource :=
+  mkResource@{
+    logicRef := Ref.toRef counterLogic;
+    labelRef := Ref.toRef (uniqueLabel |> anomaEncode |> mkLabel);
+    valueRef := Ref.toRef (count |> mkValue);
     quantity := 1;
-    data := count;
-    eph;
-    npk;
-    nonce := rand;
-    rseed := rand
+    ephemeral;
+    nullifierKeyCommitment := toNullifierKeyCommitment identity;
+    nonce := mkNonce rand;
+    randSeed := mkRandSeed rand
   };
 
-isCounter (resource : Resource) : Bool :=
-  let
-    uniqueKind : Kind := anomaKind resource;
-    logic : Resource -> Transaction -> Bool := Kind.toLogic uniqueKind;
-  in anomaEncode logic == anomaEncode counterLogic;
+isCounter (resource : Resource) : Bool := Resource.logicRef resource == Ref.toRef counterLogic;

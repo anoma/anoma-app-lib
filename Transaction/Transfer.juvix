@@ -1,39 +1,54 @@
 module Transaction.Transfer;
 
 import Stdlib.Prelude open;
-import Anoma open;
+import Data.Set as Set open using {Set};
+import Anoma.Resource open;
+import Anoma.Identity open;
+import Anoma.Transaction open;
 
 import Resource.Error open;
 import Resource.Traits open;
 import Transaction.Traits open;
 
---- Transfers a ;Convertable; resource type to a receiver, if the calling ;KeyPair; is the owner.
+import AnomaHelpers open;
+
+--- Transfers a ;Convertable; resource type to a receiver, if the calling ;Identity; is the owner.
 --- The function returns a ;StandardError; if the ;Convertable; ;Resource;
 --- - is non-transferable
---- - is not owned by the calling ;KeyPair;.
+--- - is not owned by the calling ;Identity;.
 transfer
   {R}
+  {{Ord R}}
   {{Convertable R}}
   {{HasTransferability R}}
   {{HasOwner R}}
-  {{TransactionConvertable R R}}
-  (self : KeyPair)
+  {{ActionConvertable R R}}
+  (standardInputs : StandardInputs)
   (toTransfer : R)
-  (receiver : PublicKey)
+  (receiver : ExternalIdentity)
   : Result StandardError Transaction :=
   let
-    myself : PublicKey := KeyPair.pubKey self;
-    nk : PrivateKey := KeyPair.privKey self;
-    owner : PublicKey := HasOwner.get toTransfer;
+    self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
+    owner : ExternalIdentity := HasOwner.get toTransfer;
     transferred : R := HasOwner.set receiver toTransfer;
   in case HasTransferability.get toTransfer of
        | NonTransferable := throw mkNonTransferableError
        | Transferable :=
-         case owner == myself of
+         case owner == self of
            | false :=
              throw
                mkUnauthorizedError@{
-                 expected := myself;
+                 expected := self;
                  actual := owner
                }
-           | true := ok (TransactionConvertable.toTransaction nk [toTransfer] [transferred]);
+           | true :=
+             ok
+               mkTransactionHelper@{
+                 roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+                 actions :=
+                   Set.singleton
+                     (ActionConvertable.toAction
+                       standardInputs
+                       (Set.singleton toTransfer)
+                       (Set.singleton transferred))
+               };
