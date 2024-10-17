@@ -103,16 +103,9 @@ cappedSupplyLogic
   : Bool := failwith "NOT IMPLEMENTED";
 
 transferLogic (self : Resource) (tag : Logic.Tag) (publicInputs : Logic.Instance) : Bool :=
-  let
-    signer :=
-      -- TODO Use ownership standard here.
-        self
-        |> Resource.nullifierKeyCommitment
-        |> NullifierKeyCommitment.unNullifierKeyCommitment
-        |> mkExternalIdentity;
-  in isTransferable self
+  isTransferable self
     && isAuthorizedBy@{
-      signer;
+      signer := HasOwner.get self;
       origin := tag;
       publicInputs
     };

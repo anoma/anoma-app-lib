@@ -4,8 +4,7 @@ import Stdlib.Prelude open;
 import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
 
 import Anoma.Resource open;
-import Anoma.Identity.External open;
-
+import Anoma.Identity open;
 import AnomaHelpers open;
 
 import Resource.Traits open;
@@ -14,6 +13,7 @@ import Token.Logic open;
 import Anoma.Builtin.System open;
 import Anoma.Utils open;
 
+import Authorization.Identities open;
 import Randomness open;
 
 module Token;
@@ -22,7 +22,7 @@ module Token;
   create
     (quantity : Quantity)
     (tokenLabel : TokenLabel)
-    (nullifierKeyCommitment : NullifierKeyCommitment)
+    (owner : Identity)
     {ephemeral : Bool := false}
     : Token :=
     mk
@@ -30,10 +30,10 @@ module Token;
         logicRef :=
           Ref.toRef (tokenLogic (TokenLabel.supply tokenLabel) (TokenLabel.originator tokenLabel));
         labelRef := Ref.toRef (tokenLabel |> anomaEncode |> mkLabel);
-        valueRef := Ref.toRef (mkValue 0);
+        valueRef := Ref.toRef (owner |> Identity.external |> anomaEncode |> mkValue);
         quantity;
         ephemeral;
-        nullifierKeyCommitment;
+        nullifierKeyCommitment := toNullifierKeyCommitment owner;
         nonce := mkNonce rand;
         randSeed := mkRandSeed rand
       };
@@ -78,7 +78,22 @@ instance
 Token-HasQuantity : HasQuantity Token := FromConvertable.hasQuantity {Token};
 
 instance
-Token-HasOwner : HasOwner Token := FromConvertable.hasOwner {Token};
+Token-HasOwner : HasOwner Token :=
+  mkHasOwner@{
+    get (token : Token) : ExternalIdentity :=
+      token
+        |> Convertable.toResource
+        |> Resource.valueRef
+        |> Ref.fromRef
+        |> Value.unValue
+        |> anomaDecode;
+    set (owner : ExternalIdentity) (token : Token) : Token :=
+      (token |> Convertable.toResource)@Resource{valueRef := owner
+          |> anomaEncode
+          |> mkValue
+          |> Ref.toRef}
+        |> Convertable.fromResource
+  };
 
 instance
 Token-HasEphemerality : HasEphemerality Token := FromConvertable.hasEphemerality {Token};

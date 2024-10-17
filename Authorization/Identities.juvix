@@ -22,11 +22,14 @@ toNullifierKey (identity : Identity) : NullifierKey :=
   identity
     |> Identity.internal
     |> InternalIdentity.unInternalIdentity
-    |> salt "NullifierKey"
+    -- TODO remove
+    -- |> salt "NullifierKey"
     |> mkNullifierKey;
 
 toNullifierKeyCommitment (identity : Identity) : NullifierKeyCommitment :=
-  identity |> toNullifierKey |> NullifierKey.unNullifierKey |> sha256 |> mkNullifierKeyCommitment;
+  identity |> Identity.external |> ExternalIdentity.unExternalIdentity |> mkNullifierKeyCommitment;
+-- TODO remove
+-- |> toNullifierKey |> NullifierKey.unNullifierKey |> sha256 |> mkNullifierKeyCommitment;
 
 --- The ;Identity; generated from the seed `0x0000000000000000000000000000000000000000000000000000000000000000`
 --- (see, e.g., https://cyphr.me/ed25519_tool/ed.html) in little-endian byte order.
