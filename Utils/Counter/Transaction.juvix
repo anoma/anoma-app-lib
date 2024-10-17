@@ -16,17 +16,20 @@ import Utils.Dummy.Resource open;
 import Utils.Counter.Label open;
 import Utils.Counter.Resource open;
 
+import AnomaHelpers open;
+
 --- Requires a consumable `Utils.Dummy.Resource`.
 createCounter
   (standardInputs : StandardInputs)
   (consumableDummy : Resource)
   : Result StandardError Transaction :=
   let
-    nullifierKeyCommitment := standardInputs |> StandardInputs.identity |> toNullifierKeyCommitment;
+    identity := StandardInputs.identity standardInputs;
     nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey;
     ephDummy : Resource :=
-      mkDummy@{
-        nullifierKeyCommitment;
+      alwaysValidResource@{
+        quantity := 1;
+        identity;
         ephemeral := true
       };
   in if
@@ -39,14 +42,14 @@ createCounter
       let
         ephCounter : Resource :=
           mkCounter@{
-            nullifierKeyCommitment;
+            identity;
             ephemeral := true;
             uniqueLabel := mkCounterLabel (nullifier nullifierKey consumableDummy);
             count := 0
           };
         newCounter :=
           mkCounter@{
-            nullifierKeyCommitment := Universal.nullifierKeyCommitment;
+            identity := Universal.identity;
             ephemeral := false;
             uniqueLabel := mkCounterLabel (nullifier (Universal.nullifierKey) consumableDummy);
             count := 0
@@ -55,44 +58,42 @@ createCounter
         mkTransactionHelper@{
           roots := Set.fromList [StandardInputs.currentRoot standardInputs];
           actions :=
-            Set.fromList
-              [ mkActionHelper@{
-                nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey;
-                consumed := [consumableDummy; ephCounter];
-                created := [ephDummy; newCounter];
-                appData := Set.empty
+            Set.singleton
+              mkActionHelper@{
+                identity := StandardInputs.identity standardInputs;
+                consumed := Set.fromList [consumableDummy; ephCounter];
+                created := Set.fromList [ephDummy; newCounter];
+                appData := Set.empty;
+                customInputs := Set.empty
               }
-              ]
         };
 
 incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) : Transaction :=
   let
     updatedCounter : Resource :=
       mkCounter@{
-        nullifierKeyCommitment := Universal.nullifierKeyCommitment;
+        identity := Universal.identity;
         ephemeral := false;
         uniqueLabel := get currentCounter;
         count :=
           (currentCounter |> Resource.valueRef |> Ref.fromRef |> Value.unValue |> anomaDecode) + 1
       };
     appData :=
-      Set.fromList
-        [ mkResourceRelationshipAppDataMapEntry@{
-          nullifierKey := Universal.nullifierKey;
-          origin := currentCounter;
-          mustBeConsumed := [];
-          mustBeCreated := [updatedCounter]
-        }
-        ];
+      mkResourceRelationshipAppData@{
+        identity := Universal.identity;
+        origins := Set.singleton currentCounter;
+        mustBeConsumed := Set.empty;
+        mustBeCreated := Set.singleton updatedCounter
+      };
   in mkTransactionHelper@{
     roots := Set.fromList [StandardInputs.currentRoot standardInputs];
     actions :=
-      Set.fromList
-        [ mkActionHelper@{
-          nullifierKey := Universal.nullifierKey;
-          consumed := [currentCounter];
-          created := [updatedCounter];
-          appData
+      Set.singleton
+        mkActionHelper@{
+          identity := Universal.identity;
+          consumed := Set.singleton currentCounter;
+          created := Set.singleton updatedCounter;
+          appData;
+          customInputs := Set.empty
         }
-        ]
   };

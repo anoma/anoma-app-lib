@@ -1,6 +1,7 @@
 module Transaction.Transfer;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
 import Anoma.Resource open;
 import Anoma.Identity open;
 import Anoma.Transaction open;
@@ -17,10 +18,11 @@ import AnomaHelpers open;
 --- - is not owned by the calling ;Identity;.
 transfer
   {R}
+  {{Ord R}}
   {{Convertable R}}
   {{HasTransferability R}}
   {{HasOwner R}}
-  {{TransactionConvertable R R}}
+  {{ActionConvertable R R}}
   (standardInputs : StandardInputs)
   (toTransfer : R)
   (receiver : ExternalIdentity)
@@ -40,4 +42,13 @@ transfer
                  actual := owner
                }
            | true :=
-             ok (TransactionConvertable.toTransaction standardInputs [toTransfer] [transferred]);
+             ok
+               mkTransactionHelper@{
+                 roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+                 actions :=
+                   Set.singleton
+                     (ActionConvertable.toAction
+                       standardInputs
+                       (Set.singleton toTransfer)
+                       (Set.singleton transferred))
+               };

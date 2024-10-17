@@ -1,6 +1,8 @@
 module Transaction.Split;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
+
 import Anoma.Resource open;
 import Anoma.Identity open;
 import Anoma.Transaction open;
@@ -18,13 +20,15 @@ import AnomaHelpers open;
 --- - or quantities do not balance.
 split
   {R}
+  {{Ord R}}
   {{Convertable R}}
   {{HasOwner R}}
   {{HasQuantity R}}
   {{HasTransferability R}}
-  {{TransactionConvertable R R}}
+  {{ActionConvertable R R}}
   (standardInputs : StandardInputs)
   (toSplit : R)
+  -- TODO refactor
   (quantitiesAndReceivers : List (Pair Quantity ExternalIdentity))
   : Result StandardError Transaction :=
   let
@@ -34,9 +38,10 @@ split
     sum : Quantity := listFor (acc := 0) (quantity, _ in quantitiesAndReceivers) {quantity + acc};
 
     balance := HasQuantity.get toSplit;
-    created : List R :=
-      map (quantity, receiver in quantitiesAndReceivers)
-        {toSplit |> HasOwner.set receiver |> HasQuantity.set quantity};
+    created : Set R :=
+      Set.fromList
+        (map (quantity, receiver in quantitiesAndReceivers)
+          {toSplit |> HasOwner.set receiver |> HasQuantity.set quantity});
   in case HasTransferability.get toSplit of
        | NonTransferable := throw mkNonTransferableError
        | Transferable :=
@@ -55,4 +60,14 @@ split
                      limit := balance;
                      actual := sum
                    }
-               | true := ok (TransactionConvertable.toTransaction standardInputs [toSplit] created);
+               | true :=
+                 ok
+                   mkTransactionHelper@{
+                     roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+                     actions :=
+                       Set.singleton
+                         (ActionConvertable.toAction
+                           standardInputs
+                           (Set.singleton toSplit)
+                           (created))
+                   };

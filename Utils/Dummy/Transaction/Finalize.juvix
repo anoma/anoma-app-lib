@@ -17,10 +17,11 @@ finalize (standardInputs : StandardInputs) (dummy : Resource) : Transaction :=
     actions :=
       Set.fromList
         [ mkActionHelper@{
-          nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey;
-          consumed := [dummy];
-          created := [dummy@Resource{ephemeral := true}];
-          appData := Set.empty
+          identity :=  StandardInputs.identity standardInputs;
+          consumed := Set.fromList [dummy];
+          created := Set.fromList [dummy@Resource{ephemeral := true}];
+          appData := Set.empty;
+          customInputs := Set.empty
         }
         ]
   };

@@ -4,25 +4,24 @@ import Stdlib.Prelude open;
 import Anoma.Resource open;
 import Anoma.Utils open;
 import Anoma.Builtin.System open;
+import Anoma.Identity open;
 import AnomaHelpers open;
 
 import Utils.Counter.Logic open;
 import Utils.Counter.Label open;
 
+import Authorization.Identities open;
+import Randomness open;
+
 mkCounter
-  (nullifierKeyCommitment : NullifierKeyCommitment)
-  (ephemeral : Bool)
-  (uniqueLabel : CounterLabel)
-  (count : Nat)
-  : Resource :=
+  (identity : Identity) (ephemeral : Bool) (uniqueLabel : CounterLabel) (count : Nat) : Resource :=
   mkResource@{
     logicRef := Ref.toRef counterLogic;
-    -- TODO refactor
-    labelRef := uniqueLabel |> anomaEncode |> mkLabel |> Ref.toRef;
-    valueRef := count |> mkValue |> Ref.toRef;
+    labelRef := Ref.toRef (uniqueLabel |> anomaEncode |> mkLabel);
+    valueRef := Ref.toRef (count |> mkValue);
     quantity := 1;
     ephemeral;
-    nullifierKeyCommitment;
+    nullifierKeyCommitment := toNullifierKeyCommitment identity;
     nonce := mkNonce rand;
     randSeed := mkRandSeed rand
   };

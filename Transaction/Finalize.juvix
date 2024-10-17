@@ -1,6 +1,7 @@
 module Transaction.Finalize;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
 import Anoma.Resource open;
 import Anoma.Transaction open;
 import Anoma.Identity open;
@@ -19,11 +20,12 @@ import Transaction.Traits open;
 --- - the supply type is ;Capped; which is not supported.
 finalize
   {R}
+  {{Ord R}}
   {{Convertable R}}
   {{HasOwner R}}
   {{HasSupply R}}
   {{HasEphemerality R}}
-  {{TransactionConvertable R R}}
+  {{ActionConvertable R R}}
   (standardInputs : StandardInputs)
   (toFinalize : R)
   : Result StandardError Transaction :=
@@ -42,7 +44,16 @@ finalize
     | else :=
       case HasSupply.get toFinalize of
         | Unbound :=
-          ok (TransactionConvertable.toTransaction standardInputs [toFinalize] [ephResource])
+          ok
+            mkTransactionHelper@{
+              roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+              actions :=
+                Set.singleton
+                  (ActionConvertable.toAction
+                    standardInputs
+                    (Set.singleton toFinalize)
+                    (Set.singleton ephResource))
+            }
         | Capped :=
           throw
             mkDefaultError@{

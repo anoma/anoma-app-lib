@@ -13,14 +13,13 @@ import Utils.Counter.Extra open;
 import Resource.Traits open;
 import Authorization.Identities open;
 
-counterLogic
-  (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
+counterLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
   let
     tag := Logic.Instance.tag publicInputs;
   in case tag of
        | Logic.Consumed nullifier :=
          let
-           -- TODO HOW TO FIX THIS?
+           -- TODO HOW TO FIX THIS? Lookup in customInputs
            nullifierKey :=
              Universal.internalIdentity |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
            resources := Logic.Witness.created privateInputs;
@@ -63,10 +62,7 @@ initializationLogic
 
 -- TODO use pattern matching
 incrementationLogic
-  (self : Resource)
-  (publicInputs : Logic.Instance)
-  (privateInputs : Logic.Witness)
-  : Bool :=
+  (self : Resource) (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
   case
     findCreatedCounter@{
       consumedCounter := self;

@@ -1,6 +1,8 @@
 module Transaction.Merge;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
+
 import Anoma.Resource open;
 import Anoma.Identity open;
 import Anoma.Transaction open;
@@ -17,12 +19,13 @@ import AnomaHelpers open;
 --- - are not owned by calling ;Identity;.
 merge
   {R}
+  {{Ord R}}
   {{Convertable R}}
   {{HasOwner R}}
   {{HasTransferability R}}
   {{HasQuantity R}}
   {{HasKind R}}
-  {{TransactionConvertable R R}}
+  {{ActionConvertable R R}}
   (standardInputs : StandardInputs)
   (toMerge : List R)
   (receiver : ExternalIdentity)
@@ -59,4 +62,13 @@ merge
                          actual := notMyself
                        }
                    | nothing :=
-                     ok (TransactionConvertable.toTransaction standardInputs toMerge [merged]);
+                     ok
+                       mkTransactionHelper@{
+                         roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+                         actions :=
+                           Set.singleton
+                             (ActionConvertable.toAction
+                               standardInputs
+                               (Set.fromList toMerge)
+                               (Set.singleton merged))
+                       };

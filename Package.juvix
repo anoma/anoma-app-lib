@@ -10,6 +10,6 @@ package : Package :=
       [ github "anoma" "juvix-stdlib" "v0.7.0"
       ; github "anoma" "juvix-containers" "v0.15.0"
       ; github "anoma" "juvix-test" "v0.15.0"
-      ; github "anoma" "juvix-arm-transparent" "27c20199f7876d04050ad3f4d5d41d98549b8933"
+      ; github "anoma" "juvix-arm-transparent" "4306e3b99f0d859c6f8e958502f4ada8804c7657"
       ]
   };

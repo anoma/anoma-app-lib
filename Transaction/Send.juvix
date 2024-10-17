@@ -22,11 +22,12 @@ import AnomaHelpers open;
 --- - the ;transfer; or ;split; functions return a ;StandardError;.
 send
   {R}
+  {{Ord R}}
   {{Convertable R}}
   {{HasOwner R}}
   {{HasQuantity R}}
   {{HasTransferability R}}
-  {{TransactionConvertable R R}}
+  {{ActionConvertable R R}}
   (standardInputs : StandardInputs)
   (toSend : R)
   (quantity : Quantity)

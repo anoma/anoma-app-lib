@@ -17,17 +17,19 @@ initialize (standardInputs : StandardInputs) (dummy : Resource) : Transaction :=
     actions :=
       Set.fromList
         [ mkActionHelper@{
-          nullifierKey := standardInputs |> StandardInputs.identity |> toNullifierKey;
+          identity := StandardInputs.identity standardInputs;
           consumed :=
-            [ dummy@Resource{
-              ephemeral := true;
-              nullifierKeyCommitment := standardInputs
-                |> StandardInputs.identity
-                |> toNullifierKeyCommitment
-            }
-            ];
-          created := [dummy];
-          appData := Set.empty
+            Set.fromList
+              [ dummy@Resource{
+                ephemeral := true;
+                nullifierKeyCommitment := standardInputs
+                  |> StandardInputs.identity
+                  |> toNullifierKeyCommitment
+              }
+              ];
+          created := Set.fromList [dummy];
+          appData := Set.empty;
+          customInputs := Set.empty
         }
         ]
   };

@@ -5,7 +5,7 @@ import Stdlib.Debug.Fail open using {failwith};
 import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
 
 import Authorization.Identities open;
-import Data.Set as Set open using {Set};
+import Data.Set as Set open using {Set; empty; size; insert; union; member?};
 import Data.Map as Map open using {Map};
 import Anoma.Identity open;
 import Anoma.Resource as Resource open;
@@ -15,6 +15,7 @@ import Anoma.Proving.Types open;
 import Anoma.Proving.DeltaProof as DeltaProof open;
 import Anoma.Proving.ComplianceProof as ComplianceProof open;
 import Anoma.Proving.LogicProof as LogicProof open;
+import Anoma.Proving.ProofRecord as GenericProofRecord open;
 import Anoma.Utils open;
 
 import Anoma.Delta as Delta open;
@@ -22,7 +23,13 @@ import Anoma.Builtin.System open;
 import Anoma.Builtin.ByteArray open;
 import Anoma.Proving.Types open;
 
+import Randomness open;
+import Utils.Dummy.Resource open;
 import Resource.Traits.Convertable open;
+
+module Set;
+  singleton {A} {{Ord A}} (a : A) : Set A := Set.insert a Set.empty;
+end;
 
 instance
 ExternalIdentity-Show : Show ExternalIdentity :=
@@ -44,6 +51,12 @@ Identity-Show : Show Identity :=
         ++str (id |> Identity.internal |> Show.show)
         ++str "}"};
 
+isCreated (commitment : Commitment) (publicInputs : Logic.Instance) : Bool :=
+  Set.member? commitment (Logic.Instance.commitments publicInputs);
+
+isConsumed (nullifier : Nullifier) (publicInputs : Logic.Instance) : Bool :=
+  Set.member? nullifier (Logic.Instance.nullifiers publicInputs);
+
 findCreatedResource (commitment : Commitment) (resources : Set Resource) : Maybe Resource :=
   find \ {resource := Resource.commitment resource == commitment} (Set.toList resources);
 
@@ -55,29 +68,6 @@ findConsumedResource
   : Maybe Resource :=
   find \ {resource := Resource.nullifier nullifierKey resource == nullifier} (Set.toList resources);
 
--- TODO Refactor
-isCreated (commitment : Commitment) (publicInputs : Logic.Instance) : Bool :=
-  Set.member? commitment (Logic.Instance.commitments publicInputs);
-
--- TODO Refactor
-isConsumed (nullifier : Nullifier) (publicInputs : Logic.Instance) : Bool :=
-  Set.member? nullifier (Logic.Instance.nullifiers publicInputs);
-
--- TODO Refactor.
-{-
-lifecycle (r : Resource) (tx : Transaction) : Lifecycle :=
-  let
-    rs := partitionResources tx;
-    consumed := ResourcePartition.consumed rs;
-    created := ResourcePartition.created rs;
-  in if
-    | elem (==) r consumed := Consumed
-    | elem (==) r created := Created
-    | else := Unknown;
--}
-
--- TODO refactor error handling.
--- TODO within action or
 isNullifierPresent
   (nullifier : Resource.Nullifier) (nullifierSet : Set Resource.Nullifier) : Bool :=
   Set.member? nullifier nullifierSet;
@@ -111,7 +101,6 @@ lookupAppData {Key Value : Type} (key : Key) (appData : AppData) : Maybe Value :
     (AppDataValue.unAppDataValue >> anomaDecode)
     (Map.lookup (anomaEncode key |> mkAppDataKey) appDataAsMap);
 
--- TODO refactor
 lookupCustomInputs
   {Key Value : Type} (key : Key) (customInputs : Logic.CustomInputs) : Maybe Value :=
   lookupAppData@{
@@ -124,58 +113,6 @@ type StandardInputs :=
     identity : Identity;
     currentRoot : CommitmentTree.Root
   };
-
-alwaysTrueLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool := true;
-
-emptyResource : Resource :=
-  mkResource@{
-    logicRef := Ref.toRef alwaysTrueLogic;
-    labelRef := Ref.toRef (mkLabel 0);
-    valueRef := Ref.toRef (mkValue 0);
-    quantity := 0;
-    ephemeral := true;
-    nullifierKeyCommitment := Universal.nullifierKeyCommitment;
-    nonce := mkNonce rand;
-    randSeed := mkRandSeed rand
-  };
-
-emptyDeltaProof : DeltaProof.ProofRecord :=
-  let
-    verifyingKey := Delta.mkVerifyingKey unit;
-    provingKey := Delta.mkProvingKey unit;
-    instance' := Delta.mkInstance unit;
-    witness := Delta.mkWitness unit;
-    proof := DeltaProof.prove provingKey instance' witness;
-  in verifyingKey, proof, instance';
-
-emptyLogicProof : LogicProof.ProofRecord :=
-  let
-    verifyingKey := Logic.mkVerifyingKey unit;
-    provingKey := Logic.mkProvingKey emptyResource;
-    instance' :=
-      Logic.mkInstance@{
-        tag := Logic.Created (commitment emptyResource);
-        commitments := Set.empty;
-        nullifiers := Set.empty;
-        appData := Set.empty
-      };
-    witness :=
-      Logic.mkWitness@{
-        created := Set.empty;
-        consumed := Set.empty;
-        customInputs := Set.empty
-      };
-    proof := LogicProof.prove provingKey instance' witness;
-  in verifyingKey, proof, instance';
-
-emptyComplianceProof : ComplianceProof.ProofRecord :=
-  let
-    verifyingKey := Compliance.mkVerifyingKey unit;
-    provingKey := Compliance.mkProvingKey unit;
-    instance' := Compliance.mkInstance unit;
-    witness := Compliance.mkWitness unit;
-    proof := ComplianceProof.prove provingKey instance' witness;
-  in verifyingKey, proof, instance';
 
 --- A function computing a ;Nullifier; from a ;Resource; and ;Logic.CustomInputs;.
 --- This expects ;NullifierKey; to be present in the ;Logic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
@@ -193,28 +130,162 @@ nullifierFromCustomInputs (customInputs : Logic.CustomInputs) : Resource -> Null
           }
     }};
 
-createDeltaProofRecord : DeltaProof.ProofRecord :=
-  let
-    verifyingKey := Delta.mkVerifyingKey unit;
-    -- TODO Should ;Delta.ProvingKey; be ;Delta;?
-    provingKey := Delta.mkProvingKey unit;
+computableComponentToResourceMap
+  {A} (f : Resource -> A) (resources : Set Resource) : Logic.CustomInputs :=
+  Set.fromList
+    (map
+      \ {r :=
+        mkAppDataEntry@{
+          key := r |> f |> anomaEncode |> mkAppDataKey;
+          value := r |> anomaEncode |> mkAppDataValue
+        }}
+      (Set.toList resources));
 
-    publicInputs := Delta.mkInstance unit;
-    privateInputs := Delta.mkWitness unit;
-    proof :=
-      DeltaProof.prove@{
-        provingKey;
-        publicInputs;
-        privateInputs
-      };
-  in verifyingKey, proof, publicInputs;
+module ProvingHelpers;
+  findProvingKey {T} (key : T) (customInputs : Logic.CustomInputs) : Logic.ProvingKey :=
+    case
+      lookupCustomInputs@{
+        key;
+        Value := Resource;
+        customInputs
+      }
+    of
+      | just resource := Logic.mkProvingKey resource
+      | nothing := failwith "this should never happen";
+
+  emptyResource : Resource :=
+    alwaysValidResource@{
+      quantity := 0;
+      identity := Universal.identity;
+      ephemeral := true
+    };
+
+  emptyLogicProof : LogicProof.ProofRecord :=
+    let
+      verifyingKey := Logic.mkVerifyingKey unit;
+      provingKey := Logic.mkProvingKey emptyResource;
+      instance' :=
+        Logic.mkInstance@{
+          tag := Logic.Created (commitment emptyResource);
+          commitments := Set.empty;
+          nullifiers := Set.empty;
+          appData := Set.empty
+        };
+      witness :=
+        Logic.mkWitness@{
+          created := Set.empty;
+          consumed := Set.empty;
+          customInputs := Set.empty
+        };
+      proof := LogicProof.prove provingKey instance' witness;
+    in verifyingKey, proof, instance';
+
+  createLogicProofRecord
+    (tag : Logic.Tag)
+    (publicInputs : Logic.Instance)
+    (privateInputs : Logic.Witness)
+    : GenericProofRecord.ProofRecord :=
+    let
+      customInputs := Logic.Witness.customInputs privateInputs;
+      provingKey :=
+        case tag of
+          | Logic.Consumed nf := findProvingKey nf customInputs
+          | Logic.Created cm := findProvingKey cm customInputs;
+      proof : Logic.Proof :=
+        LogicProof.prove@{
+          provingKey;
+          publicInputs;
+          privateInputs
+        };
+      verifyingKey := Logic.mkVerifyingKey unit;
+    in GenericProofRecord.Logic (verifyingKey, proof, publicInputs);
+
+  emptyComplianceProof : ComplianceProof.ProofRecord :=
+    let
+      verifyingKey := Compliance.mkVerifyingKey unit;
+      provingKey := Compliance.mkProvingKey unit;
+      publicInputs := Compliance.mkInstance unit;
+      privateInputs := Compliance.mkWitness unit;
+      proof :=
+        ComplianceProof.prove@{
+          provingKey;
+          publicInputs;
+          privateInputs
+        };
+    in verifyingKey, proof, publicInputs;
+
+  createComplianceProofRecord : GenericProofRecord.ProofRecord :=
+    GenericProofRecord.Compliance emptyComplianceProof;
+
+  emptyDeltaProof : DeltaProof.ProofRecord :=
+    let
+      verifyingKey := Delta.mkVerifyingKey unit;
+      provingKey := Delta.mkProvingKey unit;
+      publicInputs := Delta.mkInstance unit;
+      privateInputs := Delta.mkWitness unit;
+      proof :=
+        DeltaProof.prove@{
+          provingKey;
+          publicInputs;
+          privateInputs
+        };
+    in verifyingKey, proof, publicInputs;
+
+  -- TODO should this be the generic ProofRecord?
+  createDeltaProofRecord : DeltaProof.ProofRecord := emptyDeltaProof;
+end;
+
+open ProvingHelpers;
+
+mkActionHelper
+  (identity : Identity)
+  (consumed created : Set Resource)
+  (appData : AppData)
+  (customInputs : Logic.CustomInputs)
+  : Action :=
+  let
+    nullifiers := Set.fromList (map (nullifier (toNullifierKey identity)) (Set.toList consumed));
+    commitments := Set.fromList (map commitment (Set.toList created));
+
+    tags : Set Logic.Tag :=
+      Set.fromList
+        (map Logic.Consumed (Set.toList nullifiers) ++ map Logic.Created (Set.toList commitments));
+
+    logicProofs : Set GenericProofRecord.ProofRecord :=
+      for (acc := Set.empty) (tag in tags)
+        {Set.insert
+          createLogicProofRecord@{
+            tag;
+            publicInputs :=
+              Logic.mkInstance@{
+                tag;
+                commitments;
+                nullifiers;
+                appData
+              };
+            privateInputs :=
+              Logic.mkWitness@{
+                created;
+                consumed;
+                customInputs
+              }
+          }
+          acc};
+    complianceProofs : Set GenericProofRecord.ProofRecord :=
+      Set.fromList (replicate (size tags) (createComplianceProofRecord));
+  in mkAction@{
+    commitments;
+    nullifiers;
+    proofRecords := Set.union logicProofs complianceProofs;
+    appData
+  };
 
 mkTransactionHelper (roots : Set CommitmentTree.Root) (actions : Set Action) : Transaction :=
   mkTransaction@{
     roots;
     actions;
     delta := Delta.zero;
-    deltaProof := emptyDeltaProof
+    deltaProofRecord := emptyDeltaProof
   };
 
 emptyTx : Transaction :=
@@ -225,5 +296,3 @@ emptyTx : Transaction :=
 
 composeAll (txs : List Transaction) : Transaction :=
   for (acc := emptyTx) (tx in txs) {composeTransactions acc tx};
-
-rand : Nat := 0;

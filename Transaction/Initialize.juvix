@@ -20,11 +20,12 @@ import Authorization.Identities open;
 --- - the supply type is ;Capped; which is not supported.
 initialize
   {R}
+  {{Ord R}}
   {{Convertable R}}
   {{HasOwner R}}
   {{HasSupply R}}
   {{HasEphemerality R}}
-  {{TransactionConvertable R R}}
+  {{ActionConvertable R R}}
   (standardInputs : StandardInputs)
   (toInitialize : R)
   (maybeDummy : Maybe Resource)
@@ -33,7 +34,15 @@ initialize
     self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
     ephResource : R := HasEphemerality.set Ephemerality.Ephemeral (HasOwner.set self toInitialize);
     tx : Transaction :=
-      TransactionConvertable.toTransaction standardInputs [ephResource] [toInitialize];
+      mkTransactionHelper@{
+        roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+        actions :=
+          Set.singleton
+            (ActionConvertable.toAction
+              standardInputs
+              (Set.singleton ephResource)
+              (Set.singleton toInitialize))
+      };
   in case HasSupply.get toInitialize of
        | Unbound :=
          case maybeDummy of {

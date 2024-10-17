@@ -1,6 +1,8 @@
 module Transaction.Swap;
 
 import Stdlib.Prelude open;
+import Data.Set as Set open using {Set};
+
 import Anoma.Identity open;
 import Anoma.Resource open;
 import Anoma.Transaction open;
@@ -17,15 +19,16 @@ import Intent.Swap.Solution open;
 --- - not owned by the calling ;Identity;.
 swap
   {R I}
+  {{Ord R}}
+  {{Ord I}}
   {{Convertable R}}
   {{HasOwner R}}
   {{HasTransferability R}}
-  {{TransactionConvertable R I}}
+  {{ActionConvertable R I}}
   (standardInputs : StandardInputs)
   (toSwap : List R)
   (intent : I)
   : Result StandardError Transaction :=
-
   case toSwap of
     | nil :=
       throw
@@ -48,7 +51,16 @@ swap
                      actual := notMyself
                    }
                | nothing :=
-                 ok (TransactionConvertable.toTransaction standardInputs toSwap [intent]);
+                 ok
+                   mkTransactionHelper@{
+                     roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+                     actions :=
+                       Set.singleton
+                         (ActionConvertable.toAction
+                           standardInputs
+                           (Set.fromList toSwap)
+                           (Set.singleton intent))
+                   };
 
 --- Settles a ;List; of swap ;Transaction;s by composing them with
 --- ;Transaction;s obtained from a ;List; of ;Solution;s.
@@ -61,7 +73,7 @@ settle
   : Result StandardError Transaction :=
   let
     self : ExternalIdentity := standardInputs |> StandardInputs.identity |> Identity.external;
-    solutionTxs := map (Solution.toTransaction standardInputs) (solutions);
+    actions := Set.fromList (map (Solution.toAction standardInputs) (solutions));
   in case find ((/=) self) (map \ {s := HasOwner.get (Solution.intent s)} solutions) of
        | just notMyself :=
          throw
@@ -69,4 +81,9 @@ settle
              expected := self;
              actual := notMyself
            }
-       | nothing := ok (composeAll (txs ++ solutionTxs));
+       | nothing :=
+         ok
+           mkTransactionHelper@{
+             roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+             actions;
+           };
