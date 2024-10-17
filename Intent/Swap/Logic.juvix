@@ -20,79 +20,38 @@ swapIntentLogic
   : Bool :=
   let
     tag := Logic.Instance.tag publicInputs;
+    customInputs := Logic.Witness.customInputs privateInputs;
   in case tag of
        | Logic.Consumed nullifier :=
-         let
-           -- TODO HOW TO FIX THIS?
-           nullifierKey :=
-             Universal.internalIdentity |> InternalIdentity.unInternalIdentity |> mkNullifierKey;
-           resources := Logic.Witness.created privateInputs;
-           maybeSelf :=
-             findConsumedResource@{
-               nullifier;
-               nullifierKey;
-               resources
-             };
-         in case maybeSelf of {
-              | nothing := false
-              | just self :=
-                case HasEphemerality.get self of {
-                  | Ephemeral := true
-                  | NonEphemeral := false
-                }
-            }
+         case lookupResource nullifier customInputs of {
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of {
+               | Ephemeral := true
+               | NonEphemeral := false
+             }
+         }
        | Logic.Created commitment :=
-         let
-           resources := Logic.Witness.created privateInputs;
-           maybeSelf :=
-             findCreatedResource@{
-               commitment;
-               resources
-             };
-         in case maybeSelf of
-              | nothing := false
-              | just self :=
-                case HasEphemerality.get self of
-                  | NonEphemeral := true
-                  | Ephemeral :=
-                    case QuantifiedAssets.quantifier want of
+         case lookupResource commitment customInputs of
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of
+               | NonEphemeral := true
+               | Ephemeral :=
+                 let
+                   created := Logic.Witness.created privateInputs;
+                 in case QuantifiedAssets.quantifier want of
                       | Any :=
                         any (asset in QuantifiedAssets.assets want)
                           includesAsset@{
                             asset;
                             receiver;
-                            resources
+                            resources := created
                           }
                       | All :=
                         all (asset in QuantifiedAssets.assets want)
                           includesAsset@{
                             asset;
                             receiver;
-                            resources
+                            resources := created
                           };
-
-{-swapIntentLogic
-  (want : QuantifiedAssets) (receiver : ExternalIdentity) (self : Resource) (tx : Transaction) : Bool :=
-  case lifecycle self tx, HasEphemerality.get self of
-    | Created, Ephemeral :=
-      let
-        created := map commitment (Transaction tx);
-      in case QuantifiedAssets.quantifier want of {
-           | Any :=
-             any (asset in QuantifiedAssets.assets want)
-               includesAsset@{
-                 asset;
-                 receiver;
-                 resources := created
-               }
-           | All :=
-             all (asset in QuantifiedAssets.assets want)
-               includesAsset@{
-                 asset;
-                 receiver;
-                 resources := created
-               }
-         }
-    | Consumed, Ephemeral := true
-    | _, _ := false;
--}
