@@ -63,14 +63,11 @@ Identity-Show : Show Identity :=
         ++str (id |> Identity.internal |> Show.show)
         ++str "}"};
 
--- TODO remove if not used
-{-
 isCreated (commitment : Commitment) (publicInputs : Logic.Instance) : Bool :=
   Set.isMember commitment (Logic.Instance.commitments publicInputs);
 
 isConsumed (nullifier : Nullifier) (publicInputs : Logic.Instance) : Bool :=
   Set.isMember nullifier (Logic.Instance.nullifiers publicInputs);
--}
 
 isNullifierPresent
   (nullifier : Resource.Nullifier) (nullifierSet : Set Resource.Nullifier) : Bool :=
@@ -122,22 +119,6 @@ type StandardInputs :=
     currentRoot : CommitmentTree.Root
   };
 
---- A function computing a ;Nullifier; from a ;Resource; and ;Logic.CustomInputs;.
---- This expects ;NullifierKey; to be present in the ;Logic.CustomInputs; with the encoded ;Resource; plaintext as the lookup key.
---- If the entry is not present, the ;Universal.nullifierKey; is used instead.
-nullifierFromCustomInputs (customInputs : Logic.CustomInputs) : Resource -> Nullifier :=
-  \ {resource :=
-    nullifier@{
-      resource;
-      nullifierKey :=
-        fromMaybe
-          (Universal.nullifierKey)
-          lookupCustomInputs@{
-            key := resource;
-            customInputs
-          }
-    }};
-
 computableComponentToCustomInputs
   {A} (f : Resource -> A) (resources : Set Resource) : Logic.CustomInputs :=
   Set.map (r in resources)
@@ -146,12 +127,46 @@ computableComponentToCustomInputs
       value := r |> anomaEncode |> mkAppDataValue
     }};
 
--- TODO come up with better helper
+extractKeys {A} {{Ord A}} (customInputs : Logic.CustomInputs) : Set A :=
+  Set.map (key in Map.keys (AppDataMap.fromSet customInputs))
+    {key |> AppDataKey.unAppDataKey |> anomaDecode};
 
-resourceMapping (identity : Identity) (consumed created : Set Resource) : Logic.CustomInputs :=
-  Set.union
-    (computableComponentToCustomInputs commitment created)
-    (computableComponentToCustomInputs (nullifier (toNullifierKey identity)) consumed);
+toMapEntry {A} (k : A) (v : Resource) : AppDataEntry :=
+  mkAppDataEntry@{
+    key := k |> anomaEncode |> mkAppDataKey;
+    value := v |> anomaEncode |> mkAppDataValue
+  };
+
+type CommitmentsAndCustomInputs :=
+  mkCommitmentsAndCustomInputs@{
+    commitments : Set Commitment;
+    customInputs : Logic.CustomInputs
+  };
+
+commitmentToResourceMapping (created : Set Resource) : CommitmentsAndCustomInputs :=
+  let
+    created' := Set.toList created;
+    commitments' := map commitment created';
+  in mkCommitmentsAndCustomInputs@{
+    commitments := Set.fromList commitments';
+    customInputs := Set.fromList (zipWith toMapEntry commitments' created')
+  };
+
+type NullifiersAndCustomInputs :=
+  mkNullifiersAndCustomInputs@{
+    nullifiers : Set Nullifier;
+    customInputs : Logic.CustomInputs
+  };
+
+nullifierToResourceMapping
+  (identity : Identity) (consumed : Set Resource) : NullifiersAndCustomInputs :=
+  let
+    consumed' := Set.toList consumed;
+    nullifiers' := map (nullifier (toNullifierKey identity)) consumed';
+  in mkNullifiersAndCustomInputs@{
+    nullifiers := Set.fromList nullifiers';
+    customInputs := Set.fromList (zipWith toMapEntry nullifiers' consumed')
+  };
 
 module ProvingHelpers;
   findProvingKey {T} (key : T) (customInputs : Logic.CustomInputs) : Logic.ProvingKey :=
@@ -293,9 +308,9 @@ mkActionHelper
               customInputs
             }
         }};
-    -- TODO Problem. Proof duplicates will be deduplicated by ;Set;
+    -- NOTE: Proof replicas will be deduplicated by ;Set;
     complianceProofs : Set GenericProofRecord.ProofRecord :=
-      Set.fromList (replicate (size tags) (createComplianceProofRecord));
+      Set.map (_ in tags) {createComplianceProofRecord};
   in mkAction@{
     commitments;
     nullifiers;

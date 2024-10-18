@@ -19,6 +19,6 @@ type UID :=
 --- Returns the current UID of a counter ;Resource;.
 getUID (counter : Resource) : UID :=
   mkUID@{
-    id := counter |> Resource.valueRef |> Ref.fromRef |> Value.unValue |> anomaDecode;
+    id := counter |> Resource.valueRef |> Reference.from |> Value.unValue |> anomaDecode;
     uniqueKind := kind counter
   };

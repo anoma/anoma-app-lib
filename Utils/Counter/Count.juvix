@@ -4,9 +4,6 @@ import Stdlib.Prelude open;
 import Anoma.Resource open;
 import Anoma.Builtin.System open;
 
--- TODO refactor
--- TODO ValueRef contains the real value for now, until blob storage is available.
--- TODO -- |> anomaEncode |> anomaDecode is WRONG. ASK PAUL HOW TO DECODE DATA REF IF IT IS SUPPOSED TO BE OPAQUE
 getCount (resource : Resource) : Nat :=
   resource |> Resource.valueRef |> ValueRef.unValueRef |> anomaEncode |> anomaDecode;
 

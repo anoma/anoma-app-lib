@@ -19,9 +19,9 @@ module SwapIntent;
   create (want : QuantifiedAssets) (receiver solver : ExternalIdentity) : SwapIntent :=
     mk
       mkResource@{
-        logicRef := Ref.toRef (swapIntentLogic want receiver);
-        labelRef := Ref.toRef (mkLabel 0);
-        valueRef := Ref.toRef (mkValue 0);
+        logicRef := Reference.to (swapIntentLogic want receiver);
+        labelRef := Reference.to (mkLabel 0);
+        valueRef := Reference.to (mkValue 0);
         quantity := 1;
         ephemeral := true;
         nullifierKeyCommitment :=

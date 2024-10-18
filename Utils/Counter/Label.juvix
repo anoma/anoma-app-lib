@@ -5,7 +5,6 @@ import Anoma.Resource open;
 import Anoma.Builtin.System open;
 import Authorization.Identities open;
 
-
 -- TODO Make an unique trait that requires the label to contain an nullifier.
 type CounterLabel := mkCounterLabel@{nullifier : Nullifier};
 

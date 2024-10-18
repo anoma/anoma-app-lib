@@ -14,8 +14,8 @@ type HasLogic ResourceT :=
 instance
 Resource-HasLogic : HasLogic Resource :=
   mkHasLogic@{
-    get (resource : Resource) : Logic := resource |> Resource.logicRef |> Ref.fromRef;
+    get (resource : Resource) : Logic := resource |> Resource.logicRef |> Reference.from;
 
     set (logic : Logic) (resource : Resource) : Resource :=
-      resource@Resource{logicRef := Ref.toRef logic}
+      resource@Resource{logicRef := Reference.to logic}
   };

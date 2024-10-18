@@ -28,9 +28,10 @@ module Token;
     mk
       mkResource@{
         logicRef :=
-          Ref.toRef (tokenLogic (TokenLabel.supply tokenLabel) (TokenLabel.originator tokenLabel));
-        labelRef := Ref.toRef (tokenLabel |> anomaEncode |> mkLabel);
-        valueRef := Ref.toRef (owner |> Identity.external |> anomaEncode |> mkValue);
+          Reference.to
+            (tokenLogic (TokenLabel.supply tokenLabel) (TokenLabel.originator tokenLabel));
+        labelRef := Reference.to (tokenLabel |> anomaEncode |> mkLabel);
+        valueRef := Reference.to (owner |> Identity.external |> anomaEncode |> mkValue);
         quantity;
         ephemeral;
         nullifierKeyCommitment := toNullifierKeyCommitment owner;
@@ -70,7 +71,7 @@ Token-Convertable : Convertable Token :=
 kindFromTokenLabel (tokenLabel : TokenLabel) : Kind :=
   KindInternal.kind@{
     logicRef :=
-      Ref.toRef (tokenLogic (TokenLabel.supply tokenLabel) (TokenLabel.originator tokenLabel));
+      Reference.to (tokenLogic (TokenLabel.supply tokenLabel) (TokenLabel.originator tokenLabel));
     labelRef := toLabelRef tokenLabel
   };
 
@@ -84,14 +85,14 @@ Token-HasOwner : HasOwner Token :=
       token
         |> Convertable.toResource
         |> Resource.valueRef
-        |> Ref.fromRef
+        |> Reference.from
         |> Value.unValue
         |> anomaDecode;
     set (owner : ExternalIdentity) (token : Token) : Token :=
       (token |> Convertable.toResource)@Resource{valueRef := owner
           |> anomaEncode
           |> mkValue
-          |> Ref.toRef}
+          |> Reference.to}
         |> Convertable.fromResource
   };
 

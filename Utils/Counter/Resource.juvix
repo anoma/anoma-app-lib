@@ -16,9 +16,9 @@ import Randomness open;
 mkCounter
   (identity : Identity) (ephemeral : Bool) (uniqueLabel : CounterLabel) (count : Nat) : Resource :=
   mkResource@{
-    logicRef := Ref.toRef counterLogic;
-    labelRef := Ref.toRef (uniqueLabel |> anomaEncode |> mkLabel);
-    valueRef := Ref.toRef (count |> mkValue);
+    logicRef := Reference.to counterLogic;
+    labelRef := Reference.to (uniqueLabel |> anomaEncode |> mkLabel);
+    valueRef := Reference.to (count |> mkValue);
     quantity := 1;
     ephemeral;
     nullifierKeyCommitment := toNullifierKeyCommitment identity;
@@ -26,4 +26,4 @@ mkCounter
     randSeed := mkRandSeed rand
   };
 
-isCounter (resource : Resource) : Bool := Resource.logicRef resource == Ref.toRef counterLogic;
+isCounter (resource : Resource) : Bool := Resource.logicRef resource == Reference.to counterLogic;

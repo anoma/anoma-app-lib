@@ -46,7 +46,6 @@ module FromConvertable;
         HasEphemerality.set ephemerality (Convertable.toResource typed) |> Convertable.fromResource
     };
 
-  --- TODO Refactor. Ownership should be uncoupled from the nullifier key commitment.
   hasOwner {R} {{Convertable R}} : HasOwner R :=
     mkHasOwner@{
       get (typed : R) : ExternalIdentity := HasOwner.get (Convertable.toResource typed);

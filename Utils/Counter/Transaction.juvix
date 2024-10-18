@@ -46,16 +46,16 @@ createCounter
     consumed := Set.fromList [consumable; ephCounter];
     created := Set.fromList [ephConsumable; newCounter];
 
-    commitmentCustomInputs := computableComponentToCustomInputs commitment created;
-    nullifierCustomInputs :=
-      computableComponentToCustomInputs (nullifier (toNullifierKey identity)) consumed;
+    nfResMapping := nullifierToResourceMapping identity consumed;
+    cmResMapping := commitmentToResourceMapping created;
 
-    commitments :=
-      Set.map (key in Map.keys (AppDataMap.fromSet (commitmentCustomInputs)))
-        {anomaDecode (AppDataKey.unAppDataKey key)};
-    nullifiers :=
-      Set.map (key in Map.keys (AppDataMap.fromSet (nullifierCustomInputs)))
-        {anomaDecode (AppDataKey.unAppDataKey key)};
+    nullifiers := NullifiersAndCustomInputs.nullifiers nfResMapping;
+    commitments := CommitmentsAndCustomInputs.commitments cmResMapping;
+
+    customInputs :=
+      Set.union
+        (NullifiersAndCustomInputs.customInputs nfResMapping)
+        (CommitmentsAndCustomInputs.customInputs cmResMapping);
 
   in ok
     mkTransactionHelper@{
@@ -67,7 +67,7 @@ createCounter
             consumed;
             created;
             appData := Set.empty;
-            customInputs := Set.union commitmentCustomInputs nullifierCustomInputs;
+            customInputs;
             maybeNullifiers := just nullifiers;
             maybeCommitments := just commitments
           }
@@ -82,7 +82,8 @@ incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) :
         ephemeral := false;
         uniqueLabel := getCounterLabel currentCounter;
         count :=
-          (currentCounter |> Resource.valueRef |> Ref.fromRef |> Value.unValue |> anomaDecode) + 1
+          (currentCounter |> Resource.valueRef |> Reference.from |> Value.unValue |> anomaDecode)
+            + 1
       };
     consumed := Set.singleton currentCounter;
     created := Set.singleton updatedCounter;

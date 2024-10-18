@@ -75,19 +75,17 @@ module FromConvertable;
           consumed := Set.map (r in consumedResources) {Convertable.toResource r};
           created := Set.map (r in createdResources) {Convertable.toResource r};
 
-          commitmentCustomInputs := computableComponentToCustomInputs commitment created;
-          nullifierCustomInputs :=
-            computableComponentToCustomInputs (nullifier (toNullifierKey identity)) consumed;
+          nfResMapping := nullifierToResourceMapping identity consumed;
+          cmResMapping := commitmentToResourceMapping created;
 
-          commitments :=
-            Set.map (key in Map.keys (AppDataMap.fromSet (commitmentCustomInputs)))
-              {anomaDecode (AppDataKey.unAppDataKey key)};
-          nullifiers :=
-            Set.map (key in Map.keys (AppDataMap.fromSet (nullifierCustomInputs)))
-              {anomaDecode (AppDataKey.unAppDataKey key)};
+          nullifiers := NullifiersAndCustomInputs.nullifiers nfResMapping;
+          commitments := CommitmentsAndCustomInputs.commitments cmResMapping;
 
-          customInputs := Set.union commitmentCustomInputs commitmentCustomInputs;
-          -- TODO Raise juvix issue that `map (origin in consumed)` doesn't work. ("No trait instance found for Functor Set")
+          customInputs :=
+            Set.union
+              (NullifiersAndCustomInputs.customInputs nfResMapping)
+              (CommitmentsAndCustomInputs.customInputs cmResMapping);
+
           appData :=
             Set.map (nullifier in nullifiers)
               {mkResourceRelationshipAppDataEntry@{
