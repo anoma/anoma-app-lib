@@ -24,9 +24,9 @@ isAuthorizedBy
     | just (msg, sig) :=
       ResourceRelationship.origin msg == origin
         && verify sig msg signer
-        && isSubset
+        && Set.isSubset
           (ResourceRelationship.mustBeConsumed msg)
           (Logic.Instance.nullifiers publicInputs)
-        && isSubset
+        && Set.isSubset
           (ResourceRelationship.mustBeCreated msg)
           (Logic.Instance.commitments publicInputs);

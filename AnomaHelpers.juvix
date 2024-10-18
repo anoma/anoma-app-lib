@@ -29,6 +29,12 @@ import Resource.Traits.Convertable open;
 
 module Set;
   singleton {A} {{Ord A}} (a : A) : Set A := Set.insert a Set.empty;
+
+  syntax iterator map {init := 0; range := 1};
+  map {A B} {{Ord A}} {{Ord B}} (f : A -> B) (s : Set A) : Set B :=
+    s |> Set.toList |> Functor.map f |> Set.fromList;
+
+  isSubset {A} {{Ord A}} (sub sup : Set A) : Bool := all (x in Set.toList sub) Set.isMember x sup;
 end;
 
 module Map;
@@ -57,28 +63,18 @@ Identity-Show : Show Identity :=
         ++str (id |> Identity.internal |> Show.show)
         ++str "}"};
 
+-- TODO remove if not used
+{-
 isCreated (commitment : Commitment) (publicInputs : Logic.Instance) : Bool :=
   Set.isMember commitment (Logic.Instance.commitments publicInputs);
 
 isConsumed (nullifier : Nullifier) (publicInputs : Logic.Instance) : Bool :=
   Set.isMember nullifier (Logic.Instance.nullifiers publicInputs);
-
-findCreatedResource (commitment : Commitment) (resources : Set Resource) : Maybe Resource :=
-  find \ {resource := Resource.commitment resource == commitment} (Set.toList resources);
-
--- TODO where to get the nullifierKey from. Probably customInputs
-findConsumedResource
-  (nullifier : Nullifier)
-  (nullifierKey : NullifierKey)
-  (resources : Set Resource)
-  : Maybe Resource :=
-  find \ {resource := Resource.nullifier nullifierKey resource == nullifier} (Set.toList resources);
+-}
 
 isNullifierPresent
   (nullifier : Resource.Nullifier) (nullifierSet : Set Resource.Nullifier) : Bool :=
   Set.isMember nullifier nullifierSet;
-
-isSubset {A} {{Ord A}} (sub sup : Set A) : Bool := all (x in Set.toList sub) Set.isMember x sup;
 
 isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
   let
@@ -144,14 +140,13 @@ nullifierFromCustomInputs (customInputs : Logic.CustomInputs) : Resource -> Null
 
 computableComponentToCustomInputs
   {A} (f : Resource -> A) (resources : Set Resource) : Logic.CustomInputs :=
-  Set.fromList
-    (map
-      \ {r :=
-        mkAppDataEntry@{
-          key := r |> f |> anomaEncode |> mkAppDataKey;
-          value := r |> anomaEncode |> mkAppDataValue
-        }}
-      (Set.toList resources));
+  Set.map (r in resources)
+    {mkAppDataEntry@{
+      key := r |> f |> anomaEncode |> mkAppDataKey;
+      value := r |> anomaEncode |> mkAppDataValue
+    }};
+
+-- TODO come up with better helper
 
 resourceMapping (identity : Identity) (consumed created : Set Resource) : Logic.CustomInputs :=
   Set.union
@@ -265,39 +260,40 @@ mkActionHelper
   {maybeCommitments : Maybe (Set Commitment) := nothing}
   : Action :=
   let
+    nullifierKey := toNullifierKey identity;
     nullifiers :=
       case maybeNullifiers of
-        | nothing := Set.fromList (map (nullifier (toNullifierKey identity)) (Set.toList consumed))
+        | nothing := Set.map (r in consumed) {nullifier nullifierKey r}
         | just nullifiers := nullifiers;
     commitments :=
       case maybeCommitments of
-        | nothing := Set.fromList (map commitment (Set.toList created))
-        | just nullifiers := nullifiers;
+        | nothing := Set.map (r in created) {commitment r}
+        | just commitments := commitments;
 
     tags : Set Logic.Tag :=
-      Set.fromList
-        (map Logic.Consumed (Set.toList nullifiers) ++ map Logic.Created (Set.toList commitments));
+      Set.union
+        Set.map (nullifier in nullifiers) {Logic.Consumed nullifier}
+        Set.map (commitment in commitments) {Logic.Created commitment};
 
     logicProofs : Set GenericProofRecord.ProofRecord :=
-      for (acc := Set.empty) (tag in tags)
-        {Set.insert
-          createLogicProofRecord@{
-            tag;
-            publicInputs :=
-              Logic.mkInstance@{
-                tag;
-                commitments;
-                nullifiers;
-                appData
-              };
-            privateInputs :=
-              Logic.mkWitness@{
-                created;
-                consumed;
-                customInputs
-              }
-          }
-          acc};
+      Set.map (tag in tags)
+        {createLogicProofRecord@{
+          tag;
+          publicInputs :=
+            Logic.mkInstance@{
+              tag;
+              commitments;
+              nullifiers;
+              appData
+            };
+          privateInputs :=
+            Logic.mkWitness@{
+              created;
+              consumed;
+              customInputs
+            }
+        }};
+    -- TODO Problem. Proof duplicates will be deduplicated by ;Set;
     complianceProofs : Set GenericProofRecord.ProofRecord :=
       Set.fromList (replicate (size tags) (createComplianceProofRecord));
   in mkAction@{
@@ -321,5 +317,5 @@ emptyTx : Transaction :=
     actions := Set.empty
   };
 
-composeAll (txs : List Transaction) : Transaction :=
+composeAll (txs : Set Transaction) : Transaction :=
   for (acc := emptyTx) (tx in txs) {composeTransactions acc tx};

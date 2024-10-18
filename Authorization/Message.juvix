@@ -63,7 +63,7 @@ module FromConvertable;
 
   --- Creates an app data map entry for every consumed ;Convertable; ;Resource; of type `R1` with a ;ResourceRelationship; message and signature being stored at the consumed resources commitment  message. This message must be signed by the respective owner of the consumed resources and requires  all created ;Convertable; ;Resource; of type `R2` to be present in the ;Commitment; ;Set; of the transaction.
   actionWithAuthorizationAppData
-    {R1 R2} {{Convertable R1}} {{Convertable R2}} : ActionConvertable R1 R2 :=
+    {R1 R2} {{Ord R1}} {{Ord R2}} {{Convertable R1}} {{Convertable R2}} : ActionConvertable R1 R2 :=
     mkActionConvertable@{
       toAction
         (standardInputs : StandardInputs)
@@ -72,39 +72,31 @@ module FromConvertable;
         : Action :=
         let
           identity := StandardInputs.identity standardInputs;
-          consumed := Set.fromList (map Convertable.toResource (Set.toList consumedResources));
-          created := Set.fromList (map Convertable.toResource (Set.toList createdResources));
+          consumed := Set.map (r in consumedResources) {Convertable.toResource r};
+          created := Set.map (r in createdResources) {Convertable.toResource r};
 
           commitmentCustomInputs := computableComponentToCustomInputs commitment created;
           nullifierCustomInputs :=
             computableComponentToCustomInputs (nullifier (toNullifierKey identity)) consumed;
 
           commitments :=
-            Set.fromList
-              (map
-                (AppDataKey.unAppDataKey >> anomaDecode)
-                (commitmentCustomInputs |> AppDataMap.fromSet |> Map.keys |> Set.toList));
+            Set.map (key in Map.keys (AppDataMap.fromSet (commitmentCustomInputs)))
+              {anomaDecode (AppDataKey.unAppDataKey key)};
           nullifiers :=
-            Set.fromList
-              (map
-                (AppDataKey.unAppDataKey >> anomaDecode)
-                (nullifierCustomInputs |> AppDataMap.fromSet |> Map.keys |> Set.toList));
+            Set.map (key in Map.keys (AppDataMap.fromSet (nullifierCustomInputs)))
+              {anomaDecode (AppDataKey.unAppDataKey key)};
 
           customInputs := Set.union commitmentCustomInputs commitmentCustomInputs;
-          -- consumed := map (r in consumedResources) {Convertable.toResource r};
-          -- created := map (r in createdResources) {Convertable.toResource r};
           -- TODO Raise juvix issue that `map (origin in consumed)` doesn't work. ("No trait instance found for Functor Set")
           appData :=
-            for (acc := Set.empty) (nullifier in nullifiers)
-              {Set.insert
-                mkResourceRelationshipAppDataEntry@{
-                  identity;
-                  origin := Logic.Consumed nullifier;
-                  mustBeConsumed := Set.empty;
-                  mustBeCreated := commitments
-                }
-                acc};
-
+            Set.map (nullifier in nullifiers)
+              {mkResourceRelationshipAppDataEntry@{
+                identity;
+                origin := Logic.Consumed nullifier;
+                mustBeConsumed := Set.empty;
+                mustBeCreated := commitments
+              }};
+          appDataMap := AppDataMap.fromSet appData;
         in mkActionHelper@{
           identity;
           consumed;

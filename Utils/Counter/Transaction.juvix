@@ -1,6 +1,8 @@
 module Utils.Counter.Transaction;
 
 import Stdlib.Prelude open;
+import Stdlib.Debug.Fail open;
+import Stdlib.Debug.Trace open;
 import Stdlib.Data.Set as Set open using {Set};
 import Anoma.Resource open;
 import Anoma.Identity open;
@@ -43,9 +45,21 @@ createCounter
       };
     consumed := Set.fromList [consumable; ephCounter];
     created := Set.fromList [ephConsumable; newCounter];
+
+    commitmentCustomInputs := computableComponentToCustomInputs commitment created;
+    nullifierCustomInputs :=
+      computableComponentToCustomInputs (nullifier (toNullifierKey identity)) consumed;
+
+    commitments :=
+      Set.map (key in Map.keys (AppDataMap.fromSet (commitmentCustomInputs)))
+        {anomaDecode (AppDataKey.unAppDataKey key)};
+    nullifiers :=
+      Set.map (key in Map.keys (AppDataMap.fromSet (nullifierCustomInputs)))
+        {anomaDecode (AppDataKey.unAppDataKey key)};
+
   in ok
     mkTransactionHelper@{
-      roots := Set.fromList [StandardInputs.currentRoot standardInputs];
+      roots := Set.singleton (StandardInputs.currentRoot standardInputs);
       actions :=
         Set.singleton
           mkActionHelper@{
@@ -53,12 +67,9 @@ createCounter
             consumed;
             created;
             appData := Set.empty;
-            customInputs :=
-              resourceMapping@{
-                identity;
-                consumed;
-                created
-              }
+            customInputs := Set.union commitmentCustomInputs nullifierCustomInputs;
+            maybeNullifiers := just nullifiers;
+            maybeCommitments := just commitments
           }
     };
 
@@ -75,6 +86,7 @@ incrementCounter (standardInputs : StandardInputs) (currentCounter : Resource) :
       };
     consumed := Set.singleton currentCounter;
     created := Set.singleton updatedCounter;
+
   in mkTransactionHelper@{
     roots := Set.singleton (StandardInputs.currentRoot standardInputs);
     actions :=

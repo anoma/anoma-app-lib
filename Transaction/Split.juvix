@@ -28,7 +28,7 @@ split
   {{ActionConvertable R R}}
   (standardInputs : StandardInputs)
   (toSplit : R)
-  -- TODO refactor
+  -- TODO refactor, sets as inputs
   (quantitiesAndReceivers : List (Pair Quantity ExternalIdentity))
   : Result StandardError Transaction :=
   let
@@ -39,9 +39,8 @@ split
 
     balance := HasQuantity.get toSplit;
     created : Set R :=
-      Set.fromList
-        (map (quantity, receiver in quantitiesAndReceivers)
-          {toSplit |> HasOwner.set receiver |> HasQuantity.set quantity});
+      Set.map (quantity, receiver in Set.fromList quantitiesAndReceivers)
+        {toSplit |> HasOwner.set receiver |> HasQuantity.set quantity};
   in case HasTransferability.get toSplit of
        | NonTransferable := throw mkNonTransferableError
        | Transferable :=

@@ -1,7 +1,7 @@
 module Transaction.Swap;
 
 import Stdlib.Prelude open;
-import Stdlib.Data.Set as Set open using {Set};
+import Stdlib.Data.Set as Set open using {Set; insert};
 
 import Anoma.Identity open;
 import Anoma.Resource open;
@@ -83,7 +83,17 @@ settle
            }
        | nothing :=
          ok
-           mkTransactionHelper@{
-             roots := Set.singleton (StandardInputs.currentRoot standardInputs);
-             actions
-           };
+           (composeAll
+             (Set.fromList
+               (txs
+                 ++ [ mkTransactionHelper@{
+                      roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+                      actions
+                    }
+                    ])));
+-- ( composeAll (Set.insert
+--    mkTransactionHelper@{
+--      roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+--      actions
+--    }
+--    txs));
