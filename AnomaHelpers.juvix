@@ -335,8 +335,8 @@ emptyTx : Transaction :=
 composeAll (txs : Set Transaction) : Transaction :=
   for (acc := emptyTx) (tx in txs) {composeTransactions acc tx};
 
--
-axiom AnomaTransaction : Type;
+-- TODO Add method that replaces sets with lists everywhere.
+syntax alias AnomaTransaction := Transaction;
 
-toAnomaTransaction (tx : Transaction) : AnomaTransaction :=
-  failwith "toAnoma (tx : Transaction) : AnomaTransaction - NOT IMPLEMENTED";
+toAnomaTransaction (transaction : Transaction) : AnomaTransaction :=
+  failwith "toAnomaTransaction (transaction : Transaction) : AnomaTransaction - NOT IMPLEMENTED";
