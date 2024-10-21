@@ -334,3 +334,9 @@ emptyTx : Transaction :=
 
 composeAll (txs : Set Transaction) : Transaction :=
   for (acc := emptyTx) (tx in txs) {composeTransactions acc tx};
+
+-
+axiom AnomaTransaction : Type;
+
+toAnomaTransaction (tx : Transaction) : AnomaTransaction :=
+  failwith "toAnoma (tx : Transaction) : AnomaTransaction - NOT IMPLEMENTED";
