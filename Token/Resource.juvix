@@ -22,7 +22,7 @@ module Token;
   create
     (quantity : Quantity)
     (tokenLabel : TokenLabel)
-    (owner : Identity)
+    (owner : ExternalIdentity)
     {ephemeral : Bool := false}
     : Token :=
     mk
@@ -31,10 +31,10 @@ module Token;
           Reference.to
             (tokenLogic (TokenLabel.supply tokenLabel) (TokenLabel.originator tokenLabel));
         labelRef := Reference.to (tokenLabel |> anomaEncode |> mkLabel);
-        valueRef := Reference.to (owner |> Identity.external |> anomaEncode |> mkValue);
+        valueRef := Reference.to (owner |> anomaEncode |> mkValue);
         quantity;
         ephemeral;
-        nullifierKeyCommitment := toNullifierKeyCommitment owner;
+        nullifierKeyCommitment := ExternalIdentity.toNullifierKeyCommitment owner;
         nonce := mkNonce rand;
         randSeed := mkRandSeed rand
       };
