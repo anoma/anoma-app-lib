@@ -1,0 +1,26 @@
+module Applib.Utils.Dummy.Transaction.Finalize;
+
+import Stdlib.Prelude open;
+import Stdlib.Data.Set as Set open using {Set};
+
+import Anoma.Resource open;
+import Anoma.Transaction open;
+import Anoma.Identity open;
+import Applib.Helpers open;
+
+import Applib.Authorization.Identities open;
+import Applib.Utils.Dummy.Resource open;
+
+finalize (standardInputs : StandardInputs) (dummy : Resource) : Transaction :=
+  mkTransactionHelper@{
+    roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+    actions :=
+      Set.singleton
+        mkActionHelper@{
+          identity := StandardInputs.identity standardInputs;
+          consumed := Set.singleton dummy;
+          created := Set.singleton dummy@Resource{ephemeral := true};
+          appData := Set.empty;
+          customInputs := Set.empty
+        }
+  };

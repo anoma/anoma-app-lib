@@ -1,0 +1,24 @@
+module Applib.Utils.Dummy.Resource;
+
+import Stdlib.Prelude open;
+import Anoma.Resource open;
+import Anoma.Identity open;
+import Anoma.Utils open;
+import Anoma.Proving.Types open;
+
+import Applib.Random open;
+import Applib.Authorization.Identities open;
+
+alwaysValidLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool := true;
+
+alwaysValidResource (quantity : Quantity) (identity : Identity) (ephemeral : Bool) : Resource :=
+  mkResource@{
+    logicRef := Reference.to alwaysValidLogic;
+    labelRef := Reference.to (mkLabel 0);
+    valueRef := Reference.to (mkValue 0);
+    quantity;
+    ephemeral;
+    nullifierKeyCommitment := toNullifierKeyCommitment identity;
+    nonce := mkNonce rand;
+    randSeed := mkRandSeed rand
+  };

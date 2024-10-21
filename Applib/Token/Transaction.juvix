@@ -1,0 +1,20 @@
+module Applib.Token.Transaction;
+
+import Applib.Resource.Traits open;
+import Applib.Transaction.Traits open;
+
+import Applib.Token.Resource open;
+import Applib.Intent.Swap.Resource open;
+import Applib.Authorization.Message open;
+
+instance
+Token-Token-ActionConvertable : ActionConvertable Token Token :=
+  FromConvertable.actionWithAuthorizationAppData {Token} {Token};
+
+instance
+Token-SwapIntent-ActionConvertable : ActionConvertable Token SwapIntent :=
+  FromConvertable.actionWithAuthorizationAppData {Token} {SwapIntent};
+
+instance
+SwapIntent-Token-ActionConvertable : ActionConvertable SwapIntent Token :=
+  FromConvertable.actionWithAuthorizationAppData {SwapIntent} {Token};

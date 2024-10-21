@@ -1,0 +1,26 @@
+module Applib.Resource.Traits.Owner;
+
+import Stdlib.Prelude open;
+import Anoma.Resource open;
+import Anoma.Identity.External open;
+
+trait
+type HasOwner ResourceT :=
+  mkHasOwner@{
+    get : ResourceT -> ExternalIdentity;
+    set : ExternalIdentity -> ResourceT -> ResourceT
+  };
+
+instance
+Resource-HasOwner : HasOwner Resource :=
+  mkHasOwner@{
+    get (resource : Resource) : ExternalIdentity :=
+      resource
+        |> Resource.nullifierKeyCommitment
+        |> NullifierKeyCommitment.unNullifierKeyCommitment
+        |> mkExternalIdentity;
+    set (owner : ExternalIdentity) (resource : Resource) : Resource :=
+      resource@Resource{nullifierKeyCommitment := owner
+        |> ExternalIdentity.unExternalIdentity
+        |> mkNullifierKeyCommitment}
+  };
