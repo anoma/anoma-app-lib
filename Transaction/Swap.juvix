@@ -68,7 +68,7 @@ swap
 --- - the calling ;Identity; is not designated intent solver.
 settle
   (standardInputs : StandardInputs)
-  (txs : List Transaction)
+  (transactions : List Transaction)
   (solutions : List Solution)
   : Result StandardError Transaction :=
   let
@@ -85,7 +85,7 @@ settle
          ok
            (composeAll
              (Set.fromList
-               (txs
+               (transactions
                  ++ [ mkTransactionHelper@{
                       roots := Set.singleton (StandardInputs.currentRoot standardInputs);
                       actions

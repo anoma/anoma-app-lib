@@ -143,6 +143,12 @@ type CommitmentsAndCustomInputs :=
     customInputs : Logic.CustomInputs
   };
 
+type NullifiersAndCustomInputs :=
+  mkNullifiersAndCustomInputs@{
+    nullifiers : Set Nullifier;
+    customInputs : Logic.CustomInputs
+  };
+
 commitmentToResourceMapping (created : Set Resource) : CommitmentsAndCustomInputs :=
   let
     created' := Set.toList created;
@@ -150,12 +156,6 @@ commitmentToResourceMapping (created : Set Resource) : CommitmentsAndCustomInput
   in mkCommitmentsAndCustomInputs@{
     commitments := Set.fromList commitments';
     customInputs := Set.fromList (zipWith toMapEntry commitments' created')
-  };
-
-type NullifiersAndCustomInputs :=
-  mkNullifiersAndCustomInputs@{
-    nullifiers : Set Nullifier;
-    customInputs : Logic.CustomInputs
   };
 
 nullifierToResourceMapping
