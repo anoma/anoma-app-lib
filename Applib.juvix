@@ -2,4 +2,11 @@ module Applib;
 
 import Applib.Helpers as Helpers open public;
 import Applib.Random as Random open public;
+
+import Applib.Authorization as Authorization open public;
+import Applib.Intent as Intent open public;
+import Applib.Resource as Resource open public;
 import Applib.Transaction as Transaction open public;
+import Applib.Projection as Projection open public;
+import Applib.Token as Token open public;
+
