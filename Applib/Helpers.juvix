@@ -183,7 +183,7 @@ module ProvingHelpers;
   emptyResource : Resource :=
     alwaysValidResource@{
       quantity := 0;
-      identity := Universal.identity;
+      identity := Universal.externalIdentity;
       ephemeral := true
     };
 
