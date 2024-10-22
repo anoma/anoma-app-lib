@@ -76,7 +76,7 @@ kindFromTokenLabel (tokenLabel : TokenLabel) : Kind :=
   };
 
 instance
-Token-HasQuantity : HasQuantity Token := FromConvertable.hasQuantity {Token};
+Token-HasQuantity : HasQuantity Token := TraitFromConvertable.hasQuantity {Token};
 
 instance
 Token-HasOwner : HasOwner Token :=
@@ -97,13 +97,13 @@ Token-HasOwner : HasOwner Token :=
   };
 
 instance
-Token-HasEphemerality : HasEphemerality Token := FromConvertable.hasEphemerality {Token};
+Token-HasEphemerality : HasEphemerality Token := TraitFromConvertable.hasEphemerality {Token};
 
 instance
-Token-HasLogic : HasLogic Token := FromConvertable.hasLogic {Token};
+Token-HasLogic : HasLogic Token := TraitFromConvertable.hasLogic {Token};
 
 instance
-Token-HasKind : HasKind Token := FromConvertable.hasKind {Token};
+Token-HasKind : HasKind Token := TraitFromConvertable.hasKind {Token};
 
 instance
 Token-Label-HasLabel : HasLabel Token TokenLabel :=

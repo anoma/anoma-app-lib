@@ -57,14 +57,14 @@ SwapIntent-Convertable : Convertable SwapIntent :=
   };
 
 instance
-SwapIntent-HasQuantity : HasQuantity SwapIntent := FromConvertable.hasQuantity {SwapIntent};
+SwapIntent-HasQuantity : HasQuantity SwapIntent := TraitFromConvertable.hasQuantity {SwapIntent};
 
 instance
-SwapIntent-HasOwner : HasOwner SwapIntent := FromConvertable.hasOwner {SwapIntent};
+SwapIntent-HasOwner : HasOwner SwapIntent := TraitFromConvertable.hasOwner {SwapIntent};
 
 instance
 SwapIntent-HasEphemerality : HasEphemerality SwapIntent :=
-  FromConvertable.hasEphemerality {SwapIntent};
+  TraitFromConvertable.hasEphemerality {SwapIntent};
 
 instance
-SwapIntent-HasKind : HasKind SwapIntent := FromConvertable.hasKind {SwapIntent};
+SwapIntent-HasKind : HasKind SwapIntent := TraitFromConvertable.hasKind {SwapIntent};

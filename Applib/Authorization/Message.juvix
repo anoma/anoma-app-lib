@@ -57,7 +57,7 @@ mkResourceRelationshipAppDataEntry
            value := (msg, sig) |> anomaEncode |> mkAppDataValue
          };
 
-module FromConvertable;
+module ActionFromConvertable;
   import Applib.Resource.Traits.Convertable open;
   import Applib.Transaction.Traits open;
 
@@ -105,5 +105,4 @@ module FromConvertable;
           maybeCommitments := just commitments
         }
     };
-
 end;
