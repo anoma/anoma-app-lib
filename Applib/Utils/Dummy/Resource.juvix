@@ -11,14 +11,15 @@ import Applib.Authorization.Identities open;
 
 alwaysValidLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool := true;
 
-alwaysValidResource (quantity : Quantity) (identity : Identity) (ephemeral : Bool) : Resource :=
+alwaysValidResource
+  (quantity : Quantity) (identity : ExternalIdentity) {ephemeral : Bool := false} : Resource :=
   mkResource@{
     logicRef := Reference.to alwaysValidLogic;
     labelRef := Reference.to (mkLabel 0);
     valueRef := Reference.to (mkValue 0);
     quantity;
     ephemeral;
-    nullifierKeyCommitment := toNullifierKeyCommitment identity;
+    nullifierKeyCommitment := ExternalIdentity.toNullifierKeyCommitment identity;
     nonce := mkNonce rand;
     randSeed := mkRandSeed rand
   };
