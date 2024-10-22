@@ -1,0 +1,30 @@
+module Applib.Utils.Dummy.Test.Initialize;
+
+import Stdlib.Prelude open;
+import Stdlib.Debug.Fail open;
+
+import Anoma.Identity open;
+import Anoma.Resource open;
+import Anoma.Transaction open;
+import Anoma.State.CommitmentTree open;
+
+import Applib.Helpers open;
+import Applib.Authorization.Identities open;
+import Applib.Utils.Dummy.Resource open;
+import Applib.Utils.Dummy.Transaction.Initialize open;
+
+
+universal : Identity := Universal.identity;
+
+dummy : Resource :=
+  alwaysValidResource@{
+    quantity := 1;
+    identity := Identity.external universal
+  };
+
+standardInputs : StandardInputs := mkStandardInputs@{
+  identity := universal;
+  currentRoot := mkRoot 0
+};
+
+main : Transaction := initialize@{standardInputs; dummy};
