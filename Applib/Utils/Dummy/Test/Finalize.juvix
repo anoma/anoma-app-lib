@@ -16,13 +16,13 @@ import Applib.Utils.Dummy.Transaction.Finalize open;
 
 import Applib.Utils.Dummy.Test.Initialize open;
 
+oldRandSeed : RandSeed := mkRandSeed 0;
+
 dummyOld : Resource := dummy@Resource{randSeed := oldRandSeed};
 
 newRoot : Root := mkRoot 1;
 
 standardInputs' : StandardInputs := standardInputs@StandardInputs{currentRoot := newRoot};
-
-oldRandSeed : RandSeed := mkRandSeed 0;
 
 main : Transaction :=
   finalize@{
