@@ -1,0 +1,56 @@
+module Applib.Utils.Counter.Logic;
+
+import Stdlib.Prelude open;
+import Stdlib.Data.Set as Set open using {Set};
+
+import Anoma.Identity open;
+import Anoma.Resource open;
+import Anoma.Proving.Types open;
+import Applib.Helpers open;
+
+import Applib.Utils.Counter.Count open;
+import Applib.Utils.Counter.Label open;
+
+import Applib.Resource.Traits open;
+import Applib.Authorization.Identities open;
+
+counterLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
+  let
+    tag := Logic.Instance.tag publicInputs;
+    customInputs := Logic.Witness.customInputs privateInputs;
+  in case tag of
+       | Logic.Consumed nullifier :=
+         case lookupResource nullifier customInputs of {
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of {
+               | Ephemeral := initializationLogic nullifier self publicInputs
+               | NonEphemeral := incrementationLogic self publicInputs privateInputs
+             }
+         }
+       | Logic.Created commitment :=
+         case lookupResource commitment customInputs of
+           | nothing := false
+           | just self :=
+             case HasEphemerality.get self of
+               | Ephemeral := false
+               | NonEphemeral := true;
+
+initializationLogic
+  (nullifier : Nullifier) (self : Resource) (publicInputs : Logic.Instance) : Bool :=
+  HasQuantity.get self == 1
+    && isNullifierPresent@{
+      nullifier;
+      nullifierSet := Logic.Instance.nullifiers publicInputs
+    };
+
+incrementationLogic
+  (self : Resource) (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : Bool :=
+  case privateInputs |> Logic.Witness.created |> Set.toList of
+    | [foundCounter] :=
+      kind self == kind foundCounter
+        && isIncremented@{
+          old := self;
+          new := foundCounter
+        }
+    | _ := false;

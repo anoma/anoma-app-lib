@@ -1,0 +1,342 @@
+module Applib.Helpers;
+
+import Stdlib.Prelude open;
+import Stdlib.Debug.Fail open using {failwith};
+import Stdlib.Trait.Ord.Eq open using {fromOrdToEq};
+
+import Applib.Authorization.Identities open;
+import Stdlib.Data.Set as Set open using {Set; empty; size; insert; union; isMember};
+import Stdlib.Data.Map as Map open using {Map};
+import Anoma.Identity open;
+import Anoma.Resource as Resource open;
+import Anoma.Transaction as Transaction open;
+import Anoma.State.CommitmentTree as CommitmentTree open;
+import Anoma.Proving.Types open;
+import Anoma.Proving.DeltaProof as DeltaProof open;
+import Anoma.Proving.ComplianceProof as ComplianceProof open;
+import Anoma.Proving.LogicProof as LogicProof open;
+import Anoma.Proving.ProofRecord as GenericProofRecord open;
+import Anoma.Utils open;
+
+import Anoma.Delta as Delta open;
+import Anoma.Builtin.System open;
+import Anoma.Builtin.ByteArray open;
+import Anoma.Proving.Types open;
+
+import Applib.Random open;
+import Applib.Utils.Dummy.Resource open;
+import Applib.Resource.Traits.Convertable open;
+
+module Set;
+  singleton {A} {{Ord A}} (a : A) : Set A := Set.insert a Set.empty;
+
+  syntax iterator map {init := 0; range := 1};
+  map {A B} {{Ord A}} {{Ord B}} (f : A -> B) (s : Set A) : Set B :=
+    s |> Set.toList |> Functor.map f |> Set.fromList;
+
+  isSubset {A} {{Ord A}} (sub sup : Set A) : Bool := all (x in Set.toList sub) Set.isMember x sup;
+end;
+
+module Map;
+  keys {A} {B} {{Ord A}} (m : Map A B) : Set A := Set.fromList (map fst (Map.toList m));
+
+  values {A} {B} {{Ord B}} (m : Map A B) : Set B := Set.fromList (map snd (Map.toList m));
+end;
+
+instance
+ExternalIdentity-Show : Show ExternalIdentity :=
+  mkShow \ {id := id |> ExternalIdentity.unExternalIdentity |> toAnomaContents |> natToString};
+
+instance
+InternalIdentity-Show : Show InternalIdentity :=
+  mkShow \ {id := id |> InternalIdentity.unInternalIdentity |> toAnomaContents |> natToString};
+
+instance
+Identity-Show : Show Identity :=
+  mkShow
+    \ {id :=
+      "{"
+        ++str "external : "
+        ++str (id |> Identity.external |> Show.show)
+        ++str ", "
+        ++str "internal : "
+        ++str (id |> Identity.internal |> Show.show)
+        ++str "}"};
+
+isCreated (commitment : Commitment) (publicInputs : Logic.Instance) : Bool :=
+  Set.isMember commitment (Logic.Instance.commitments publicInputs);
+
+isConsumed (nullifier : Nullifier) (publicInputs : Logic.Instance) : Bool :=
+  Set.isMember nullifier (Logic.Instance.nullifiers publicInputs);
+
+isNullifierPresent
+  (nullifier : Resource.Nullifier) (nullifierSet : Set Resource.Nullifier) : Bool :=
+  Set.isMember nullifier nullifierSet;
+
+isSublist {A} {{Ord A}} (sub sup : List A) : Bool :=
+  let
+    sup' := Set.fromList sup;
+  in all (x in sub)
+       Set.isMember x sup';
+
+module AppDataMap;
+  fromSet (appDataSet : Set AppDataEntry) : Map AppDataKey AppDataValue :=
+    Map.fromList
+      (map (entry in Set.toList appDataSet) {AppDataEntry.key entry, AppDataEntry.value entry});
+
+  toSet (appDataMap : Map AppDataKey AppDataValue) : Set AppDataEntry :=
+    Set.fromList
+      (map (key, value in Map.toList appDataMap)
+        {mkAppDataEntry@{
+          key;
+          value
+        }});
+end;
+
+lookupAppData {Key Value : Type} (key : Key) (appData : AppData) : Maybe Value :=
+  let
+    appDataAsMap : Map AppDataKey AppDataValue := AppDataMap.fromSet appData;
+  in map
+    (AppDataValue.unAppDataValue >> anomaDecode)
+    (Map.lookup (anomaEncode key |> mkAppDataKey) appDataAsMap);
+
+lookupCustomInputs
+  {Key Value : Type} (key : Key) (customInputs : Logic.CustomInputs) : Maybe Value :=
+  lookupAppData@{
+    key;
+    appData := customInputs
+  };
+
+lookupResource {A} (key : A) (customInputs : Logic.CustomInputs) : Maybe Resource :=
+  lookupCustomInputs@{
+    key;
+    customInputs
+  };
+
+type StandardInputs :=
+  mkStandardInputs@{
+    identity : Identity;
+    currentRoot : CommitmentTree.Root
+  };
+
+computableComponentToCustomInputs
+  {A} (f : Resource -> A) (resources : Set Resource) : Logic.CustomInputs :=
+  Set.map (r in resources)
+    {mkAppDataEntry@{
+      key := r |> f |> anomaEncode |> mkAppDataKey;
+      value := r |> anomaEncode |> mkAppDataValue
+    }};
+
+extractKeys {A} {{Ord A}} (customInputs : Logic.CustomInputs) : Set A :=
+  Set.map (key in Map.keys (AppDataMap.fromSet customInputs))
+    {key |> AppDataKey.unAppDataKey |> anomaDecode};
+
+toMapEntry {A} (k : A) (v : Resource) : AppDataEntry :=
+  mkAppDataEntry@{
+    key := k |> anomaEncode |> mkAppDataKey;
+    value := v |> anomaEncode |> mkAppDataValue
+  };
+
+type CommitmentsAndCustomInputs :=
+  mkCommitmentsAndCustomInputs@{
+    commitments : Set Commitment;
+    customInputs : Logic.CustomInputs
+  };
+
+type NullifiersAndCustomInputs :=
+  mkNullifiersAndCustomInputs@{
+    nullifiers : Set Nullifier;
+    customInputs : Logic.CustomInputs
+  };
+
+commitmentToResourceMapping (created : Set Resource) : CommitmentsAndCustomInputs :=
+  let
+    created' := Set.toList created;
+    commitments' := map commitment created';
+  in mkCommitmentsAndCustomInputs@{
+    commitments := Set.fromList commitments';
+    customInputs := Set.fromList (zipWith toMapEntry commitments' created')
+  };
+
+nullifierToResourceMapping
+  (identity : Identity) (consumed : Set Resource) : NullifiersAndCustomInputs :=
+  let
+    consumed' := Set.toList consumed;
+    nullifiers' := map (nullifier (toNullifierKey identity)) consumed';
+  in mkNullifiersAndCustomInputs@{
+    nullifiers := Set.fromList nullifiers';
+    customInputs := Set.fromList (zipWith toMapEntry nullifiers' consumed')
+  };
+
+module ProvingHelpers;
+  findProvingKey {T} (key : T) (customInputs : Logic.CustomInputs) : Logic.ProvingKey :=
+    case
+      lookupCustomInputs@{
+        key;
+        Value := Resource;
+        customInputs
+      }
+    of
+      | just resource := Logic.mkProvingKey resource
+      | nothing := failwith "this should never happen";
+
+  emptyResource : Resource :=
+    alwaysValidResource@{
+      quantity := 0;
+      identity := Universal.externalIdentity;
+      ephemeral := true
+    };
+
+  emptyLogicProofRecord : LogicProof.ProofRecord :=
+    let
+      verifyingKey := Logic.mkVerifyingKey unit;
+      provingKey := Logic.mkProvingKey emptyResource;
+      publicInputs :=
+        Logic.mkInstance@{
+          tag := Logic.Created (commitment emptyResource);
+          commitments := Set.empty;
+          nullifiers := Set.empty;
+          appData := Set.empty
+        };
+      privateInputs :=
+        Logic.mkWitness@{
+          created := Set.empty;
+          consumed := Set.empty;
+          customInputs := Set.empty
+        };
+      proof := LogicProof.prove provingKey publicInputs privateInputs;
+    in LogicProof.mkProofRecord proof verifyingKey publicInputs;
+
+  createLogicProofRecord
+    (tag : Logic.Tag)
+    (publicInputs : Logic.Instance)
+    (privateInputs : Logic.Witness)
+    : GenericProofRecord.ProofRecord :=
+    let
+      customInputs := Logic.Witness.customInputs privateInputs;
+      provingKey :=
+        case tag of
+          | Logic.Consumed nf := findProvingKey nf customInputs
+          | Logic.Created cm := findProvingKey cm customInputs;
+      proof : Logic.Proof :=
+        LogicProof.prove@{
+          provingKey;
+          publicInputs;
+          privateInputs
+        };
+      verifyingKey := Logic.mkVerifyingKey unit;
+      proofRecord := LogicProof.mkProofRecord proof verifyingKey publicInputs;
+    in GenericProofRecord.Logic proofRecord;
+
+  emptyComplianceProofRecord : ComplianceProof.ProofRecord :=
+    let
+      verifyingKey := Compliance.mkVerifyingKey unit;
+      provingKey := Compliance.mkProvingKey unit;
+      publicInputs := Compliance.mkInstance unit;
+      privateInputs := Compliance.mkWitness unit;
+      proof :=
+        ComplianceProof.prove@{
+          provingKey;
+          publicInputs;
+          privateInputs
+        };
+    in ComplianceProof.mkProofRecord proof verifyingKey publicInputs;
+
+  createComplianceProofRecord : GenericProofRecord.ProofRecord :=
+    GenericProofRecord.Compliance emptyComplianceProofRecord;
+
+  emptyDeltaProofRecord : DeltaProof.ProofRecord :=
+    let
+      verifyingKey := Delta.mkVerifyingKey unit;
+      provingKey := Delta.mkProvingKey unit;
+      publicInputs := Delta.mkInstance unit;
+      privateInputs := Delta.mkWitness unit;
+      proof :=
+        DeltaProof.prove@{
+          provingKey;
+          publicInputs;
+          privateInputs
+        };
+    in DeltaProof.mkProofRecord proof verifyingKey publicInputs;
+
+  -- TODO should this be the generic ProofRecord?
+  createDeltaProofRecord : GenericProofRecord.ProofRecord :=
+    GenericProofRecord.Delta emptyDeltaProofRecord;
+end;
+
+open ProvingHelpers;
+
+mkActionHelper
+  (identity : Identity)
+  (consumed created : Set Resource)
+  (appData : AppData)
+  (customInputs : Logic.CustomInputs)
+  {maybeNullifiers : Maybe (Set Nullifier) := nothing}
+  {maybeCommitments : Maybe (Set Commitment) := nothing}
+  : Action :=
+  let
+    nullifierKey := toNullifierKey identity;
+    nullifiers :=
+      case maybeNullifiers of
+        | nothing := Set.map (r in consumed) {nullifier nullifierKey r}
+        | just nullifiers := nullifiers;
+    commitments :=
+      case maybeCommitments of
+        | nothing := Set.map (r in created) {commitment r}
+        | just commitments := commitments;
+
+    tags : Set Logic.Tag :=
+      Set.union
+        Set.map (nullifier in nullifiers) {Logic.Consumed nullifier}
+        Set.map (commitment in commitments) {Logic.Created commitment};
+
+    logicProofs : Set GenericProofRecord.ProofRecord :=
+      Set.map (tag in tags)
+        {createLogicProofRecord@{
+          tag;
+          publicInputs :=
+            Logic.mkInstance@{
+              tag;
+              commitments;
+              nullifiers;
+              appData
+            };
+          privateInputs :=
+            Logic.mkWitness@{
+              created;
+              consumed;
+              customInputs
+            }
+        }};
+    -- NOTE: Proof replicas will be deduplicated by ;Set;
+    complianceProofs : Set GenericProofRecord.ProofRecord :=
+      Set.map (_ in tags) {createComplianceProofRecord};
+  in mkAction@{
+    commitments;
+    nullifiers;
+    proofRecords := Set.union logicProofs complianceProofs;
+    appData
+  };
+
+mkTransactionHelper (roots : Set CommitmentTree.Root) (actions : Set Action) : Transaction :=
+  mkTransaction@{
+    roots;
+    actions;
+    delta := Delta.zero;
+    deltaProofRecord := createDeltaProofRecord
+  };
+
+emptyTx : Transaction :=
+  mkTransactionHelper@{
+    roots := Set.empty;
+    actions := Set.empty
+  };
+
+composeAll (txs : Set Transaction) : Transaction :=
+  for (acc := emptyTx) (tx in txs) {composeTransactions acc tx};
+
+-- TODO Add method that replaces sets with lists everywhere.
+syntax alias AnomaTransaction := Transaction;
+
+toAnomaTransaction (transaction : Transaction) : AnomaTransaction :=
+  failwith "toAnomaTransaction (transaction : Transaction) : AnomaTransaction - NOT IMPLEMENTED";
