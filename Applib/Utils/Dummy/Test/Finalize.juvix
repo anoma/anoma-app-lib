@@ -24,8 +24,9 @@ newRoot : Root := mkRoot 1;
 
 standardInputs' : StandardInputs := standardInputs@StandardInputs{currentRoot := newRoot};
 
-main : Transaction :=
-  finalize@{
-    standardInputs := standardInputs';
-    dummy := oldDummy
-  };
+main : AnomaTransaction :=
+  toAnomaTransaction
+    finalize@{
+      standardInputs := standardInputs';
+      dummy := oldDummy
+    };
