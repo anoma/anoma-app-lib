@@ -18,7 +18,7 @@ import Applib.Utils.Dummy.Test.Initialize open;
 
 oldRandSeed : RandSeed := mkRandSeed 0;
 
-dummyOld : Resource := dummy@Resource{randSeed := oldRandSeed};
+oldDummy : Resource := dummy@Resource{randSeed := oldRandSeed};
 
 newRoot : Root := mkRoot 1;
 
@@ -27,5 +27,5 @@ standardInputs' : StandardInputs := standardInputs@StandardInputs{currentRoot :=
 main : Transaction :=
   finalize@{
     standardInputs := standardInputs';
-    dummy := dummyOld
+    dummy := oldDummy
   };
