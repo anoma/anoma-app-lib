@@ -12,15 +12,16 @@ import Applib.Authorization.Identities open;
 import Applib.Utils.Dummy.Resource open;
 
 finalize (standardInputs : StandardInputs) (dummy : Resource) : Transaction :=
-  mkTransactionHelper@{
-    roots := Set.singleton (StandardInputs.currentRoot standardInputs);
-    actions :=
-      Set.singleton
-        mkActionHelper@{
-          identity := StandardInputs.identity standardInputs;
-          consumed := Set.singleton dummy;
-          created := Set.singleton dummy@Resource{ephemeral := true};
-          appData := Set.empty;
-          customInputs := Set.empty
-        }
-  };
+  "DEBUG: Evaluating `Applib.Utils.Dummy.Transaction.finalize`"
+    >-> mkTransactionHelper@{
+      roots := Set.singleton (StandardInputs.currentRoot standardInputs);
+      actions :=
+        Set.singleton
+          mkActionHelper@{
+            identity := StandardInputs.identity standardInputs;
+            consumed := Set.singleton dummy;
+            created := Set.singleton dummy@Resource{ephemeral := true};
+            appData := Set.empty;
+            customInputs := Set.empty
+          }
+    };
