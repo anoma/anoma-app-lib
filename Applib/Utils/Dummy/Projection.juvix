@@ -31,19 +31,19 @@ readValueField (dummyResources : Set Resource) : List String :=
               kind@{
                 resource
               };
-          in case currentKind == expectedKind of {
-               | true :=
-                 resource
-                   |> Resource.valueRef
-                   |> Reference.from
-                   |> Value.unValue
-                   |> anomaDecode
-                   |> ok
-               | false :=
-                 throw
-                   mkInvalidKindError@{
-                     expected := expectedKind;
-                     actual := currentKind
-                   }
-             }
-            |> fromResult};
+          in fromResult
+            case currentKind == expectedKind of {
+              | true :=
+                resource
+                  |> Resource.valueRef
+                  |> Reference.from
+                  |> Value.unValue
+                  |> anomaDecode
+                  |> ok
+              | false :=
+                throw
+                  mkInvalidKindError@{
+                    expected := expectedKind;
+                    actual := currentKind
+                  }
+            }};
