@@ -67,14 +67,6 @@ Token-Convertable : Convertable Token :=
       }
   };
 
--- TODO Refactor
-kindFromTokenLabel (tokenLabel : TokenLabel) : Kind :=
-  KindInternal.kind@{
-    logicRef :=
-      Reference.to (tokenLogic (TokenLabel.supply tokenLabel) (TokenLabel.originator tokenLabel));
-    labelRef := toLabelRef tokenLabel
-  };
-
 instance
 Token-HasQuantity : HasQuantity Token := TraitFromConvertable.hasQuantity {Token};
 

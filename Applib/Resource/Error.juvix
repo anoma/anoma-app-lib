@@ -171,7 +171,8 @@ UnauthorizedError-Show : Show UnauthorizedError :=
         ++str (e |> UnauthorizedError.actual |> Show.show)
         ++str "}"};
 
-txFromResult (result : Result StandardError Transaction) : Transaction :=
+fromResult
+  {ErrorType} {DataType} {{Show ErrorType}} (result : Result ErrorType DataType) : DataType :=
   case result of
-    | ok tx := tx
+    | ok data := data
     | error err := failwith (Show.show err);
