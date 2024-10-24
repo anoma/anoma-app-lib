@@ -17,7 +17,7 @@ type HasOwner ResourceT :=
   };
 
 --- The expected position of ownership information in the ;Value; map.
-ownershipStandardMapPosition : Nat := anomaEncode "Owner";
+ownershipStandardMapKey : Nat := anomaEncode "Owner";
 
 instance
 Resource-HasOwner : HasOwner Resource :=
@@ -26,8 +26,7 @@ Resource-HasOwner : HasOwner Resource :=
       let
         valueMap : Map Nat Nat :=
           resource |> Resource.valueRef |> Reference.from |> Value.unValue |> anomaDecode;
-        key := ownershipStandardMapPosition;
-      in case Map.lookup key valueMap of
+      in case Map.lookup ownershipStandardMapKey valueMap of
            | just value := anomaDecode value
            | nothing := Zero.externalIdentity;
 
@@ -35,8 +34,7 @@ Resource-HasOwner : HasOwner Resource :=
       let
         oldValueMap : Map Nat Nat :=
           resource |> Resource.valueRef |> Reference.from |> Value.unValue |> anomaDecode;
-        key := ownershipStandardMapPosition;
         value := anomaEncode owner;
-        newValueMap := Map.insert key value oldValueMap;
+        newValueMap := Map.insert ownershipStandardMapKey value oldValueMap;
       in resource@Resource{valueRef := newValueMap |> anomaEncode |> mkValue |> Reference.to}
   };
