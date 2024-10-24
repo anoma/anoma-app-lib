@@ -24,7 +24,7 @@ counterLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : B
            | nothing := false
            | just self :=
              case HasEphemerality.get self of {
-               | Ephemeral := initializationLogic nullifier self publicInputs
+               | Ephemeral := initializationLogic self publicInputs
                | NonEphemeral := incrementationLogic self publicInputs privateInputs
              }
          }
@@ -36,11 +36,10 @@ counterLogic (publicInputs : Logic.Instance) (privateInputs : Logic.Witness) : B
                | Ephemeral := false
                | NonEphemeral := true;
 
-initializationLogic
-  (nullifier : Nullifier) (self : Resource) (publicInputs : Logic.Instance) : Bool :=
+initializationLogic (self : Resource) (publicInputs : Logic.Instance) : Bool :=
   HasQuantity.get self == 1
     && isNullifierPresent@{
-      nullifier;
+      nullifier := getNullifierfFromLabel self;
       nullifierSet := Logic.Instance.nullifiers publicInputs
     };
 
